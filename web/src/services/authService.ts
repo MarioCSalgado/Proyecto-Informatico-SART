@@ -13,10 +13,15 @@ export async function iniciarSesion(correo: string, contrasena: string): Promise
     } catch (error) {
         if (axios.isAxiosError(error)) {
             if (error.response?.status === 404) {
-                throw new ErrorInicioSesion("El inicio de sesión todavía no está disponible (actividad 8).");
+                throw new ErrorInicioSesion("No se encontró el servicio de inicio de sesión. ¿Está corriendo la API?");
             }
             if (error.response?.status === 401) {
                 throw new ErrorInicioSesion("Correo o contraseña incorrectos.");
+            }
+            const detalle = (error.response?.data as { detail?: unknown } | undefined)?.detail;
+            if (error.response?.status === 403 && typeof detalle === "string") {
+                // p. ej. administradores sin MFA (RNF-S-1): la API explica el motivo
+                throw new ErrorInicioSesion(detalle);
             }
             if (!error.response) {
                 throw new ErrorInicioSesion("No se pudo conectar con el servidor. Intente nuevamente.");

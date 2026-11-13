@@ -36,7 +36,14 @@ Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), P
    npm run build && npm run lint && npx vitest run
    npm run dev
    ```
-   Abrir http://localhost:5173.
+   Abrir http://localhost:5173. La web llama a `/api/...` y Vite lo reenvía a la API en el puerto 8000.
+5. **Cuenta para entrar** (en `backend/`; pide la contraseña, mínimo 12 caracteres):
+   ```bash
+   .venv/Scripts/python -m sart.cuentas crear --nombre "Jefatura Demo" --correo jefatura@demo.sart \
+       --rol jefatura --acepta-finalidad
+   ```
+   `--acepta-finalidad` deja constancia de que la persona aceptó el uso de sus datos (RF-16). Las cuentas de
+   administrador aún no pueden entrar: requieren MFA, que se implementa después.
 
 ## Documentos
 

@@ -5,6 +5,16 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    // /api/auth/sesion → http://127.0.0.1:8000/auth/sesion. Mismo origen para la cookie httpOnly (RNF-S-1).
+    // 127.0.0.1 y no localhost: en Windows localhost prueba primero IPv6, donde uvicorn no escucha.
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        rewrite: (ruta) => ruta.replace(/^\/api/, ''),
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
