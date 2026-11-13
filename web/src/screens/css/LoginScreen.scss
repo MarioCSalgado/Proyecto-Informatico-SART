@@ -1,0 +1,103 @@
+// Adaptado de ing-software2 (licencia MIT, ver LICENSE-ing-software2).
+.login {
+    width: 100%;
+    max-width: 420px; 
+    height: auto;
+    overflow: hidden;
+    
+    background-color: #FDFCFB; 
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    
+    &__top {
+        width: 100%;
+        overflow: hidden;
+
+        padding: 32px 35px 0;
+        box-sizing: border-box;
+        text-align: center;
+
+        .login__titulo {
+            margin: 0;
+            font-family: "Manrope", sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            color: #1A2980;
+        }
+
+        .login__subtitulo {
+            margin: 4px 0 0;
+            font-family: "Public Sans", sans-serif;
+            font-size: 0.9rem;
+            color: #555;
+        }
+    }
+    
+    &__main {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: start;
+        align-items: center;
+        padding: 35px;
+        padding-top: 20px;
+        box-sizing: border-box;
+
+        p {
+            font-family: "Public Sans", sans-serif;
+            color: #555;
+            margin-top: 0px;
+            margin-bottom: 25px;
+        }
+
+        .username-input, .password-input {
+            width: 100%;
+            margin-bottom: 20px;
+
+            .MuiOutlinedInput-root {
+                border-radius: 10px;
+            }
+        }
+
+        .login-alert {
+            width: 90%;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            font-family: "Public Sans", sans-serif;
+        }
+
+        .login-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(135deg, #1A2980 0%, #26D0CE 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-family: "Manrope", sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 15px rgba(38, 208, 206, 0.3);
+            }
+
+            &:active {
+                transform: translateY(0);
+            }
+
+            &:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+                transform: none;
+                box-shadow: none;
+            }
+        }
+    }
+}
