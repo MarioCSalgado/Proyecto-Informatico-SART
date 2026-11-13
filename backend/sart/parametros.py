@@ -1,19 +1,20 @@
 """Lector de ``config/parametros.yaml`` (RNF-M-4, RF-9).
 
 Ningún supuesto (k, percentiles, minutos por atención, horarios, plazos de RB-2…) se escribe en el código:
-todo se lee de aquí. La ruta se toma de la variable de entorno ``SART_PARAMETROS``; si no está, se usa
-``config/parametros.yaml`` en la raíz del repositorio.
+todo se lee de aquí. La ruta se toma de ``SART_PARAMETROS`` (variable de entorno o ``.env``; si es relativa,
+se resuelve desde la raíz del repositorio); si no está, se usa ``config/parametros.yaml`` en la raíz.
 """
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-RUTA_POR_DEFECTO = Path(__file__).resolve().parents[2] / "config" / "parametros.yaml"
+from sart.configuracion import RAIZ_REPOSITORIO, obtener_configuracion
+
+RUTA_POR_DEFECTO = RAIZ_REPOSITORIO / "config" / "parametros.yaml"
 
 SECCIONES_OBLIGATORIAS = (
     "zona_horaria",
@@ -37,7 +38,10 @@ class ErrorParametros(Exception):
 
 def ruta_parametros() -> Path:
     """Ruta del archivo de parámetros: ``SART_PARAMETROS`` o la ruta por defecto."""
-    return Path(os.environ.get("SART_PARAMETROS", RUTA_POR_DEFECTO))
+    ruta = obtener_configuracion().sart_parametros
+    if ruta is None:
+        return RUTA_POR_DEFECTO
+    return ruta if ruta.is_absolute() else RAIZ_REPOSITORIO / ruta
 
 
 def cargar_parametros(ruta: str | Path | None = None) -> dict[str, Any]:

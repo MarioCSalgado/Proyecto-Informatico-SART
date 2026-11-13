@@ -6,12 +6,11 @@ Por ahora solo expone ``GET /salud``, que comprueba de punta a punta que la API 
 
 from __future__ import annotations
 
-import os
-
 from fastapi import FastAPI
 from sqlalchemy import create_engine, text
 
 from sart import __version__
+from sart.configuracion import obtener_configuracion
 from sart.parametros import ErrorParametros, cargar_parametros
 
 app = FastAPI(title="SART", version=__version__)
@@ -26,7 +25,7 @@ def _revisar_parametros() -> str:
 
 
 def _revisar_base_de_datos() -> str:
-    url = os.environ.get("DATABASE_URL")
+    url = obtener_configuracion().database_url
     if not url:
         return "sin configurar (falta DATABASE_URL)"
     try:
