@@ -20,7 +20,7 @@ describe('NivelAlerta (RNF-U-1)', () => {
   it.each([
     ['normal', 'Normal'],
     ['atencion', 'Atención'],
-    ['alerta', 'ALERTA'],
+    ['alerta', 'Alerta'],
   ] as const)('el nivel %s se muestra con texto, no solo con color', (nivel, texto) => {
     render(<NivelAlerta nivel={nivel} />)
     expect(screen.getByText(texto)).toBeInTheDocument()

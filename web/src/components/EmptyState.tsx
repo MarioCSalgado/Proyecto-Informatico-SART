@@ -1,19 +1,20 @@
+import InboxOutlinedIcon from '@mui/icons-material/InboxOutlined'
 import type { ReactNode } from 'react'
 
 type Props = {
-  icon?: string
+  icon?: ReactNode
   title: string
-  description?: string
+  description?: ReactNode
   action?: ReactNode
 }
 
-export function EmptyState({ icon = '📭', title, description, action }: Props) {
+export function EmptyState({ icon, title, description, action }: Props) {
   return (
-    <div className="empty-state">
-      <div className="empty-state-icon">{icon}</div>
-      <p className="empty-state-title">{title}</p>
-      {description && <p className="empty-state-desc">{description}</p>}
-      {action && <div className="empty-state-action">{action}</div>}
+    <div className="estado-vacio">
+      <div className="estado-vacio__icono" aria-hidden="true">{icon ?? <InboxOutlinedIcon />}</div>
+      <p className="estado-vacio__titulo">{title}</p>
+      {description && <p className="estado-vacio__descripcion">{description}</p>}
+      {action && <div className="estado-vacio__accion">{action}</div>}
     </div>
   )
 }

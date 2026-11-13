@@ -1,103 +1,80 @@
-// Adaptado de ing-software2 (licencia MIT, ver LICENSE-ing-software2).
-.login {
-    width: 100%;
-    max-width: 420px; 
-    height: auto;
-    overflow: hidden;
-    
-    background-color: #FDFCFB; 
-    border: none;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    
-    &__top {
-        width: 100%;
-        overflow: hidden;
+/* Inicio de sesión · diseño «Inicio de sesión · Escritorio» (panel azul a la izquierda, formulario a la derecha) */
 
-        padding: 32px 35px 0;
-        box-sizing: border-box;
-        text-align: center;
+.login { display: grid; grid-template-columns: minmax(0, 39fr) minmax(0, 61fr); min-height: 100vh; }
 
-        .login__titulo {
-            margin: 0;
-            font-family: "Manrope", sans-serif;
-            font-size: 2rem;
-            font-weight: 800;
-            color: #1A2980;
-        }
+/* ---------- Panel de portada ---------- */
+.portada {
+  display: flex; flex-direction: column; padding: 72px clamp(32px, 5vw, 88px) 48px;
+  background: var(--azul-noche); color: #fff;
+}
+.portada__centro { margin: auto 0; padding: 48px 0; }
+.portada__antetitulo {
+  color: var(--teal-claro); font-size: 0.88rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+}
+.portada__lema { font-size: clamp(2.2rem, 3.6vw, 3.6rem); font-weight: 600; line-height: 1.15; margin-top: 28px; }
+.portada__descripcion { color: rgba(255, 255, 255, 0.8); font-size: 1.15rem; margin-top: 28px; max-width: 34em; }
+.portada__grafico {
+  margin: 48px 0 0;
+  svg { display: block; width: 100%; height: 150px; overflow: visible; }
+  line { stroke: rgba(255, 255, 255, 0.12); stroke-width: 1; }
+  polyline { fill: none; stroke: var(--teal-claro); stroke-width: 3; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .portada__pronostico { stroke-dasharray: 4 6; }
+  figcaption {
+    display: flex; justify-content: space-between; margin-top: 12px;
+    color: rgba(255, 255, 255, 0.75); font-size: 0.82rem; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+}
+.portada__pie { color: rgba(255, 255, 255, 0.75); font-size: 0.9rem; }
 
-        .login__subtitulo {
-            margin: 4px 0 0;
-            font-family: "Public Sans", sans-serif;
-            font-size: 0.9rem;
-            color: #555;
-        }
-    }
-    
-    &__main {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: start;
-        align-items: center;
-        padding: 35px;
-        padding-top: 20px;
-        box-sizing: border-box;
+/* ---------- Formulario ---------- */
+.acceso { display: flex; align-items: center; justify-content: center; padding: 48px 24px; background: var(--fondo-acceso); }
+.acceso__formulario { width: 100%; max-width: 440px; display: flex; flex-direction: column; }
+.acceso__antetitulo {
+  display: flex; align-items: center; gap: 10px; color: var(--teal-texto);
+  font-size: 0.88rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+  svg { font-size: 1.4rem; }
+}
+.acceso__titulo { color: var(--texto-titulo); font-size: 2.6rem; font-weight: 700; line-height: 1.2; margin-top: 12px; }
+.acceso__bajada { color: var(--texto-medio); font-size: 1.08rem; margin: 14px 0 32px; }
+.acceso__error {
+  margin-bottom: 20px; padding: 12px 16px; border-radius: var(--radio);
+  background: var(--error-fondo); color: var(--error-texto); border-left: 4px solid var(--error-texto);
+}
+.acceso__info {
+  margin-bottom: 20px; padding: 12px 16px; border-radius: var(--radio); background: var(--teal-fondo); color: var(--texto);
+}
+.acceso__enviar { width: 100%; margin-top: 12px; }
+.acceso__formulario .boton-enlace { align-self: center; margin-top: 14px; }
+.acceso__separador { width: 100%; border: none; border-top: 1px solid var(--borde); margin: 32px 0 20px; }
+.acceso__nota { color: var(--texto-medio); font-size: 0.92rem; }
+.acceso__entorno { color: var(--texto-suave); font-size: 0.82rem; margin-top: 12px; }
 
-        p {
-            font-family: "Public Sans", sans-serif;
-            color: #555;
-            margin-top: 0px;
-            margin-bottom: 25px;
-        }
+.campo { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
+.campo label { color: var(--texto-titulo); font-weight: 600; }
+.campo__caja { position: relative; }
+.campo__caja input {
+  width: 100%; height: 52px; padding: 0 52px 0 16px; border: 1px solid var(--borde); border-radius: var(--radio);
+  background: var(--superficie); color: var(--texto); font: inherit; font-size: 1.02rem;
+  transition: border-color var(--trans), box-shadow var(--trans);
+  &::placeholder { color: var(--texto-suave); }
+  &:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(65, 127, 136, 0.18); }
+}
+.campo__codigo { letter-spacing: 0.4em; font-size: 1.3rem !important; font-variant-numeric: tabular-nums; }
+.campo__icono, .campo__boton-icono {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--teal);
+}
+.campo__icono { pointer-events: none; }
+.campo__boton-icono {
+  display: grid; place-items: center; width: 36px; height: 36px; border: none; border-radius: var(--radio);
+  background: transparent; right: 8px;
+  &:hover { background: var(--teal-fondo); }
+}
 
-        .username-input, .password-input {
-            width: 100%;
-            margin-bottom: 20px;
-
-            .MuiOutlinedInput-root {
-                border-radius: 10px;
-            }
-        }
-
-        .login-alert {
-            width: 90%;
-            margin-bottom: 25px;
-            border-radius: 10px;
-            font-family: "Public Sans", sans-serif;
-        }
-
-        .login-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 50px;
-            background: linear-gradient(135deg, #1A2980 0%, #26D0CE 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-family: "Manrope", sans-serif;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-
-            &:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 6px 15px rgba(38, 208, 206, 0.3);
-            }
-
-            &:active {
-                transform: translateY(0);
-            }
-
-            &:disabled {
-                opacity: 0.6;
-                cursor: not-allowed;
-                transform: none;
-                box-shadow: none;
-            }
-        }
-    }
+/* ---------- Pantallas angostas: solo el formulario, con el logo arriba ---------- */
+@media (max-width: 900px) {
+  .login { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .portada { padding: 20px 16px; }
+  .portada__centro, .portada__pie { display: none; }
+  .acceso { align-items: flex-start; padding: 32px 16px; }
+  .acceso__titulo { font-size: 2rem; }
 }

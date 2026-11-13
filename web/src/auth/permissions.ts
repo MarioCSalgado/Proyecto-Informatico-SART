@@ -9,6 +9,7 @@ export type Role = (typeof ROLES)[number];
 export const PERMISSIONS = {
   // RF-7: consultar el estado de alerta (la Jefatura solo ve sus centros asignados; lo filtra la API)
   ver_estado_centros:     ['Jefatura', 'Subdirector', 'Administrador'],
+  ver_mi_centro:          ['Jefatura'],
   ver_todos_los_centros:  ['Subdirector', 'Administrador'],
 
   // RF-15: acuse con el botón «Confirmar lectura»
