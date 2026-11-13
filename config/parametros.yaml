@@ -60,3 +60,10 @@ consulta:                    # RF-7
 
 auditoria:                   # RNF-S-4
   retencion_meses: 12
+
+cuentas:                     # RF-16, RNF-S-1 (supuestos nuevos: ver docs/pendientes_informe.md)
+  version_texto_finalidad: "2026-1"   # versión del texto de §5.3 que acepta el funcionario
+  largo_minimo_contrasena: 12
+
+sesion:                      # RNF-S-1
+  duracion_horas: 8          # un turno; después hay que volver a iniciar sesión

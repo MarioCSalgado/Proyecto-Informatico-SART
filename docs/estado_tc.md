@@ -17,7 +17,7 @@
 | TC-13 | Transversal | ☐ | ☐ | |
 | TC-14 | RF-1 | ☐ | ☐ | |
 | TC-15 | RF-11 | ☐ | ☐ | |
-| TC-16 | RF-16 | ☐ | ☐ | |
+| TC-16 | RF-16 | ☑ | ☑ | `backend/tests/test_tc16_alta_sin_aceptacion.py` (backend y comando; falta la pantalla de RF-16) |
 | TC-17 | RF-3, RF-9 | ☐ | ☐ | |
 | TC-18 | RF-8 | ☐ | ☐ | |
 | TC-19 | RF-10 | ☐ | ☐ | |

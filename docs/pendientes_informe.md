@@ -53,3 +53,16 @@ Salió de leer `docs/especificacion/`, `config/parametros.yaml` y el notebook 5 
 | 11 | §3.2 RF-1, TC-01 | El DEIS escribe el año calendario en las semanas que cruzan el año nuevo; el notebook lo corrige con la librería `epiweeks`, que no está en el stack. | Agregar `epiweeks` a las dependencias o reimplementar el calendario del MINSAL (se decide en la parte 4). |
 | 12 | §5.2, §9 | Faltan los proveedores de LLM (RF-8), de correo (RF-5) y de nube. | No bloquea el dominio; sí las tareas de notificación y el despliegue. |
 | 13 | Anexo A | Siguen sin validar en entrevistas los supuestos de dotación (15 min, factor 1,6, horas por tipo) y el atraso de publicación del MINSAL (ver #2). | RF-6 E1: mostrar los supuestos como «por validar». |
+
+## Autenticación y cuentas (13/11)
+
+Decisiones tomadas al implementar el inicio de sesión. No contradicen el informe, pero agregan supuestos que
+el informe debería declarar.
+
+| # | Sección (dueño) | Qué hace el código | Qué falta en el informe |
+|---|---|---|---|
+| 14 | §4.3 RNF-S-1 | Contraseña de al menos 12 caracteres (`cuentas.largo_minimo_contrasena`). | Declarar el largo mínimo y justificarlo (NIST SP 800-63B pide al menos 8; 12 deja margen sin MFA). |
+| 15 | §4.3 RNF-S-1 | La sesión dura 8 h, un turno (`sesion.duracion_horas`); después hay que volver a entrar. | Declarar la duración de la sesión. |
+| 16 | §4.3 RNF-S-1 | Mientras no exista MFA, el administrador **no puede iniciar sesión** (la API responde «MFA requerido»). No se deja entrar sin MFA. | Nada; se resuelve al implementar MFA (TOTP). |
+| 17 | §3.2 RF-16, §5.3 | El texto de §5.3 lleva versión (`cuentas.version_texto_finalidad: "2026-1"`) y la aceptación guarda esa versión. Mientras no exista la pantalla de RF-16, la cuenta se crea con `python -m sart.cuentas crear --acepta-finalidad`: el administrador declara que el funcionario aceptó. El paso 1 del flujo (el sistema le muestra el texto al funcionario) queda para esa pantalla. | Decidir dónde vive el texto versionado de §5.3 y cómo acepta el funcionario (pantalla propia antes del alta o enlace por correo). |
+| 18 | §3.2 RF-16 E2, §5.1 | La baja borra la cuenta y sus aceptaciones; no hay cuentas «desactivadas». | Confirmar que no se necesita desactivar sin borrar (por ejemplo, durante una licencia). |

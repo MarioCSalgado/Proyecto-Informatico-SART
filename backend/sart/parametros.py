@@ -29,6 +29,8 @@ SECCIONES_OBLIGATORIAS = (
     "ingesta",
     "consulta",
     "auditoria",
+    "cuentas",
+    "sesion",
 )
 
 
