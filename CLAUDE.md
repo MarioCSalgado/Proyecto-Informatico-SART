@@ -97,7 +97,9 @@ docker compose exec db pg_isready             # comprobar que responde
 
 # backend (una vez: crear el venv e instalar)
 cd backend && uv venv --python 3.12 .venv && uv pip install -e ".[dev]"
+cd backend && .venv/Scripts/python -m alembic upgrade head  # crear/actualizar las tablas
 cd backend && .venv/Scripts/python -m pytest --cov=sart     # pruebas (en Linux/macOS: .venv/bin/python)
+                                              # las marcadas «integracion» usan PostgreSQL y se saltan sin él
 cd backend && .venv/Scripts/python -m ruff check .          # estilo
 cd backend && .venv/Scripts/python -m uvicorn sart.api.app:app --port 8000   # API → http://127.0.0.1:8000/salud
 

@@ -24,6 +24,7 @@ Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), P
    ```bash
    uv venv --python 3.12 .venv
    uv pip install -e ".[dev]"
+   .venv/Scripts/python -m alembic upgrade head  # crea o actualiza las tablas
    .venv/Scripts/python -m pytest --cov=sart     # en Linux/macOS: .venv/bin/python
    .venv/Scripts/python -m ruff check .
    .venv/Scripts/python -m uvicorn sart.api.app:app --port 8000

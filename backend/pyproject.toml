@@ -37,6 +37,9 @@ include = ["sart*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+markers = [
+    "integracion: necesita PostgreSQL (DATABASE_URL); se salta si no está disponible",
+]
 
 [tool.coverage.run]
 source = ["sart"]
