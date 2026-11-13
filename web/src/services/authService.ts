@@ -5,23 +5,35 @@ import type { Usuario } from "../types/index.ts";
 
 export class ErrorInicioSesion extends Error {}
 
-/** POST /auth/sesion. Devuelve el usuario; la cookie la guarda el navegador. */
-export async function iniciarSesion(correo: string, contrasena: string): Promise<Usuario> {
+/** Resultado de POST /auth/sesion: sesión abierta, o falta el código MFA (solo administradores, RNF-S-1). */
+export type ResultadoInicioSesion =
+    | { tipo: "sesion"; usuario: Usuario }
+    | { tipo: "mfa_requerido" };
+
+/** POST /auth/sesion. La cookie de sesión la guarda el navegador; el código MFA se envía solo si lo hay. */
+export async function iniciarSesion(
+    correo: string,
+    contrasena: string,
+    codigo?: string,
+): Promise<ResultadoInicioSesion> {
     try {
-        const respuesta = await axiosInstance.post(Paths.AUTH.SESION, { correo, contrasena });
-        return respuesta.data.usuario as Usuario;
+        const datos = codigo ? { correo, contrasena, codigo } : { correo, contrasena };
+        const respuesta = await axiosInstance.post(Paths.AUTH.SESION, datos);
+        if (respuesta.data?.mfa_requerido) return { tipo: "mfa_requerido" };
+        return { tipo: "sesion", usuario: respuesta.data.usuario as Usuario };
     } catch (error) {
         if (axios.isAxiosError(error)) {
-            if (error.response?.status === 404) {
+            const estado = error.response?.status;
+            const detalle = (error.response?.data as { detail?: unknown } | undefined)?.detail;
+            if (estado === 404) {
                 throw new ErrorInicioSesion("No se encontró el servicio de inicio de sesión. ¿Está corriendo la API?");
             }
-            if (error.response?.status === 401) {
-                throw new ErrorInicioSesion("Correo o contraseña incorrectos.");
-            }
-            const detalle = (error.response?.data as { detail?: unknown } | undefined)?.detail;
-            if (error.response?.status === 403 && typeof detalle === "string") {
-                // p. ej. administradores sin MFA (RNF-S-1): la API explica el motivo
+            // 401 clave o código incorrectos · 403 administrador sin MFA · 429 bloqueado por códigos fallidos
+            if ((estado === 401 || estado === 403 || estado === 429) && typeof detalle === "string") {
                 throw new ErrorInicioSesion(detalle);
+            }
+            if (estado === 401) {
+                throw new ErrorInicioSesion("Correo o contraseña incorrectos.");
             }
             if (!error.response) {
                 throw new ErrorInicioSesion("No se pudo conectar con el servidor. Intente nuevamente.");
