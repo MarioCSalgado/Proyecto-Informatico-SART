@@ -1,7 +1,8 @@
 """Aplicación FastAPI de SART.
 
-Por ahora solo expone ``GET /salud``, que comprueba de punta a punta que la API lee los parámetros
-(RNF-M-4) y llega a PostgreSQL. Las rutas de RF-7, RF-9, RF-15 y RF-16 se agregan en las actividades 8 y 10.
+Expone ``GET /salud``, que comprueba de punta a punta que la API lee los parámetros (RNF-M-4) y llega a
+PostgreSQL, y las rutas de sesión de ``sart.api.auth`` (RNF-S-1). Las rutas de RF-7, RF-9, RF-15 y RF-16 se
+agregan en las actividades 8 y 10, protegidas con ``requiere_rol`` (RNF-S-2).
 """
 
 from __future__ import annotations
@@ -10,10 +11,12 @@ from fastapi import FastAPI
 from sqlalchemy import create_engine, text
 
 from sart import __version__
+from sart.api import auth
 from sart.configuracion import obtener_configuracion
 from sart.parametros import ErrorParametros, cargar_parametros
 
 app = FastAPI(title="SART", version=__version__)
+app.include_router(auth.router)
 
 
 def _revisar_parametros() -> str:

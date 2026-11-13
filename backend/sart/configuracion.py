@@ -23,6 +23,8 @@ class Configuracion(BaseSettings):
     database_url: str | None = None
     jwt_secret: str | None = None
     sart_parametros: Path | None = None
+    # Cookie de sesión solo por HTTPS (RNF-S-3). Poner COOKIE_SEGURA=false solo en desarrollo local.
+    cookie_segura: bool = True
 
 
 def obtener_configuracion() -> Configuracion:
