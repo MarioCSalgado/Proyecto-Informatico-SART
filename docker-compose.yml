@@ -1,0 +1,28 @@
+# SART · servicios para desarrollo (RNF-P-1). Credenciales en .env (copiar .env.example).
+# Límite total del sistema: 2 vCPU y 4 GB (RNF-P-2). La API, las tareas y la web se agregan en la actividad 12.
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Falta POSTGRES_USER en .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Falta POSTGRES_DB en .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"  # solo accesible desde este equipo
+    volumes:
+      - datos_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1g
+
+volumes:
+  datos_postgres:
