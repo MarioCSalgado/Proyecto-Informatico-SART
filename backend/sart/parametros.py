@@ -31,6 +31,7 @@ SECCIONES_OBLIGATORIAS = (
     "auditoria",
     "cuentas",
     "sesion",
+    "mfa",
 )
 
 

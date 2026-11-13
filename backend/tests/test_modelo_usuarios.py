@@ -82,4 +82,8 @@ def test_baja_de_la_cuenta_borra_sus_aceptaciones(sesion):
 def test_sin_campos_de_pacientes():
     """RNF-S-5: la tabla de usuarios solo tiene datos de la cuenta (§5.3)."""
     columnas = set(Usuario.__table__.columns.keys())
-    assert columnas == {"id", "nombre", "correo", "rol", "hash_contrasena", "creado_en", "actualizado_en"}
+    assert columnas == {
+        "id", "nombre", "correo", "rol", "hash_contrasena", "creado_en", "actualizado_en",
+        # MFA de administradores (RNF-S-1)
+        "mfa_secreto", "mfa_activado_en", "mfa_ultimo_paso", "mfa_intentos_fallidos", "mfa_bloqueado_hasta",
+    }

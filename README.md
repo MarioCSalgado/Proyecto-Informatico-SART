@@ -42,8 +42,15 @@ Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), P
    .venv/Scripts/python -m sart.cuentas crear --nombre "Jefatura Demo" --correo jefatura@demo.sart \
        --rol jefatura --acepta-finalidad
    ```
-   `--acepta-finalidad` deja constancia de que la persona aceptó el uso de sus datos (RF-16). Las cuentas de
-   administrador aún no pueden entrar: requieren MFA, que se implementa después.
+   `--acepta-finalidad` deja constancia de que la persona aceptó el uso de sus datos (RF-16).
+6. **Administradores: MFA** (RNF-S-1). Una cuenta con `--rol administrador` no puede entrar hasta activar
+   el código de una aplicación de autenticación (Google Authenticator, Microsoft Authenticator, Authy…):
+   ```bash
+   .venv/Scripts/python -m sart.cuentas activar-mfa --correo admin@demo.sart     # muestra la clave
+   .venv/Scripts/python -m sart.cuentas confirmar-mfa --correo admin@demo.sart --codigo 123456
+   .venv/Scripts/python -m sart.cuentas reiniciar-mfa --correo admin@demo.sart   # teléfono perdido
+   ```
+   Al iniciar sesión, después de la contraseña la web pide el código de 6 dígitos.
 
 ## Documentos
 

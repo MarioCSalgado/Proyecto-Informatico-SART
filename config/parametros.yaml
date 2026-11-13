@@ -67,3 +67,9 @@ cuentas:                     # RF-16, RNF-S-1 (supuestos nuevos: ver docs/pendie
 
 sesion:                      # RNF-S-1
   duracion_horas: 8          # un turno; después hay que volver a iniciar sesión
+
+mfa:                         # RNF-S-1: códigos TOTP para administradores (supuestos nuevos: pendientes #19)
+  emisor: SART               # nombre que muestra la aplicación de autenticación
+  tolerancia_pasos: 1        # acepta el código de los 30 s anteriores o siguientes (reloj del teléfono)
+  intentos_maximos: 5        # códigos incorrectos seguidos antes de bloquear
+  bloqueo_minutos: 15

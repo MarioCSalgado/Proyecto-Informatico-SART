@@ -52,7 +52,7 @@ def test_clave_incorrecta_y_correo_inexistente_dan_el_mismo_401(cliente, crear_c
 
 
 def test_administrador_sin_mfa_no_entra(cliente, crear_cuenta):
-    """RNF-S-1: MFA obligatorio para administradores; mientras no exista, no se les abre sesión."""
+    """RNF-S-1: MFA obligatorio para administradores; sin MFA activado no se les abre sesión."""
     crear_cuenta("admin@demo.sart", "administrador")
 
     respuesta = _entrar(cliente, "admin@demo.sart")

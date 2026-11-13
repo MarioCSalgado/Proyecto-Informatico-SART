@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, MetaData, String, UniqueConstraint, func
+from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, MetaData, String, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from sart.dominio.roles import Rol
@@ -49,6 +49,13 @@ class Usuario(Base):
         )
     )
     hash_contrasena: Mapped[str] = mapped_column(String(255))  # Argon2id (RNF-S-1)
+    # MFA TOTP, solo administradores (RNF-S-1). El secreto se guarda tal cual y lo protege el cifrado en
+    # reposo de la base (RNF-S-3); ver docs/pendientes_informe.md #19.
+    mfa_secreto: Mapped[str | None] = mapped_column(String(64))
+    mfa_activado_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    mfa_ultimo_paso: Mapped[int | None] = mapped_column(BigInteger)  # impide reusar un código
+    mfa_intentos_fallidos: Mapped[int] = mapped_column(default=0, server_default="0")
+    mfa_bloqueado_hasta: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     actualizado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
