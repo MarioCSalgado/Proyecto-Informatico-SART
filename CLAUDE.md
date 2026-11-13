@@ -87,10 +87,25 @@ SART/
 
 ## Comandos
 
-(Completar a medida que existan.)
+Requisitos: Docker Desktop, Python 3.12 (con `uv` o `venv`), Node 20+. La API lee el `.env` de la raíz sola
+(`sart/configuracion.py`); las variables de entorno tienen prioridad sobre el archivo.
+
 ```bash
-docker compose up -d db                       # base de datos
-cd backend && pytest --cov=sart               # pruebas
-cd backend && ruff check .                    # estilo
-cd web && npm run dev                         # frontend
+cp .env.example .env                          # una vez; cambiar clave y JWT_SECRET
+docker compose up -d db                       # PostgreSQL 16 en 127.0.0.1:${POSTGRES_PORT:-5432}
+docker compose exec db pg_isready             # comprobar que responde
+
+# backend (una vez: crear el venv e instalar)
+cd backend && uv venv --python 3.12 .venv && uv pip install -e ".[dev]"
+cd backend && .venv/Scripts/python -m pytest --cov=sart     # pruebas (en Linux/macOS: .venv/bin/python)
+cd backend && .venv/Scripts/python -m ruff check .          # estilo
+cd backend && .venv/Scripts/python -m uvicorn sart.api.app:app --port 8000   # API → http://127.0.0.1:8000/salud
+
+# web
+cd web && npm install
+cd web && npm run build && npm run lint && npx vitest run   # compilar, estilo, pruebas
+cd web && npm run dev                         # → http://localhost:5173
 ```
+
+Si el puerto 5432 ya está ocupado (por ejemplo, un PostgreSQL instalado en Windows), en `.env` poner
+`POSTGRES_PORT=5433` y usar `:5433` en `DATABASE_URL`; luego `docker compose up -d db` de nuevo.

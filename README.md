@@ -6,6 +6,39 @@ Proyecto Informático, Ingeniería Civil Informática, Universidad de Concepció
 Equipo: Benjamín Díaz Ulloa, Daniel Aburto Rivera, Juan Carvajal Ramírez, Joaquín Sandoval Reyes,
 Mario Salgado Orellana, Jocabed López Flores.
 
+## Cómo levantarlo en local
+
+Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), Python 3.12
+(recomendado con [uv](https://docs.astral.sh/uv/)) y Node 20 o superior.
+
+1. **Configuración.** Copiar `.env.example` a `.env` y cambiar la clave de PostgreSQL y el `JWT_SECRET`.
+   El `.env` nunca se sube a git. La API lo lee sola; no hace falta pasarlo como argumento.
+2. **Base de datos.** Con Docker Desktop abierto:
+   ```bash
+   docker compose up -d db
+   docker compose exec db pg_isready      # debe decir «accepting connections»
+   ```
+   Si el puerto 5432 ya está ocupado (por ejemplo, por un PostgreSQL instalado en el equipo), en `.env`
+   cambiar `POSTGRES_PORT=5433` y el puerto de `DATABASE_URL` a `:5433`, y volver a correr `docker compose up -d db`.
+3. **Backend** (en `backend/`):
+   ```bash
+   uv venv --python 3.12 .venv
+   uv pip install -e ".[dev]"
+   .venv/Scripts/python -m pytest --cov=sart     # en Linux/macOS: .venv/bin/python
+   .venv/Scripts/python -m ruff check .
+   .venv/Scripts/python -m uvicorn sart.api.app:app --port 8000
+   ```
+   Abrir http://127.0.0.1:8000/salud (debe decir `"estado":"ok"`) o http://127.0.0.1:8000/docs.
+4. **Web** (en `web/`):
+   ```bash
+   npm install
+   npm run build && npm run lint && npx vitest run
+   npm run dev
+   ```
+   Abrir http://localhost:5173.
+
+## Documentos
+
 - Especificación: `docs/especificacion/`
 - Instrucciones para el asistente de código: `CLAUDE.md`
 - El frontend parte de ing-software2 (licencia MIT, ver `web/LICENSE-ing-software2`).
