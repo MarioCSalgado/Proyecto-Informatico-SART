@@ -1,0 +1,27 @@
+# secretos
+.env
+.env.*
+!.env.example
+# datos reales (pesados; se descargan con las tareas de ingesta)
+datos/*
+!datos/prueba/
+!datos/.gitkeep
+# código de referencia de otro ramo
+referencia/
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+# Node
+node_modules/
+dist/
+# editores y sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

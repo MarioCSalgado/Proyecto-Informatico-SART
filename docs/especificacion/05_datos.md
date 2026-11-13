@@ -1,0 +1,53 @@
+# 5. Requisitos de datos
+
+## 5.1 Modelo de información (alto nivel)
+
+| Entidad | Atributos clave | Relaciones | Volumen esperado | Reglas de calidad y validación |
+|---|---|---|---|---|
+| Zona | id_zona, nombre | Una zona puede contener una o más estaciones asociadas y varios centros de salud. Además, puede tener varias alertas ambientales asociadas. | Bajo, dado que el proyecto estará acotado al Gran Concepción, y solo se trabajen algunas áreas dentro de él. | Id_zona es único y el nombre es obligatorio ya que cada zona tiene una delimitación dentro del Gran Concepción y no debe duplicarse. |
+| Estación | Id_estación, nombre, comuna, dirección | Una estación se asocia a una zona y tiene múltiples mediciones ambientales a lo largo del tiempo. | Bajo, inicialmente se intentaría trabajar con un número reducido de estaciones de monitoreo. | El id_estación es único. El nombre, la comuna y la dirección deben ser obligatorios. |
+| Medición | Id_medición, fecha_hora, tipo_medición, valor, unidad. | Cada medición pertenece a una estación. | Alto, ya que se espera tener varios registros de mediciones. | Id_medición es único, la fecha y hora deben tener un formato válido, el valor es numérico, el tipo de medición pertenecer al conjunto de variables que se definan como aceptadas por el sistema(ej:pm2.5, t°, etc ) y la unidad debe ser compatible con el tipo de medición. |
+| Centro_Salud | Id_centro, nombre, tipo (SAPU, SAR, SUR u hospital), comuna, dirección, id_zona, id_estación asignada | Pertenece a una zona y tiene una estación asignada (CI-3). Tiene pronósticos semanales, alertas de demanda y usuarios asignados. | Bajo-Medio: se determina según el número de establecimientos dentro del área geográfica seleccionada. | Id_centro único, nombre obligatorio, el tipo de establecimiento debe ser válido al igual que la comuna y la dirección. |
+| Alerta | Id_alerta, nivel, fecha_emisión, mensaje | Una alerta de demanda corresponde a un centro de salud (RF-3) y una alerta ambiental, a una zona (RF-4). Cada alerta puede generar varias notificaciones. | Bajo-Medio, va a depender de la cantidad de situaciones que cumplan con los criterios para generar una alerta. | Id_alerta debe ser único, la fecha de emisión tiene que ser válida, el mensaje tiene que ser obligatorio. Además, la alerta debe estar asociada a un centro o a una zona existente, según su tipo. |
+| Alerta_demanda | semana | Tipo de alerta, puede originarse a partir de un pronóstico cuando cumple cierto criterio definido para generar una alerta de demanda. | Bajo, medio, ya que solo se generará cuando un pronóstico alcance el criterio de alerta | La semana debe ser válida y la alerta debe asociarse al pronóstico que originó la condición de demanda. |
+| Alerta_ambiental | Dia_pronosticado, valor_mp25 | Tipo de alerta, se encuentra asociada a la zona para la cual se pronostica la condición ambiental. | Bajo-Medio, Ya que va a depender de la cantidad de pronósticos ambientales que cumplan los criterios definidos para generar una alerta. | El día tiene que ser válido, valor_mp25 numérico y no negativo y la alerta debe estar asociada a una zona existente. |
+| Notificación | Id_notificación, fecha_envío, estado (enviada, fallida, confirmada, reenviada o escalada), fecha_confirmación | Cada notificación corresponde a una alerta y se dirige a un usuario de un centro de salud. | Bajo-Medio, dependerá de la cantidad de alertas que se generen y el número de centros a los que se le tenga que enviar la notificación. | El id_notificación tiene que ser único, debe existir una alerta y también los centros de salud asociados, la fecha de envío tiene que ser válida. No deben enviarse notificaciones duplicadas de una misma alerta al mismo centro de salud. Una notificación sin confirmar en 48 horas se escala al subdirector asistencial (RB-2). |
+| Pronóstico | Id_pronóstico, id_centro, semana, valor, límites inferior y superior (90 %), versión del modelo, fecha de corte | Cada pronóstico pertenece a un centro y a una semana; puede originar una alerta de demanda. | Medio: unos 33 por semana (cerca de 1.700 al año). | Un solo pronóstico vigente por centro y semana; el valor es positivo y está dentro de su intervalo. |
+| Usuario | Id_usuario, nombre, correo institucional, rol (jefatura, subdirector o administrador), centros asignados. | Un usuario tiene uno o más centros asignados y recibe notificaciones. | Bajo: unos 70 usuarios (RNF-R-2). | Correo único y válido; rol del conjunto definido en RNF-S-2. Es el único dato personal del sistema (§5.3). |
+| Consulta_semanal | id_consulta, año, semana, causa, grupo_edad, cantidad | Pertenece a un centro de salud y la carga la ingesta diaria (RF-1). Es la base del pronóstico (RF-2), de los umbrales (RB-3) y del historial (RF-10). | Alto: viene del DEIS desde 2014 y cada semana agrega un registro por centro, causa y grupo de edad. | Un registro único por centro, semana, causa y grupo de edad; cantidad entera ≥ 0; semana entre 1 y 53; causa dentro de J00–J98. La última semana, si viene incompleta, se marca y no se usa (RB-4). |
+
+Figura 2. Modelo entidad-relación de SART
+
+- **Retención y archivado:** Los datos serán conservados durante el desarrollo del proyecto, manteniendo una copia original separada de las versiones procesadas para asegurar trazabilidad y reproducibilidad.
+- **Origen de los datos:** El sistema utilizará información pública proveniente de distintas fuentes oficiales y abiertas. Los datos sobre atenciones respiratorias y establecimientos de salud se obtendrán desde DEIS/MINSAL, a través de https://datos.gob.cl/, la información de calidad del aire se obtendrá desde SINCA, administrado por el Ministerio del Medio Ambiente, y variables climáticas y pronósticos ambientales se obtendrán desde Open-Meteo.
+- **Datos para desarrollo y demostración:** Se usan los datos públicos reales (DEIS, SINCA y Open-Meteo, 2014–2026). Para las pruebas automáticas se usan datos sintéticos generados por el proyecto, con el mismo formato y efectos conocidos. No se usan datos de personas.
+
+## 5.2 Interfaces externas (entrada y salida)
+
+| Tipo | Sistema o proveedor | Protocolo y formato | Dirección | Frecuencia y acuerdos de servicio |
+|---|---|---|---|---|
+| Archivo | datos.gob.cl (DEIS/MINSAL): atenciones de urgencia respiratoria y establecimientos | HTTPS · Parquet y CSV | In | Diaria. Datos abiertos sin acuerdo de servicio; licencias CC BY-NC (urgencias) y CC0 (establecimientos) |
+| Archivo | SINCA (MMA): MP2,5 diario por estación | HTTPS · CSV | In | Diaria. Los datos recientes son preliminares y se validan después |
+| API | Open-Meteo: clima histórico y pronóstico de calidad del aire | REST / JSON | In | Diaria. Gratuito para uso no comercial, sin acuerdo de servicio |
+| API | Servicio de correo transaccional | SMTP o REST | Out | Por alerta (semanal y diaria). Plan gratuito con límite diario de envíos |
+| API | Proveedor de LLM | REST / JSON | Out / In | Semanal, un resumen. Solo recibe cifras agregadas |
+| API | API propia del sistema | REST / JSON, OpenAPI 3.0 | Out | A demanda (RNF-C-2) |
+| Archivo | Exportación para Excel o Power BI | CSV UTF-8 | Out | A demanda (RF-11) |
+
+## 5.3 Protección de datos personales y consideraciones legales
+
+- **¿Trata datos personales?:** Sí, se tratarán datos de los funcionarios que utilizan el sistema. Los datos sanitarios corresponden a conteos públicos agregados, sin registros individuales de pacientes.
+- **Datos personales tratados:** Nombre, correo institucional, rol y centros asignados de cada usuario (entidad Usuario de §5.1). No se tratan datos de pacientes ni datos sensibles. Los conteos del DEIS incluyen grupos de edad de menores de 15 años, pero son agregados por establecimiento y semana y no identifican a nadie: el sistema no trata datos de niños, niñas y adolescentes.
+- **Finalidad declarada del tratamiento:** Dar acceso al sistema según el rol y enviar las notificaciones de alertas (RF-5, RF-7). No se usan para otro fin.
+- **Base de licitud:** Consentimiento del funcionario al crear su cuenta, informado de la finalidad (art. 4 de la Ley 19.628; también se ajusta a la Ley 21.719, vigente desde el 1 de diciembre de 2026). El alta con aceptación registrada es RF-16.
+- **Cómo se obtiene el consentimiento:** Antes de crear la cuenta, se informará al funcionario sobre los datos solicitados y su finalidad, y se obtendrá su consentimiento mediante un procedimiento que permita dejar constancia. Posteriormente, el administrador creará la cuenta y asignará el rol y centro correspondiente.
+- **Minimización:** Se recopilarán únicamente los datos personales necesarios para gestionar las cuentas y enviar las alertas. Para el análisis sanitario se utilizarán datos agregados, sin almacenar registros individuales de pacientes.
+- **Medidas de seguridad:** Los datos solo podrán ser vistos por personas autorizadas y no se expondrán en archivos, repositorios o demostraciones públicas. Se evitará exponer información sensible.
+- **Plazo de conservación y eliminación:** Los datos de cada usuario se conservan mientras su cuenta esté activa y se eliminan al darla de baja o al terminar el proyecto.
+- **Derechos del titular:** Los funcionarios pueden pedir conocer, corregir o eliminar sus datos; el administrador lo resuelve desde la gestión de usuarios (RF-9).
+- **Normativa considerada:** Ley 19.628 sobre protección de la vida privada y Ley 21.719 de protección de datos personales, además de las licencias de uso de los datos públicos.
+- **Encargados o terceros que acceden a datos:** Si se utilizan servicios externos para almacenamiento, envío de correos o notificaciones, estos solo accederán a los datos necesarios para prestar ese servicio.
+- **Licenciamiento de dependencias de terceros:** Las tecnologías previstas incluyen FastAPI, React y SQLAlchemy (MIT), además de statsmodels, NumPy, Pandas y SciPy (BSD de 3 cláusulas). Se conservarán los avisos de licencia correspondientes y se revisarán las demás dependencias al definir las herramientas definitivas.
+- **Consentimiento en las instancias de validación:** Al momento de realizar entrevistas con personas, se les informará previamente el propósito de la actividad y se le solicitará su consentimiento antes de registrar respuestas o datos personales.
+- **Licenciamiento de fuentes de datos:** Los datos de atenciones respiratorias del DEIS se utilizarán con fines académicos no comerciales, citando la fuente e indicando que fueron procesados por el proyecto. Se respetará la atribución exigida por Open-Meteo (CC BY 4.0) y las condiciones de uso no comercial de su API gratuita. También se citará SINCA y se verificarán sus condiciones específicas de uso.
+

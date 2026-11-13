@@ -1,0 +1,57 @@
+EstablecimientoCodigo;EstablecimientoCodigoAntiguo;EstablecimientoGlosa;RegionGlosa;ComunaGlosa;TipoEstablecimientoGlosa;Latitud;Longitud
+100001;9001;Centro de prueba 01 (Concepción);Región del Biobío;Concepción;Hospital;-36,8000;-73,0000
+100002;9002;Centro de prueba 02 (Concepción);Región del Biobío;Concepción;Servicio de Atención Primaria de Urgencia (SAPU);-36,8100;-73,0100
+100003;9003;Centro de prueba 03 (Concepción);Región del Biobío;Concepción;Servicio de Urgencia de Alta Resolución (SAR);-36,8200;-73,0200
+100004;9004;Centro de prueba 04 (Talcahuano);Región del Biobío;Talcahuano;Hospital;-36,8300;-73,0300
+100005;9005;Centro de prueba 05 (Talcahuano);Región del Biobío;Talcahuano;Servicio de Atención Primaria de Urgencia (SAPU);-36,8400;-73,0400
+100006;9006;Centro de prueba 06 (Hualpén);Región del Biobío;Hualpén;Servicio de Atención Primaria de Urgencia (SAPU);-36,8500;-73,0500
+100007;9007;Centro de prueba 07 (San Pedro de la Paz);Región del Biobío;San Pedro de la Paz;Servicio de Urgencia de Alta Resolución (SAR);-36,8600;-73,0600
+100008;9008;Centro de prueba 08 (Chiguayante);Región del Biobío;Chiguayante;Servicio de Atención Primaria de Urgencia (SAPU);-36,8700;-73,0700
+100009;9009;Centro de prueba 09 (Coronel);Región del Biobío;Coronel;Hospital;-36,8800;-73,0800
+100010;9010;Centro de prueba 10 (Coronel);Región del Biobío;Coronel;Servicio de Atención Primaria de Urgencia (SAPU);-36,8900;-73,0900
+100011;9011;Centro de prueba 11 (Lota);Región del Biobío;Lota;Servicio de Atención Primaria de Urgencia (SAPU);-36,9000;-73,1000
+100012;9012;Centro de prueba 12 (Penco);Región del Biobío;Penco;Servicio de Atención Primaria de Urgencia (SAPU);-36,9100;-73,1100
+100013;9013;Centro de prueba 13 (Tomé);Región del Biobío;Tomé;Hospital;-36,9200;-73,1200
+100014;9014;Centro de prueba 14 (Hualqui);Región del Biobío;Hualqui;Servicio de Atención Primaria de Urgencia (SAPU);-36,9300;-73,1300
+100015;9015;Centro de prueba 15 (Los Ángeles);Región del Biobío;Los Ángeles;Hospital;-36,9400;-73,1400
+100016;9016;Centro de prueba 16 (Chillán);Región del Ñuble;Chillán;Hospital;-36,9500;-73,1500
+200000;8000;Posta de prueba 00;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200001;8001;Posta de prueba 01;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200002;8002;Posta de prueba 02;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200003;8003;Posta de prueba 03;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200004;8004;Posta de prueba 04;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200005;8005;Posta de prueba 05;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200006;8006;Posta de prueba 06;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200007;8007;Posta de prueba 07;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200008;8008;Posta de prueba 08;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200009;8009;Posta de prueba 09;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200010;8010;Posta de prueba 10;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200011;8011;Posta de prueba 11;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200012;8012;Posta de prueba 12;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200013;8013;Posta de prueba 13;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200014;8014;Posta de prueba 14;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200015;8015;Posta de prueba 15;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200016;8016;Posta de prueba 16;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200017;8017;Posta de prueba 17;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200018;8018;Posta de prueba 18;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200019;8019;Posta de prueba 19;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200020;8020;Posta de prueba 20;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200021;8021;Posta de prueba 21;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200022;8022;Posta de prueba 22;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200023;8023;Posta de prueba 23;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200024;8024;Posta de prueba 24;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200025;8025;Posta de prueba 25;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200026;8026;Posta de prueba 26;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200027;8027;Posta de prueba 27;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200028;8028;Posta de prueba 28;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200029;8029;Posta de prueba 29;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200030;8030;Posta de prueba 30;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200031;8031;Posta de prueba 31;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200032;8032;Posta de prueba 32;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200033;8033;Posta de prueba 33;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200034;8034;Posta de prueba 34;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200035;8035;Posta de prueba 35;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200036;8036;Posta de prueba 36;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200037;8037;Posta de prueba 37;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200038;8038;Posta de prueba 38;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
+200039;8039;Posta de prueba 39;Región del Biobío;Florida;Posta de Salud Rural (PSR);-36,8;-72,7
