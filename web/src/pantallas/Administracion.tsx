@@ -7,6 +7,7 @@ import { Tab, Tabs } from '@mui/material'
 import { useState } from 'react'
 import { AvisoPendiente } from '../componentes/AvisoPendiente.tsx'
 import { CabeceraPagina } from '../componentes/CabeceraPagina.tsx'
+import { IconoNivel } from '../componentes/NivelAlerta.tsx'
 import { TablaVacia } from '../componentes/TablaVacia.tsx'
 import { useSesion } from '../contexto/sesion.tsx'
 
@@ -62,11 +63,11 @@ function Umbrales() {
           </div>
         </div>
         <div className="campo">
-          <label htmlFor="umbral-atencion"><span aria-hidden="true">! </span>Atención desde</label>
+          <label htmlFor="umbral-atencion"><IconoNivel nivel="atencion" className="campo__icono-nivel campo__icono-nivel--atencion" />Atención desde</label>
           <div className="campo__caja"><input id="umbral-atencion" type="number" inputMode="numeric" disabled /></div>
         </div>
         <div className="campo">
-          <label htmlFor="umbral-alerta"><span aria-hidden="true">△ </span>Alerta desde</label>
+          <label htmlFor="umbral-alerta"><IconoNivel nivel="alerta" className="campo__icono-nivel campo__icono-nivel--alerta" />Alerta desde</label>
           <div className="campo__caja"><input id="umbral-alerta" type="number" inputMode="numeric" disabled /></div>
         </div>
         <div className="campo campo--ancho">

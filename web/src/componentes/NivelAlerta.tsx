@@ -1,19 +1,28 @@
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlineOutlined'
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlineOutlined'
+import WarningAmberIcon from '@mui/icons-material/WarningAmberOutlined'
+import type { ComponentType } from 'react'
 import type { NivelAlerta as Nivel } from '../tipos/index.ts'
 
-// RNF-U-1: el nivel nunca se indica solo con color. Siempre va con texto y con un signo de forma distinta
-// (✓, ! y △, como en el diseño de Figma), legible también en blanco y negro.
-const NIVELES: Record<Nivel, { texto: string; signo: string; corto: string }> = {
-  normal: { texto: 'Normal', signo: '✓', corto: 'N' },
-  atencion: { texto: 'Atención', signo: '!', corto: 'At' },
-  alerta: { texto: 'Alerta', signo: '△', corto: 'Al' },
+// RNF-U-1: el nivel nunca se indica solo con color. Siempre va con texto y con un ícono de forma distinta
+// (círculo con visto, círculo con «!» y triángulo), legible también en blanco y negro (DESIGN.md).
+const NIVELES: Record<Nivel, { texto: string; Icono: ComponentType<{ className?: string }>; corto: string }> = {
+  normal: { texto: 'Normal', Icono: CheckCircleOutlineIcon, corto: 'N' },
+  atencion: { texto: 'Atención', Icono: ErrorOutlineIcon, corto: 'At' },
+  alerta: { texto: 'Alerta', Icono: WarningAmberIcon, corto: 'Al' },
+}
+
+/** Ícono del nivel, decorativo: siempre acompaña al texto del nivel. */
+export function IconoNivel({ nivel, className = '' }: { nivel: Nivel; className?: string }) {
+  const { Icono } = NIVELES[nivel]
+  return <Icono className={className} aria-hidden="true" />
 }
 
 export function NivelAlerta({ nivel }: { nivel: Nivel }) {
-  const { texto, signo } = NIVELES[nivel]
   return (
     <span className={`nivel nivel--${nivel}`}>
-      <span aria-hidden="true">{signo}</span>
-      {texto}
+      <IconoNivel nivel={nivel} className="nivel__icono" />
+      {NIVELES[nivel].texto}
     </span>
   )
 }

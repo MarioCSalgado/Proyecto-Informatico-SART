@@ -14,7 +14,14 @@ const ICONOS: Record<Seccion['icono'], ReactNode> = {
   ajustes: <TuneOutlinedIcon className="encabezado__icono" aria-hidden="true" />,
 }
 
-// Barra superior del diseño de Figma: logo, secciones que el rol puede ver, nombre y rol, y salir.
+/** Iniciales del nombre (dos como máximo) para el círculo del encabezado. */
+function iniciales(nombre: string | undefined): string {
+  const palabras = (nombre ?? '').trim().split(/\s+/).filter(Boolean)
+  return palabras.slice(0, 2).map((p) => p.charAt(0).toUpperCase()).join('')
+}
+
+// Barra superior (DESIGN.md · Encabezado): logo, secciones que el rol puede ver (la activa en píldora),
+// iniciales, nombre y rol, y salir.
 export function Encabezado() {
   const { usuario, cerrar } = useSesion()
   const { puede } = usePermisos()
@@ -38,6 +45,7 @@ export function Encabezado() {
         ))}
       </nav>
       <div className="encabezado__usuario">
+        <span className="encabezado__iniciales" aria-hidden="true">{iniciales(usuario?.nombre)}</span>
         <span className="encabezado__datos">
           <span className="encabezado__nombre">{usuario?.nombre}</span>
           <span className="encabezado__rol">{usuario?.rol}</span>

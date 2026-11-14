@@ -1,4 +1,5 @@
-/* Inicio de sesión · diseño «Inicio de sesión · Escritorio» (panel azul a la izquierda, formulario a la derecha)
+/* Inicio de sesión · diseño «Inicio de sesión · Escritorio» (panel azul a la izquierda, formulario en tarjeta a la
+   derecha). Colores y tipografía: DESIGN.md
 
    Los tamaños dependen del ancho y también del ALTO de la ventana (vh): en un notebook de 1366×657 todo debe caber
    sin desplazarse. Fórmula: clamp(mínimo, valor según la ventana, máximo del diseño). */
@@ -19,7 +20,8 @@
   color: var(--teal-claro); font-size: 0.88rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
 }
 .portada__lema {
-  font-size: clamp(1.9rem, min(3.4vw, 6.2vh), 3.6rem); font-weight: 600; line-height: 1.15;
+  font-family: var(--fuente-titulos); font-size: clamp(2rem, min(3.6vw, 6.4vh), 3.5rem); font-weight: 600;
+  line-height: 1.1; letter-spacing: -0.02em;
   margin-top: clamp(10px, 2.6vh, 28px);
 }
 .portada__descripcion {
@@ -44,14 +46,19 @@
   display: flex; align-items: center; justify-content: center;
   padding: clamp(16px, 4vh, 48px) 24px; background: var(--fondo-acceso);
 }
-.acceso__formulario { width: 100%; max-width: 440px; display: flex; flex-direction: column; }
+.acceso__formulario {
+  width: 100%; max-width: 488px; display: flex; flex-direction: column;
+  padding: clamp(24px, 5vh, 44px) clamp(24px, 3vw, 44px);
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-tarjeta);
+}
 .acceso__antetitulo {
   display: flex; align-items: center; gap: 10px; color: var(--teal-texto);
   font-size: 0.88rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
   svg { font-size: 1.4rem; }
 }
 .acceso__titulo {
-  color: var(--texto-titulo); font-size: clamp(1.9rem, min(3vw, 5.6vh), 2.6rem); font-weight: 700; line-height: 1.2;
+  color: var(--texto-titulo); font-size: clamp(1.9rem, min(3vw, 5.6vh), 2.5rem); font-weight: 700; line-height: 1.15;
+  letter-spacing: -0.015em;
   margin-top: clamp(6px, 1.4vh, 12px);
 }
 .acceso__bajada {
@@ -59,11 +66,11 @@
   margin: clamp(8px, 1.8vh, 14px) 0 clamp(16px, 3.6vh, 32px);
 }
 .acceso__error {
-  margin-bottom: clamp(12px, 2.6vh, 20px); padding: 12px 16px; border-radius: var(--radio);
+  margin-bottom: clamp(12px, 2.6vh, 20px); padding: 12px 16px; border-radius: var(--radio-bloque);
   background: var(--error-fondo); color: var(--error-texto); border-left: 4px solid var(--error-texto);
 }
 .acceso__info {
-  margin-bottom: clamp(12px, 2.6vh, 20px); padding: 12px 16px; border-radius: var(--radio);
+  margin-bottom: clamp(12px, 2.6vh, 20px); padding: 12px 16px; border-radius: var(--radio-bloque);
   background: var(--teal-fondo); color: var(--texto);
 }
 .acceso .campo { gap: clamp(6px, 1.2vh, 10px); margin-bottom: clamp(12px, 2.6vh, 22px); }
@@ -89,6 +96,7 @@
   .login { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .portada { padding: 20px 16px; }
   .portada__centro, .portada__pie { display: none; }
-  .acceso { align-items: flex-start; padding: 32px 16px; }
+  .acceso { align-items: flex-start; padding: 24px 16px; }
+  .acceso__formulario { padding: 24px 20px; }
   .acceso__titulo { font-size: 2rem; }
 }

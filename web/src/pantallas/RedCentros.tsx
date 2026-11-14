@@ -4,12 +4,13 @@ import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
 import { useState } from 'react'
 import { AvisoPendiente } from '../componentes/AvisoPendiente.tsx'
 import { CabeceraPagina } from '../componentes/CabeceraPagina.tsx'
-import { NivelAlerta, NivelCorto } from '../componentes/NivelAlerta.tsx'
+import { IconoNivel, NivelAlerta, NivelCorto } from '../componentes/NivelAlerta.tsx'
 import { TablaVacia } from '../componentes/TablaVacia.tsx'
 import { useReferencias } from '../hooks/useReferencias.ts'
 import type { NivelAlerta as Nivel } from '../tipos/index.ts'
 
 const NIVELES: Nivel[] = ['alerta', 'atencion', 'normal']
+const ETIQUETAS: Record<Nivel, string> = { alerta: 'Alerta', atencion: 'Atención', normal: 'Normal' }
 
 // Vista de red del subdirector (diseño «Vista de red»; RF-7 con todos los centros). Partes fijas: resumen por
 // nivel, filtros, leyenda y la tabla de seguimiento con sus columnas. Los números, las alertas sin confirmar
@@ -34,14 +35,16 @@ export function PantallaRedCentros() {
       />
 
       <ul className="kpis" aria-label="Resumen de la red">
-        <li className="kpi">
+        <li className="kpi kpi--total">
+          <span className="kpi__icono" aria-hidden="true"><ApartmentOutlinedIcon /></span>
           <span className="kpi__valor">—</span>
           <span className="kpi__etiqueta">Centros en la red</span>
         </li>
         {NIVELES.map((nivel) => (
-          <li key={nivel} className="kpi">
+          <li key={nivel} className={`kpi kpi--${nivel}`}>
+            <span className="kpi__icono" aria-hidden="true"><IconoNivel nivel={nivel} /></span>
             <span className="kpi__valor">—</span>
-            <NivelAlerta nivel={nivel} />
+            <span className="kpi__etiqueta">{ETIQUETAS[nivel]}</span>
           </li>
         ))}
       </ul>
