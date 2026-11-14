@@ -12,7 +12,7 @@
 | TC-08 | RF-7 | ☐ | ☐ | |
 | TC-09 | RF-7, RF-9 | ☐ | ☐ | |
 | TC-10 | RF-7 | ☐ | ☐ | (con usuarios) |
-| TC-11 | RF-2 | ☐ | ☐ | |
+| TC-11 | RF-2 | ☑ | ☑ | `backend/tests/test_regresion_backtest.py`: el intervalo de 90 % cubre 91,1 % de las semanas (RNF-Q-3; con los datos reales, en CI se salta) |
 | TC-12 | RF-4 | ☐ | ☐ | |
 | TC-13 | Transversal | ☐ | ☐ | |
 | TC-14 | RF-1 | ☑ | ☑ | `backend/tests/test_tc14_restauracion.py` (simulacro con la base de desarrollo el 14/11: 59 s) |

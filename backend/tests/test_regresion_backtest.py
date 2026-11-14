@@ -128,8 +128,8 @@ def test_linea_base_semana_anterior(backtest):
     assert (round(resultado["precision"], 2), round(resultado["sensibilidad"], 2)) == (0.69, 0.68)
 
 
-def test_rnf_q3_cobertura_del_intervalo(backtest):
-    """RNF-Q-3: el intervalo de 90 % cubre entre 85 % y 95 % de las semanas (con datos reales: 91,1 %)."""
+def test_tc11_cobertura_del_intervalo(backtest):
+    """TC-11, RNF-Q-3: el intervalo de 90 % cubre entre 85 % y 95 % de las semanas (datos reales: 91,1 %)."""
     cobertura = ((backtest["y"] >= backtest["pred_inf"]) & (backtest["y"] <= backtest["pred_sup"])).mean()
 
     assert 0.85 <= cobertura <= 0.95
