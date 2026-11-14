@@ -11,8 +11,8 @@ anótalo en `docs/pendientes_informe.md` y pregúntame.
 
 ## Estado (14/11/2026)
 
-Partes 1 a 7 **hechas**: el resumen de lo que quedó funcionando está en `docs/avance.md`. Lo que sigue para
-terminar la base son las partes 8, 9 y 10; después, el trabajo se reparte en el equipo con `docs/tareas_equipo.md`
+Partes 1 a 8 **hechas**: el resumen de lo que quedó funcionando está en `docs/avance.md`. Lo que sigue para
+terminar la base son las partes 9 y 10; después, el trabajo se reparte en el equipo con `docs/tareas_equipo.md`
 (lo crea la parte 10).
 
 ---
@@ -107,6 +107,10 @@ Arma `web/` a partir de `referencia/ing-software2/main`, siguiendo `docs/plan_re
 - no copies ningún `.env` de la referencia.
 
 ## Parte 8 · Corrida semanal (RF-2, RF-3, RF-6)
+
+> **Hecha (14/11).** `python -m sart.tareas semanal [--fecha AAAA-MM-DD | --prueba]`. Decisiones: la dotación
+> y el nivel se guardan con lo usado (#39); #29 cerrada (solo ALERTA notifica, por centro y semana); RF-3 E2
+> definido (#41). Queda para RF-1: cargar el archivo real del DEIS (#45). Ver `docs/avance.md`.
 
 Conecta la lógica de `sart/dominio` con la base: hoy el modelo solo corre sobre el parquet del notebook y no se
 guarda ningún pronóstico ni alerta. **Muéstrame el plan antes de escribir código** (en particular, las dos

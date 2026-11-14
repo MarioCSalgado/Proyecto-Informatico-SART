@@ -8,7 +8,7 @@
 | TC-04 | RF-3 | ☑ | ☑ | `backend/tests/test_regresion_backtest.py`: con k = 0,4, precisión 0,73 y sensibilidad 0,66 (cumple ≥ 0,70 y ≥ 0,60) |
 | TC-05 | RF-4 | ☑ | ☑ | `backend/tests/test_tc05_mp25.py` |
 | TC-06 | RF-5, RF-15 | ☐ | ☐ | |
-| TC-07 | RF-6 | ☑ | ☑ | `backend/tests/test_tc07_erlang.py` |
+| TC-07 | RF-6 | ☑ | ☑ | `backend/tests/test_tc07_erlang.py`; en la corrida semanal, la dotación se guarda con sus supuestos (`test_rf2_rf3_corrida_semanal.py`, parte 8) |
 | TC-08 | RF-7 | ☐ | ☐ | |
 | TC-09 | RF-7, RF-9 | ☐ | ☐ | |
 | TC-10 | RF-7 | ☐ | ☐ | (con usuarios) |
@@ -18,7 +18,7 @@
 | TC-14 | RF-1 | ☑ | ☑ | `backend/tests/test_tc14_restauracion.py` (simulacro con la base de desarrollo el 14/11: 59 s) |
 | TC-15 | RF-11 | ☐ | ☐ | |
 | TC-16 | RF-16 | ☑ | ☑ | `backend/tests/test_tc16_alta_sin_aceptacion.py` (backend y comando; falta la pantalla de RF-16) |
-| TC-17 | RF-3, RF-9 | ☑ | ☑ | `backend/tests/test_tc17_regla_alerta.py` |
+| TC-17 | RF-3, RF-9 | ☑ | ☑ | `backend/tests/test_tc17_regla_alerta.py`; de punta a punta en la corrida semanal, con el ajuste de k por el administrador (`test_rf2_rf3_corrida_semanal.py::test_rf3_alerta_solo_por_el_margen_y_cambio_de_k`) |
 | TC-18 | RF-8 | ☐ | ☐ | |
 | TC-19 | RF-10 | ☐ | ☐ | |
 | TC-20 | RF-12 | ☐ | ☐ | |
