@@ -20,6 +20,14 @@ SART usa FastAPI en Python, así que **se reutiliza el frontend y los patrones, 
 
 Descartar: pantallas de incidentes, intervenciones y estudiantes, y sus imágenes.
 
+Estado (noviembre de 2026): lo reutilizado quedó en `web/src` con nombres en español, según la regla de idioma
+del proyecto. Equivalencias: `services/` → `servicios/` (`axiosInstance` → `clienteApi`, `paths` → `rutasApi`),
+`context/authContext` → `contexto/sesion` (`AuthProvider`/`useAuth` → `ProveedorSesion`/`useSesion`),
+`auth/permissions` → `acceso/permisos` (`hasPermission` → `tienePermiso`), `RequirePermission` →
+`RequierePermiso`, `usePermissions` → `usePermisos`, `EmptyState` → `EstadoVacio`, `Skeleton` → `BloqueCarga`,
+`screens/` → `pantallas/`. No se usaron `Toast`, `TopBar`, `SuccessModal`, `Icon` ni `UserManagementScreen`
+(la Administración se rehízo desde el diseño de Figma).
+
 Cambio necesario: ing-software2 navega con un estado `screen` en `App.tsx`, sin URLs. SART necesita **rutas con
 URL** (react-router), porque el correo de RF-5/RF-15 lleva un enlace a la página de acuse.
 

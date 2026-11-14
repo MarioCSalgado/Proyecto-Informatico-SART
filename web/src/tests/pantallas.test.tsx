@@ -3,9 +3,9 @@ import { userEvent } from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../App.tsx'
-import type { Role } from '../auth/permissions.ts'
-import { AuthProvider } from '../context/authContext.tsx'
-import axiosInstance from '../services/axiosInstance.ts'
+import type { Rol } from '../acceso/permisos.ts'
+import { ProveedorSesion } from '../contexto/sesion.tsx'
+import clienteApi from '../servicios/clienteApi.ts'
 
 // Partes fijas de los diseños de Figma (etapa 1 bis): estructura sin datos, con los valores de referencia
 // (escala de MP2,5 y comunas) pedidos a la API, nunca escritos en la web (RNF-M-4).
@@ -20,8 +20,8 @@ const REFERENCIAS = {
   comunas: ['Concepción', 'Talcahuano', 'Hualpén'],
 }
 
-function abrir(ruta: string, rol: Role, { referenciasFallan = false } = {}) {
-  vi.spyOn(axiosInstance, 'get').mockImplementation(async (url: string) => {
+function abrir(ruta: string, rol: Rol, { referenciasFallan = false } = {}) {
+  vi.spyOn(clienteApi, 'get').mockImplementation(async (url: string) => {
     if (url.includes('referencias')) {
       if (referenciasFallan) throw new Error('sin conexión')
       return { data: REFERENCIAS }
@@ -30,9 +30,9 @@ function abrir(ruta: string, rol: Role, { referenciasFallan = false } = {}) {
   })
   return render(
     <MemoryRouter initialEntries={[ruta]}>
-      <AuthProvider>
+      <ProveedorSesion>
         <App />
-      </AuthProvider>
+      </ProveedorSesion>
     </MemoryRouter>,
   )
 }

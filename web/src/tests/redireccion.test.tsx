@@ -3,21 +3,21 @@ import { userEvent } from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../App.tsx'
-import { AuthProvider } from '../context/authContext.tsx'
-import axiosInstance from '../services/axiosInstance.ts'
+import { ProveedorSesion } from '../contexto/sesion.tsx'
+import clienteApi from '../servicios/clienteApi.ts'
 
 // Tras iniciar sesión se vuelve a la página que se quería abrir, pero solo si el rol puede verla (RNF-S-2).
 function entrarDesde(ruta: string, rol: 'Jefatura' | 'Subdirector') {
-  vi.spyOn(axiosInstance, 'get').mockImplementation(async (url: string) => {
+  vi.spyOn(clienteApi, 'get').mockImplementation(async (url: string) => {
     if (url.includes('referencias')) return { data: { mp25_niveles: [], comunas: [] } }
     throw new Error('sin sesión')
   })
-  vi.spyOn(axiosInstance, 'post').mockResolvedValue({ data: { usuario: { id: 1, nombre: `${rol} Demo`, rol } } })
+  vi.spyOn(clienteApi, 'post').mockResolvedValue({ data: { usuario: { id: 1, nombre: `${rol} Demo`, rol } } })
   render(
     <MemoryRouter initialEntries={[ruta]}>
-      <AuthProvider>
+      <ProveedorSesion>
         <App />
-      </AuthProvider>
+      </ProveedorSesion>
     </MemoryRouter>,
   )
 }

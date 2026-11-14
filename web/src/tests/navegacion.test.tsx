@@ -2,28 +2,28 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../App.tsx'
-import type { Role } from '../auth/permissions.ts'
-import { rutaInicio } from '../auth/rutas.ts'
-import { AuthProvider } from '../context/authContext.tsx'
-import axiosInstance from '../services/axiosInstance.ts'
+import type { Rol } from '../acceso/permisos.ts'
+import { rutaInicio } from '../acceso/rutas.ts'
+import { ProveedorSesion } from '../contexto/sesion.tsx'
+import clienteApi from '../servicios/clienteApi.ts'
 
-const NOMBRES: Record<Role, string> = {
+const NOMBRES: Record<Rol, string> = {
   Jefatura: 'Jefatura Demo',
   Subdirector: 'Subdirector Demo',
   Administrador: 'Administrador Demo',
 }
 
-function abrir(ruta: string, rol: Role) {
-  vi.spyOn(axiosInstance, 'get').mockImplementation(async (url: string) =>
+function abrir(ruta: string, rol: Rol) {
+  vi.spyOn(clienteApi, 'get').mockImplementation(async (url: string) =>
     url.includes('referencias')
       ? { data: { mp25_niveles: [], comunas: [] } }
       : { data: { usuario: { id: 1, nombre: NOMBRES[rol], rol } } },
   )
   return render(
     <MemoryRouter initialEntries={[ruta]}>
-      <AuthProvider>
+      <ProveedorSesion>
         <App />
-      </AuthProvider>
+      </ProveedorSesion>
     </MemoryRouter>,
   )
 }

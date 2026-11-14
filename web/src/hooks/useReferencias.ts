@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { obtenerReferencias } from "../services/referenciasService.ts";
-import type { Referencias } from "../types/index.ts";
+import { obtenerReferencias } from "../servicios/referencias.ts";
+import type { Referencias } from "../tipos/index.ts";
 
 type Estado = { referencias: Referencias | null; cargando: boolean; error: boolean };
 

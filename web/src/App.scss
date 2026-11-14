@@ -187,7 +187,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 
 /* ---------- Carga ---------- */
-.skeleton {
+.bloque-carga {
   background: linear-gradient(90deg, #e8eeef 25%, #dde5e7 37%, #e8eeef 63%);
   background-size: 400% 100%;
   animation: brillo 1.3s ease-in-out infinite;
