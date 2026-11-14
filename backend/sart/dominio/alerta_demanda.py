@@ -58,3 +58,53 @@ def clasificar_demanda(
     if pronostico > umbral_atencion:
         return "atencion"
     return "normal"
+
+
+ORDEN_NIVELES: dict[str, int] = {"normal": 0, "atencion": 1, "alerta": 2}
+NIVEL_QUE_NOTIFICA: NivelDemanda = "alerta"
+ETIQUETAS_NIVEL = {"normal": "normal", "atencion": "atención", "alerta": "ALERTA"}  # RNF-U-1: con texto
+
+
+def debe_notificarse(nivel: NivelDemanda, ya_notificado: NivelDemanda | None) -> bool:
+    """RF-3 paso 4 y RF-5 E2 (pendientes #29, decidido el 14/11). Se mira por centro y semana.
+
+    Solo «ALERTA» genera notificación; «atención» se guarda y se muestra en la web (RF-7). ``ya_notificado``
+    es el nivel más alto ya notificado de ese centro y esa semana (``None`` si nada): si la corrida se
+    repite, se notifica solo si el nivel sube (atención → ALERTA). Otra semana con ALERTA es una alerta nueva.
+    """
+    if ORDEN_NIVELES[nivel] < ORDEN_NIVELES[NIVEL_QUE_NOTIFICA]:
+        return False
+    return ya_notificado is None or ORDEN_NIVELES[nivel] > ORDEN_NIVELES[ya_notificado]
+
+
+def _cifra(valor: float, decimales: int = 0) -> str:
+    """Número en formato chileno: punto de miles y coma decimal."""
+    texto = f"{valor:,.{decimales}f}"
+    return texto.replace(",", "\0").replace(".", ",").replace("\0", ".")
+
+
+def mensaje_alerta_demanda(
+    *,
+    nivel: NivelDemanda,
+    anio: int,
+    semana: int,
+    pronostico: float,
+    limite_inferior: float,
+    limite_superior: float,
+    umbral_atencion: float,
+    umbral_alerta: float,
+    k: float,
+    valor_con_margen: float,
+) -> str:
+    """Texto fijo de la alerta (§5.1: mensaje obligatorio). No lo redacta el LLM (RF-8): solo cifras
+    agregadas."""
+    base = (
+        f"Nivel {ETIQUETAS_NIVEL[nivel]} para la SE {semana} de {anio}: se pronostican {_cifra(pronostico)} "
+        f"consultas respiratorias (intervalo de 90 %: {_cifra(limite_inferior)} a {_cifra(limite_superior)})."
+    )
+    if nivel == "alerta":
+        return (
+            f"{base} Con el margen de seguridad (k = {_cifra(k, 1)}) son {_cifra(valor_con_margen)}, "
+            f"sobre el umbral de alerta de {_cifra(umbral_alerta)} (percentil 90)."
+        )
+    return f"{base} Supera el umbral de atención de {_cifra(umbral_atencion)} (percentil 75)."

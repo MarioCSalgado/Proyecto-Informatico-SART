@@ -38,6 +38,7 @@ from sart.dominio.roles import Rol
 from sart.dominio.valores import (
     NIVELES_AMBIENTALES,
     NIVELES_DEMANDA,
+    NIVELES_PRONOSTICO,
     UNIDAD_POR_TIPO,
     CalidadDato,
     EstadoCorrida,
@@ -261,13 +262,24 @@ class Medicion(Base):
 # Salidas: pronósticos, alertas y notificaciones (RF-2 a RF-5, RF-15)
 # ---------------------------------------------------------------------------
 class Pronostico(Base):
-    """Pronóstico semanal de consultas de un centro con su intervalo de 90 % (§5.1, RF-2, CI-1)."""
+    """Pronóstico semanal de consultas de un centro con su intervalo de 90 % (§5.1, RF-2, CI-1).
+
+    Guarda también con qué se clasificó (RF-3): el nivel, el umbral vigente y el k de ese momento, para que
+    un cambio posterior de k o del umbral (RF-9) no altere lo que se informó (pendientes #39). ``nivel`` es
+    NULL si el centro no tenía umbral vigente (RF-3 E1).
+    """
 
     __tablename__ = "pronostico"
     __table_args__ = (
         CheckConstraint("valor > 0", name="valor_positivo"),
         CheckConstraint("limite_inferior <= valor AND valor <= limite_superior", name="dentro_del_intervalo"),
         CheckConstraint("semana BETWEEN 1 AND 53", name="semana_valida"),
+        CheckConstraint(f"nivel IS NULL OR nivel IN ({_en(NIVELES_PRONOSTICO)})", name="nivel_valido"),
+        CheckConstraint(
+            "nivel IS NULL OR (umbral_id IS NOT NULL AND k_margen IS NOT NULL"
+            " AND valor_con_margen IS NOT NULL)",
+            name="clasificado_con_umbral",
+        ),
         # §5.1: un solo pronóstico vigente por centro y semana
         Index(
             "uq_pronostico_vigente",
@@ -291,6 +303,43 @@ class Pronostico(Base):
     fecha_corte: Mapped[date] = mapped_column(Date)  # última semana completa usada (RB-4)
     vigente: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"))
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # RF-3: con qué se clasificó
+    nivel: Mapped[str | None] = mapped_column(String(20))
+    umbral_id: Mapped[int | None] = mapped_column(ForeignKey("umbral_centro.id"))
+    k_margen: Mapped[float | None] = mapped_column(Float)
+    valor_con_margen: Mapped[float | None] = mapped_column(Float)
+
+    dotacion: Mapped[DotacionSugerida | None] = relationship(
+        back_populates="pronostico", cascade="all, delete-orphan", passive_deletes=True
+    )
+
+
+class DotacionSugerida(Base):
+    """Profesionales sugeridos en hora punta para un pronóstico (RF-6, CI-2), con los supuestos usados.
+
+    Se guarda y no se recalcula al leer: si el administrador cambia un supuesto (RF-9), lo que se recomendó
+    en su momento sigue igual en el correo (RF-5), el historial (RF-10) y la auditoría (RNF-S-4)
+    (pendientes #39). Un centro cuyo tipo no tiene horas de funcionamiento definidas queda sin fila.
+    """
+
+    __tablename__ = "dotacion_sugerida"
+    __table_args__ = (
+        CheckConstraint("profesionales >= 1", name="al_menos_uno"),
+        CheckConstraint("llegadas_hora_punta >= 0 AND espera_media_min >= 0", name="no_negativas"),
+    )
+
+    pronostico_id: Mapped[int] = mapped_column(
+        ForeignKey("pronostico.id", ondelete="CASCADE"), primary_key=True
+    )
+    profesionales: Mapped[int]
+    llegadas_hora_punta: Mapped[float] = mapped_column(Float)
+    espera_media_min: Mapped[float] = mapped_column(Float)
+    # espera con un profesional menos (Gherkin de RF-6: «con 2 profesionales la espera sería de 55 minutos»);
+    # NULL si con uno menos no alcanza a atender las llegadas o si ya es uno solo
+    espera_con_uno_menos_min: Mapped[float | None] = mapped_column(Float)
+    supuestos: Mapped[dict[str, Any]] = mapped_column(JSON)  # RF-6 paso 3 y E1 («por validar»)
+
+    pronostico: Mapped[Pronostico] = relationship(back_populates="dotacion")
 
 
 class Alerta(Base):

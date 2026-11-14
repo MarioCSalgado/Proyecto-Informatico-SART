@@ -64,6 +64,7 @@ class TipoAlerta(StrEnum):
 
 # Niveles que generan una alerta. «Normal» no genera alerta en ninguno de los dos tipos.
 NIVELES_DEMANDA = ("atencion", "alerta")  # RF-3, RB-3
+NIVELES_PRONOSTICO = ("normal", *NIVELES_DEMANDA)  # nivel guardado en cada pronóstico (RF-3, RF-7)
 NIVELES_AMBIENTALES = ("sobre_la_norma", "alerta", "preemergencia", "emergencia")  # RF-4, RB-1, TC-05
 
 
