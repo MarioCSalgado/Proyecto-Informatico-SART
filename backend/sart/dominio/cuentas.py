@@ -86,7 +86,12 @@ def validar_alta(
         validos = ", ".join(r.value for r in Rol)
         raise ErrorAltaCuenta(f"El rol «{rol}» no existe; debe ser uno de: {validos}.") from None
 
-    if len(contrasena) < largo_minimo:
-        raise ErrorAltaCuenta(f"La contraseña debe tener al menos {largo_minimo} caracteres.")
+    validar_contrasena(contrasena, largo_minimo)
 
     return AltaValidada(nombre=nombre, correo=correo, rol=rol, aceptacion=aceptacion)
+
+
+def validar_contrasena(contrasena: str, largo_minimo: int) -> None:
+    """RNF-S-1: largo mínimo de ``cuentas.largo_minimo_contrasena``. Se usa al crear y al restablecer."""
+    if len(contrasena) < largo_minimo:
+        raise ErrorAltaCuenta(f"La contraseña debe tener al menos {largo_minimo} caracteres.")

@@ -28,7 +28,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sart.db.cuentas import buscar_por_correo, dar_de_alta
+from sart.db.cuentas import buscar_por_correo, dar_de_alta, restablecer_contrasena
 from sart.db.mfa import ErrorMfa, confirmar_activacion, iniciar_activacion, reiniciar
 from sart.db.modelos import CentroSalud
 from sart.db.sesion import SinBaseDeDatos, crear_motor
@@ -64,6 +64,11 @@ def _argumentos(argv: list[str] | None) -> argparse.Namespace:
     confirmar.add_argument("--codigo", required=True, help="código de 6 dígitos que muestra la aplicación")
     reiniciar_mfa = acciones.add_parser("reiniciar-mfa", help="borra el MFA (teléfono perdido o cambiado)")
     reiniciar_mfa.add_argument("--correo", required=True)
+    restablecer = acciones.add_parser("restablecer-clave", help="cambia la contraseña de una cuenta")
+    restablecer.add_argument("--correo", required=True)
+    restablecer.add_argument(
+        "--contrasena-stdin", action="store_true", help="leer la contraseña de la entrada estándar"
+    )
     asignar = acciones.add_parser("asignar-centro", help="asigna un centro a la cuenta (RF-9)")
     asignar.add_argument("--correo", required=True)
     asignar.add_argument(
@@ -168,6 +173,13 @@ def _reiniciar_mfa(args: argparse.Namespace) -> int:
     return 0
 
 
+def _restablecer_clave(args: argparse.Namespace) -> int:
+    contrasena = _leer_contrasena(args.contrasena_stdin)
+    _con_sesion(lambda sesion: restablecer_contrasena(sesion, args.correo, contrasena))
+    print(f"Contraseña restablecida para {args.correo}.")
+    return 0
+
+
 def _asignar_centro(args: argparse.Namespace) -> int:
     resultado: dict[str, str] = {}
 
@@ -193,6 +205,7 @@ def _asignar_centro(args: argparse.Namespace) -> int:
 
 ACCIONES = {
     "asignar-centro": (_asignar_centro, "No se asigna el centro"),
+    "restablecer-clave": (_restablecer_clave, "No se restablece la contraseña"),
     "crear": (_crear, "No se crea la cuenta"),
     "activar-mfa": (_activar_mfa, "No se activa el MFA"),
     "confirmar-mfa": (_confirmar_mfa, "No se activa el MFA"),

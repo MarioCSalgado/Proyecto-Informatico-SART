@@ -80,7 +80,7 @@ Antes de la etapa 2 (llenar las pantallas con datos), el equipo debe decidir est
 | 20 | §3.2 RF-15, TC-06 | Botón «Confirmar recepción» | «Confirmar lectura» | Usará «Confirmar lectura» |
 | 21 | §6 RB-3, §3.2 RF-9 | El administrador edita umbrales fijos por centro (Atención 400, Alerta 500) | Los umbrales se calculan: percentiles 75 y 90 de los últimos 3 años de cada centro | La leyenda explica los percentiles; no hay edición manual. Si se quiere corregir a mano, agregarlo a RB-3 y RF-9 |
 | 22 | §5.2 fuentes, §3.2 | Tarjeta «Virus circulando (ISP)» con positividad viral | No hay datos del ISP entre las fuentes (DEIS, SINCA, Open-Meteo) ni un RF que los use | No se implementa. Agregar la fuente y un RF, o sacar la tarjeta del diseño |
-| 23 | §3.2 | Enlace «¿Olvidaste tu contraseña?» | No hay requisito de recuperación de contraseña | Enlace omitido. Por ahora la clave la restablece el administrador |
+| 23 | §3.2 | Enlace «¿Olvidaste tu contraseña?» | No hay requisito de recuperación de contraseña | Enlace omitido. La clave la restablece el administrador (`python -m sart.cuentas restablecer-clave`, queda en la auditoría) |
 | 24 | §5.1, RF-16 E2 | Columna «Estado: Activa» en usuarios | La baja borra la cuenta (ver #18) | Sin estado; se decide con #18 |
 | 25 | §6 RB-1, TC-05 | Niveles de MP2,5 «Bueno» y «Regular» | «Normal» y «sobre la norma» | Usará los nombres de RB-1 (los que prueba TC-05) |
 

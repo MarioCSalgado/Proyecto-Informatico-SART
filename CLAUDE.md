@@ -104,6 +104,7 @@ cd backend && .venv/Scripts/python -m sart.cuentas crear --nombre "…" --correo
                                               # crear una cuenta (RF-16); pide la contraseña
 cd backend && .venv/Scripts/python -m sart.catalogo cargar --prueba   # centros, consultas y mediciones (datos/prueba)
 cd backend && .venv/Scripts/python -m sart.cuentas asignar-centro --correo … --centro 100001  # RF-9
+cd backend && .venv/Scripts/python -m sart.cuentas restablecer-clave --correo …   # pide la clave nueva
 cd backend && .venv/Scripts/python -m sart.cuentas activar-mfa --correo …   # MFA de un administrador:
 cd backend && .venv/Scripts/python -m sart.cuentas confirmar-mfa --correo … --codigo 123456  # (RNF-S-1)
 cd backend && .venv/Scripts/python -m pytest --cov=sart     # pruebas (en Linux/macOS: .venv/bin/python)

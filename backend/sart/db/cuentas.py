@@ -8,9 +8,16 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from sart.db.auditoria import registrar_auditoria
 from sart.db.modelos import AceptacionFinalidad, Usuario
 from sart.dominio.contrasenas import hashear
-from sart.dominio.cuentas import Aceptacion, ErrorAltaCuenta, normalizar_correo, validar_alta
+from sart.dominio.cuentas import (
+    Aceptacion,
+    ErrorAltaCuenta,
+    normalizar_correo,
+    validar_alta,
+    validar_contrasena,
+)
 from sart.dominio.roles import Rol
 from sart.parametros import cargar_parametros
 
@@ -61,3 +68,30 @@ def dar_de_alta(
 
 def buscar_por_correo(sesion: Session, correo: str) -> Usuario | None:
     return sesion.scalar(select(Usuario).where(Usuario.correo == normalizar_correo(correo)))
+
+
+def restablecer_contrasena(
+    sesion: Session,
+    correo: str,
+    contrasena: str,
+    *,
+    autor: Usuario | None = None,
+    parametros: dict[str, Any] | None = None,
+) -> Usuario:
+    """Cambia la contraseña de una cuenta (pendientes #23). Queda en la auditoría sin la clave (RNF-S-4)."""
+    usuario = buscar_por_correo(sesion, correo)
+    if usuario is None:
+        raise ErrorAltaCuenta(f"No existe una cuenta con el correo {correo}.")
+    largo_minimo = int((parametros or cargar_parametros())["cuentas"]["largo_minimo_contrasena"])
+    validar_contrasena(contrasena, largo_minimo)
+    usuario.hash_contrasena = hashear(contrasena)
+    registrar_auditoria(
+        sesion,
+        autor=autor,
+        accion="restablecer_clave",
+        entidad="usuario",
+        entidad_id=usuario.id,
+        nuevo={"contrasena": "restablecida"},
+    )
+    sesion.commit()
+    return usuario
