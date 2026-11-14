@@ -31,3 +31,7 @@ dist/
 .idea/
 .DS_Store
 Thumbs.db
+
+# gráficos que genera el notebook 5
+notebooks/resultados/
+notebooks/resultados_prueba/
