@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+# notas locales con claves (p. ej. cuentas_demo.local.md)
+*.local.md
 # datos reales (pesados; se descargan con las tareas de ingesta)
 datos/*
 !datos/prueba/
