@@ -1,4 +1,4 @@
-import type { Permission, Role } from './permissions.ts'
+import { hasPermission, type Permission, type Role } from './permissions.ts'
 
 // Secciones de la aplicación (diseño de Figma: una pantalla de inicio por rol). La API vuelve a revisar
 // cada permiso (RNF-S-2); esto solo decide qué se muestra y a dónde se llega después de iniciar sesión.
@@ -24,4 +24,13 @@ const INICIO: Record<Role, string> = {
 /** Pantalla a la que llega cada rol al iniciar sesión o al abrir la raíz. */
 export function rutaInicio(rol: Role): string {
   return INICIO[rol]
+}
+
+/** A dónde ir después de iniciar sesión: a la página que se quería abrir, solo si el rol puede verla (RNF-S-2).
+ *  Sin esto, una jefatura que venía de /red llegaba a «Acceso restringido». */
+export function destinoTrasLogin(rol: Role, desde?: string | null): string {
+  if (!desde || desde === '/' || desde.startsWith('/login')) return rutaInicio(rol)
+  const seccion = SECCIONES.find((s) => desde === s.ruta || desde.startsWith(`${s.ruta}/`))
+  if (seccion && !hasPermission(rol, seccion.permiso)) return rutaInicio(rol)
+  return desde
 }

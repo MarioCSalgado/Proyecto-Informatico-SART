@@ -9,7 +9,7 @@ import { useState, type FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
 import "./css/LoginScreen.scss";
 
-import { rutaInicio } from "../auth/rutas.ts";
+import { destinoTrasLogin } from "../auth/rutas.ts";
 import { Logo } from "../components/Logo.tsx";
 import { AvisoEntorno } from "../components/PiePagina.tsx";
 import { useAuth } from "../context/authContext.tsx";
@@ -51,7 +51,7 @@ export function LoginScreen() {
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    if (isAuthenticated && user) return <Navigate to={desde ?? rutaInicio(user.rol)} replace />;
+    if (isAuthenticated && user) return <Navigate to={destinoTrasLogin(user.rol, desde)} replace />;
 
     const volverAlPrimerPaso = () => {
         setPideCodigo(false);
@@ -74,7 +74,7 @@ export function LoginScreen() {
                 return;
             }
             login(resultado.usuario);
-            navigate(desde ?? rutaInicio(resultado.usuario.rol), { replace: true });
+            navigate(destinoTrasLogin(resultado.usuario.rol, desde), { replace: true });
         } catch (err) {
             setCodigo("");
             setError(err instanceof ErrorInicioSesion ? err.message : "Error inesperado. Intente nuevamente.");
