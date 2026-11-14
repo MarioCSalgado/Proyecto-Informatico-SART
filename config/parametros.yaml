@@ -15,6 +15,7 @@ escenario:                   # §2.3
   estacion_respaldo: Kingston College   # RB-5
 
 modelo:                      # CI-1, RF-2
+  especificacion: solo_rezagos   # o con_pronostico (pendientes #1, opción C del 14/11): cambiarla cuando se valide
   anios_excluidos: [2020, 2021]
   anio_inicio_prueba: 2024
   armonicos: 3

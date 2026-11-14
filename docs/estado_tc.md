@@ -4,8 +4,8 @@
 |---|---|---|---|---|
 | TC-01 | RF-1 | ☑ | ☑ | `backend/tests/test_tc01_semanas.py` (calendario y semanas que cruzan el año) y `test_tc01_semana_incompleta.py` (marca de RB-4) |
 | TC-02 | RF-1 | ☐ | ☐ | |
-| TC-03 | RF-2 | ☐ | ☐ | |
-| TC-04 | RF-3 | ☐ | ☐ | |
+| TC-03 | RF-2 | ☑ | ☑ | `backend/tests/test_regresion_backtest.py`: WAPE 14,9 %, bajo la línea base (con los datos reales de `datos/`; en CI se salta) |
+| TC-04 | RF-3 | ☑ | ☑ | `backend/tests/test_regresion_backtest.py`: con k = 0,4, precisión 0,73 y sensibilidad 0,66 (cumple ≥ 0,70 y ≥ 0,60) |
 | TC-05 | RF-4 | ☑ | ☑ | `backend/tests/test_tc05_mp25.py` |
 | TC-06 | RF-5, RF-15 | ☐ | ☐ | |
 | TC-07 | RF-6 | ☑ | ☑ | `backend/tests/test_tc07_erlang.py` |
