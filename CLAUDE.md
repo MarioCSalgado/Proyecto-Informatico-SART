@@ -100,6 +100,8 @@ cd backend && uv venv --python 3.12 .venv && uv pip install -e ".[dev]"
 cd backend && .venv/Scripts/python -m alembic upgrade head  # crear/actualizar las tablas
 cd backend && .venv/Scripts/python -m sart.cuentas crear --nombre "…" --correo … --rol jefatura --acepta-finalidad
                                               # crear una cuenta (RF-16); pide la contraseña
+cd backend && .venv/Scripts/python -m sart.catalogo cargar --prueba   # centros y consultas de datos/prueba
+cd backend && .venv/Scripts/python -m sart.cuentas asignar-centro --correo … --centro 100001  # RF-9
 cd backend && .venv/Scripts/python -m sart.cuentas activar-mfa --correo …   # MFA de un administrador:
 cd backend && .venv/Scripts/python -m sart.cuentas confirmar-mfa --correo … --codigo 123456  # (RNF-S-1)
 cd backend && .venv/Scripts/python -m pytest --cov=sart     # pruebas (en Linux/macOS: .venv/bin/python)

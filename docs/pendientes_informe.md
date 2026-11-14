@@ -83,3 +83,17 @@ Antes de la etapa 2 (llenar las pantallas con datos), el equipo debe decidir est
 | 23 | §3.2 | Enlace «¿Olvidaste tu contraseña?» | No hay requisito de recuperación de contraseña | Enlace omitido. Por ahora la clave la restablece el administrador |
 | 24 | §5.1, RF-16 E2 | Columna «Estado: Activa» en usuarios | La baja borra la cuenta (ver #18) | Sin estado; se decide con #18 |
 | 25 | §6 RB-1, TC-05 | Niveles de MP2,5 «Bueno» y «Regular» | «Normal» y «sobre la norma» | Usará los nombres de RB-1 (los que prueba TC-05) |
+
+
+## Modelo de datos completo (13/11)
+
+La migración 0003 agrega el resto de §5.1. Decisiones tomadas con el visto bueno del equipo que el informe
+debería reflejar:
+
+| # | Sección (dueño) | Qué hace el código | Qué falta en el informe |
+|---|---|---|---|
+| 26 | §5.1 Consulta_semanal | Se guardan las 6 causas J00–J98 **y el COVID-19 (U07.1 y U07.2)**, que el modelo usa como señal viral junto con la influenza. Las hospitalizaciones y las filas de totales no se cargan (`ingesta.causas`). | La regla «causa dentro de J00–J98» debe admitir U07 como señal viral, o el modelo debe dejar de usarlo. |
+| 27 | §5.1 Zona y Estación, CI-3 | **Una zona por comuna** (10 zonas). Open-Meteo, que entrega un punto y no una estación, se registra como estación de fuente «Open-Meteo» en el centro de Concepción. | Definir «zona» en §5.1 y aclarar que una estación puede ser un punto de Open-Meteo. |
+| 28 | §5.1 Centro_Salud y Estación | La dirección es opcional: el registro de establecimientos de prueba no la trae y las estaciones de SINCA no la publican en el archivo. | Quitar «dirección obligatoria» o indicar de dónde sale. |
+| 29 | §5.1 Alerta, RF-3, RF-4 | Solo se guardan alertas que no son «normal»: de demanda, «atención» o «alerta»; ambientales, desde «sobre la norma». Una alerta de demanda guarda su semana a través del pronóstico que la originó. | Confirmar que «atención» también genera alerta y notificación, o solo «alerta». |
+| 30 | §6 RB-4 | `semana_carga` guarda cuántos centros reportaron cada semana; la marca «completa» queda sin evaluar hasta la parte 5 (TC-01), porque falta decidir el criterio (#3). | Nada nuevo: depende de #3. |

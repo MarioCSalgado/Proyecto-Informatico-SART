@@ -6,6 +6,7 @@ con ``downgrade base``. Se salta si no hay PostgreSQL disponible (por ejemplo, e
 
 import os
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -15,9 +16,12 @@ from alembic.config import Config
 from alembic.migration import MigrationContext
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from sart.configuracion import RAIZ_REPOSITORIO, Configuracion
-from sart.db.modelos import Base
+from sart.db.modelos import Base, Estacion, Medicion, Zona
+from sart.dominio.valores import UNIDAD_POR_TIPO, FuenteEstacion, OrigenMedicion, TipoMedicion
 
 pytestmark = pytest.mark.integracion
 
@@ -73,6 +77,43 @@ def test_upgrade_crea_el_esquema_igual_a_los_modelos(url_base_temporal):
 
     assert {"usuario", "aceptacion_finalidad", "alembic_version"} <= tablas
     assert diferencias == [], f"la migración no coincide con los modelos: {diferencias}"
+
+
+def test_restricciones_migradas_aceptan_las_unidades_de_cada_medicion(url_base_temporal):
+    """compare_metadata no revisa el texto de los CHECK: aquí se prueba con datos reales. Así se detectó que
+    Alembic había escrito '%%' en vez de '%' y la base rechazaba toda humedad."""
+    command.upgrade(_config(url_base_temporal), "head")
+
+    motor = create_engine(url_base_temporal)
+    try:
+        with Session(motor) as sesion:
+            zona = Zona(nombre="Concepción")
+            estacion = Estacion(
+                nombre="Kingston College", comuna="Concepción", zona=zona, fuente=FuenteEstacion.SINCA
+            )
+            sesion.add(estacion)
+            sesion.flush()
+            ahora = datetime.now(UTC)
+            sesion.add_all(
+                Medicion(estacion_id=estacion.id, fecha_hora=ahora, tipo=tipo, valor=10.0, unidad=unidad)
+                for tipo, unidad in UNIDAD_POR_TIPO.items()
+            )
+            sesion.commit()
+
+            sesion.add(
+                Medicion(
+                    estacion_id=estacion.id,
+                    fecha_hora=ahora,
+                    tipo=TipoMedicion.HUMEDAD,
+                    valor=10.0,
+                    unidad="%%",
+                    origen=OrigenMedicion.PRONOSTICO,
+                )
+            )
+            with pytest.raises(IntegrityError):
+                sesion.commit()
+    finally:
+        motor.dispose()
 
 
 def test_downgrade_deja_la_base_vacia(url_base_temporal):

@@ -25,10 +25,12 @@ import getpass
 import sys
 from datetime import UTC, datetime
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sart.db.cuentas import dar_de_alta
+from sart.db.cuentas import buscar_por_correo, dar_de_alta
 from sart.db.mfa import ErrorMfa, confirmar_activacion, iniciar_activacion, reiniciar
+from sart.db.modelos import CentroSalud
 from sart.db.sesion import SinBaseDeDatos, crear_motor
 from sart.dominio.cuentas import Aceptacion, ErrorAltaCuenta
 from sart.dominio.mfa import secreto_legible
@@ -62,6 +64,11 @@ def _argumentos(argv: list[str] | None) -> argparse.Namespace:
     confirmar.add_argument("--codigo", required=True, help="código de 6 dígitos que muestra la aplicación")
     reiniciar_mfa = acciones.add_parser("reiniciar-mfa", help="borra el MFA (teléfono perdido o cambiado)")
     reiniciar_mfa.add_argument("--correo", required=True)
+    asignar = acciones.add_parser("asignar-centro", help="asigna un centro a la cuenta (RF-9)")
+    asignar.add_argument("--correo", required=True)
+    asignar.add_argument(
+        "--centro", required=True, type=int, help="código DEIS del centro (EstablecimientoCodigo)"
+    )
     return analizador.parse_args(argv)
 
 
@@ -161,7 +168,31 @@ def _reiniciar_mfa(args: argparse.Namespace) -> int:
     return 0
 
 
+def _asignar_centro(args: argparse.Namespace) -> int:
+    resultado: dict[str, str] = {}
+
+    def accion(sesion: Session) -> None:
+        usuario = buscar_por_correo(sesion, args.correo)
+        if usuario is None:
+            raise ErrorAltaCuenta(f"No existe una cuenta con el correo {args.correo}.")
+        centro = sesion.scalar(select(CentroSalud).where(CentroSalud.codigo_deis == args.centro))
+        if centro is None:
+            raise ErrorAltaCuenta(
+                f"No existe el centro con código DEIS {args.centro}. "
+                "¿Se cargó el catálogo (python -m sart.catalogo)?"
+            )
+        if centro not in usuario.centros:
+            usuario.centros.append(centro)
+            sesion.commit()
+        resultado["centro"] = f"{centro.nombre} ({centro.comuna})"
+
+    _con_sesion(accion)
+    print(f"{args.correo} tiene asignado: {resultado['centro']}.")
+    return 0
+
+
 ACCIONES = {
+    "asignar-centro": (_asignar_centro, "No se asigna el centro"),
     "crear": (_crear, "No se crea la cuenta"),
     "activar-mfa": (_activar_mfa, "No se activa el MFA"),
     "confirmar-mfa": (_confirmar_mfa, "No se activa el MFA"),

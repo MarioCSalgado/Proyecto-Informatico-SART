@@ -50,7 +50,42 @@ dotacion:                    # CI-2, RF-6 (supuestos por validar en entrevistas,
     SUR: null                # POR DEFINIR: el informe no lo indica
     hospital: 168
 
+catalogo:                    # CI-3, RB-5 · asignación manual por comuna del notebook 5 (pendientes #9 y #10)
+  estaciones:                # zona = comuna de la estación; la de respaldo es escenario.estacion_respaldo
+    "Kingston College": {comuna: Concepción, fuente: SINCA, codigo_sinca: "827"}
+    "Punteras": {comuna: Chiguayante, fuente: SINCA}          # código SINCA por verificar
+    "Hualqui": {comuna: Hualqui, fuente: SINCA}               # código SINCA por verificar
+    "JUNJI": {comuna: Hualpén, fuente: SINCA}                 # código SINCA por verificar
+    "Cerro Merquín": {comuna: Coronel, fuente: SINCA}         # código SINCA por verificar
+    "Coronel Norte": {comuna: Coronel, fuente: SINCA}         # código SINCA por verificar
+    "Open-Meteo Concepción": {comuna: Concepción, fuente: Open-Meteo, latitud: -36.83, longitud: -73.05}
+  estacion_por_comuna:       # comunas sin estación propia usan la más cercana (REVISAR, CI-3)
+    Concepción: Kingston College
+    Chiguayante: Punteras
+    Hualqui: Hualqui
+    Hualpén: JUNJI
+    Talcahuano: JUNJI
+    Coronel: Cerro Merquín
+    Lota: Cerro Merquín
+    San Pedro de la Paz: Kingston College
+    Penco: Kingston College
+    Tomé: Kingston College
+  tipos_establecimiento:     # TipoEstablecimientoGlosa del registro → tipo de §5.1 (pendientes #5); el resto no se carga
+    "Hospital": hospital
+    "Servicio de Atención Primaria de Urgencia (SAPU)": SAPU
+    "Servicio de Urgencia de Alta Resolución (SAR)": SAR
+    "Servicio de Urgencia Rural (SUR)": SUR
+
 ingesta:                     # RF-1, RNF-M-3
+  causas:                    # inicio de la glosa del DEIS → clave guardada; el resto (hospitalizaciones, totales) no se carga
+    "Infección respiratoria aguda alta": ira_alta
+    "Influenza": influenza
+    "Neumonía": neumonia
+    "Bronquitis/bronquiolitis aguda": bronquitis
+    "Crisis obstructiva bronquial": obstructiva
+    "Otra causa respiratoria": otra_respiratoria
+    "Covid-19, virus identificado": covid_identificado        # U07: fuera de J00–J98, señal viral (pendientes #26)
+    "Covid-19, virus no identificado": covid_no_identificado
   reintentos_fuente: 3
   avisar_tras_fallas_seguidas: 2
   cobertura_minima_semana: 0.8   # notebook: semana completa si reportan ≥ 80 % de los centros

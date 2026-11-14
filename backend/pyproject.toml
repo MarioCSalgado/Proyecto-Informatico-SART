@@ -19,6 +19,7 @@ dependencies = [
     "pyjwt>=2.9",
     "pyotp>=2.9",  # MFA TOTP para administradores (RNF-S-1)
     "pandas>=2.2",
+    "pyarrow>=17",  # lee los .parquet del DEIS (RF-1)
     "numpy>=1.26",
     "scipy>=1.13",
     "statsmodels>=0.14",

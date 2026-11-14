@@ -26,6 +26,7 @@ SECCIONES_OBLIGATORIAS = (
     "mp25_niveles",
     "notificaciones",
     "dotacion",
+    "catalogo",
     "ingesta",
     "consulta",
     "auditoria",
