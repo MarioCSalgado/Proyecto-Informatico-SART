@@ -4,6 +4,8 @@
 !.env.example
 # notas locales con claves (p. ej. cuentas_demo.local.md)
 *.local.md
+# respaldos de la base (tienen nombres y correos de las cuentas: datos personales, §5.3)
+respaldos/
 # datos reales (pesados; se descargan con las tareas de ingesta)
 datos/*
 !datos/prueba/

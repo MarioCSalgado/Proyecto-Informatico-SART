@@ -4,8 +4,6 @@ Crea una base temporal, aplica ``upgrade head``, comprueba que el esquema coinci
 con ``downgrade base``. Se salta si no hay PostgreSQL disponible (por ejemplo, en CI sin servicio de base).
 """
 
-import os
-import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -14,12 +12,10 @@ from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.config import Config
 from alembic.migration import MigrationContext
-from sqlalchemy import create_engine, inspect, text
-from sqlalchemy.engine import make_url
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from sart.configuracion import RAIZ_REPOSITORIO, Configuracion
 from sart.db.modelos import Alerta, Base, Estacion, Medicion, Notificacion, Zona
 from sart.dominio.valores import (
     UNIDAD_POR_TIPO,
@@ -35,34 +31,9 @@ pytestmark = pytest.mark.integracion
 ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
 
 
-def _url_postgres() -> str | None:
-    """DATABASE_URL del entorno o del .env real (conftest aísla el .env, por eso se lee aquí a mano)."""
-    return os.environ.get("DATABASE_URL") or Configuracion(_env_file=RAIZ_REPOSITORIO / ".env").database_url
-
-
 @pytest.fixture
-def url_base_temporal():
-    url = _url_postgres()
-    if not url:
-        pytest.skip("sin DATABASE_URL: no hay PostgreSQL para probar migraciones")
-    nombre = f"sart_prueba_{uuid.uuid4().hex[:8]}"
-    administrador = create_engine(
-        make_url(url).set(database="postgres"),
-        isolation_level="AUTOCOMMIT",
-        connect_args={"connect_timeout": 5},  # sin límite, una base inalcanzable cuelga la prueba
-    )
-    try:
-        with administrador.connect() as conexion:
-            conexion.execute(text(f'CREATE DATABASE "{nombre}"'))
-    except Exception as error:  # base apagada o sin permisos: se salta, no falla
-        administrador.dispose()
-        pytest.skip(f"PostgreSQL no disponible ({type(error).__name__})")
-    try:
-        yield make_url(url).set(database=nombre).render_as_string(hide_password=False)
-    finally:
-        with administrador.connect() as conexion:
-            conexion.execute(text(f'DROP DATABASE IF EXISTS "{nombre}" WITH (FORCE)'))
-        administrador.dispose()
+def url_base_temporal(crear_base_temporal):
+    return crear_base_temporal()
 
 
 def _config(url: str) -> Config:

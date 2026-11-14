@@ -34,6 +34,7 @@ SECCIONES_OBLIGATORIAS = (
     "sesion",
     "mfa",
     "administracion",
+    "respaldo",
 )
 
 

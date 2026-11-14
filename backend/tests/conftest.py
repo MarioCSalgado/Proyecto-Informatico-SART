@@ -1,16 +1,20 @@
 """Fixtures comunes de las pruebas del backend."""
 
+import os
+import uuid
 from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from sart import configuracion
 from sart.api.app import app
 from sart.api.dependencias import obtener_sesion_db
+from sart.configuracion import RAIZ_REPOSITORIO, Configuracion
 from sart.db.cuentas import dar_de_alta
 from sart.db.modelos import Base
 from sart.dominio.cuentas import Aceptacion
@@ -73,3 +77,41 @@ def crear_cuenta(motor_memoria):
             return usuario.id
 
     return _crear
+
+
+def url_postgres() -> str | None:
+    """DATABASE_URL del entorno o del .env real (el fixture de arriba aísla el .env; aquí se lee a mano)."""
+    return os.environ.get("DATABASE_URL") or Configuracion(_env_file=RAIZ_REPOSITORIO / ".env").database_url
+
+
+@pytest.fixture
+def crear_base_temporal():
+    """Fábrica de bases PostgreSQL vacías para las pruebas de integración; se borran al terminar.
+    Si no hay PostgreSQL disponible, la prueba se salta (por ejemplo, en CI sin servicio de base)."""
+    url = url_postgres()
+    if not url:
+        pytest.skip("sin DATABASE_URL: no hay PostgreSQL para esta prueba de integración")
+    administrador = create_engine(
+        make_url(url).set(database="postgres"),
+        isolation_level="AUTOCOMMIT",
+        connect_args={"connect_timeout": 5},  # sin límite, una base inalcanzable cuelga la prueba
+    )
+    creadas: list[str] = []
+
+    def crear() -> str:
+        nombre = f"sart_prueba_{uuid.uuid4().hex[:8]}"
+        try:
+            with administrador.connect() as conexion:
+                conexion.execute(text(f'CREATE DATABASE "{nombre}"'))
+        except Exception as error:  # base apagada o sin permisos: se salta, no falla
+            pytest.skip(f"PostgreSQL no disponible ({type(error).__name__})")
+        creadas.append(nombre)
+        return make_url(url).set(database=nombre).render_as_string(hide_password=False)
+
+    try:
+        yield crear
+    finally:
+        with administrador.connect() as conexion:
+            for nombre in creadas:
+                conexion.execute(text(f'DROP DATABASE IF EXISTS "{nombre}" WITH (FORCE)'))
+        administrador.dispose()

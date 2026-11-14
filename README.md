@@ -50,6 +50,10 @@ Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), P
    ```
    Para cambiar la contraseña de una cuenta: `.venv/Scripts/python -m sart.cuentas restablecer-clave --correo …`.
    Para recalcular los umbrales de cada centro (RB-3): `.venv/Scripts/python -m sart.catalogo recalcular-umbrales`.
+
+7. **Respaldo** (RNF-D-2): `.venv/Scripts/python -m sart.respaldo crear` deja una copia en `respaldos/` (fuera de
+   git: tiene nombres y correos). Para volver a una copia: `… restaurar respaldos/ARCHIVO.dump --confirmar` (reemplaza
+   toda la base) y después `python -m sart.catalogo cargar …` para recargar las fuentes públicas.
 6. **Administradores: MFA** (RNF-S-1). Una cuenta con `--rol administrador` no puede entrar hasta activar
    el código de una aplicación de autenticación (Google Authenticator, Microsoft Authenticator, Authy…):
    ```bash

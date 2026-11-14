@@ -15,7 +15,7 @@
 | TC-11 | RF-2 | ☐ | ☐ | |
 | TC-12 | RF-4 | ☐ | ☐ | |
 | TC-13 | Transversal | ☐ | ☐ | |
-| TC-14 | RF-1 | ☐ | ☐ | |
+| TC-14 | RF-1 | ☑ | ☑ | `backend/tests/test_tc14_restauracion.py` (simulacro con la base de desarrollo el 14/11: 59 s) |
 | TC-15 | RF-11 | ☐ | ☐ | |
 | TC-16 | RF-16 | ☑ | ☑ | `backend/tests/test_tc16_alta_sin_aceptacion.py` (backend y comando; falta la pantalla de RF-16) |
 | TC-17 | RF-3, RF-9 | ☑ | ☑ | `backend/tests/test_tc17_regla_alerta.py` |

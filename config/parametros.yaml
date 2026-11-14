@@ -4,6 +4,7 @@
 zona_horaria: America/Santiago
 
 horarios:                    # RF-1, RF-2, RF-4, RNF-D-3
+  respaldo: "04:30"          # RNF-D-2: antes de la ingesta de las 05:00 (supuesto, pendientes #38)
   ingesta: "05:00"           # diaria
   pronostico: "06:00"        # lunes
   alerta_ambiental: "07:00"  # diaria
@@ -135,3 +136,10 @@ administracion:              # RF-9, opción a (pendientes #31): el valor de est
     - dotacion.horas_funcionamiento_semana.hospital
     - notificaciones.reenvio_horas
     - notificaciones.escalamiento_horas
+
+respaldo:                    # RNF-D-2, TC-14 (RPO 24 h, RTO 2 h)
+  carpeta: respaldos         # relativa a la raíz del repo; fuera de la base. En producción, copiar a otro proveedor
+  conservar: 14              # respaldos diarios que se guardan; los más antiguos se borran
+  tablas_sin_datos:          # fuentes públicas: se vuelven a descargar (RNF-D-2); se respalda solo su estructura
+    - consulta_semanal
+    - medicion
