@@ -1,6 +1,7 @@
-"""Carga del catálogo (zonas, estaciones y centros) y de las consultas semanales del DEIS (CI-3, RB-5, RF-1).
+"""Carga del catálogo (zonas, estaciones y centros), de las consultas semanales del DEIS y de las mediciones
+ambientales de SINCA y Open-Meteo (CI-3, RB-5, RF-1, RF-4).
 
-Las dos cargas se pueden repetir: actualizan lo que ya existe en vez de duplicarlo. La ingesta programada de
+Todas las cargas se pueden repetir: actualizan lo que ya existe en vez de duplicarlo. La ingesta programada de
 las 05:00 (RF-1) usará ``cargar_consultas`` después de descargar el archivo; la marca de semana incompleta
 (RB-4) se calcula en la parte 5 (TC-01), por eso ``semana_carga.completa`` queda sin evaluar.
 """
@@ -17,9 +18,16 @@ from sqlalchemy import select
 from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.orm import Session
 
-from sart.db.modelos import CentroSalud, ConsultaSemanal, Estacion, SemanaCarga, Zona
+from sart.db.modelos import CentroSalud, ConsultaSemanal, Estacion, Medicion, SemanaCarga, Zona
 from sart.dominio.catalogo import clave_causa, estacion_de_comuna, normalizar, tipo_centro
-from sart.dominio.valores import GRUPOS_EDAD_DEIS, FuenteEstacion
+from sart.dominio.mediciones import valor_sinca
+from sart.dominio.valores import (
+    GRUPOS_EDAD_DEIS,
+    UNIDAD_POR_TIPO,
+    FuenteEstacion,
+    OrigenMedicion,
+    TipoMedicion,
+)
 from sart.parametros import cargar_parametros
 
 # Columnas de los archivos del MINSAL (esquema de la fuente, no supuestos del modelo)
@@ -38,7 +46,22 @@ COLUMNAS_URGENCIAS = {
     "semana": "SemanaEstadistica",
     "causa": "Causa",
 }
-FILAS_POR_LOTE = 5000
+COLUMNAS_SINCA = {
+    "fecha": "FECHA (YYMMDD)",
+    "hora": "HORA (HHMM)",
+    "validado": "Registros validados",
+    "preliminar": "Registros preliminares",
+    "no_validado": "Registros no validados",
+}
+# Columnas de los CSV de Open-Meteo que guarda el prototipo (notebook 5) → tipo de medición
+COLUMNAS_CLIMA = {
+    TipoMedicion.TEMPERATURA_MEDIA: "temp_media",
+    TipoMedicion.TEMPERATURA_MINIMA: "temp_min",
+    TipoMedicion.HUMEDAD: "humedad",
+}
+COLUMNAS_PRONOSTICO_MP = {TipoMedicion.MP25: "pm2_5", TipoMedicion.MP10: "pm10"}
+# Parámetros por INSERT: SQLite acepta hasta 32.766 y PostgreSQL hasta 65.535
+PARAMETROS_POR_LOTE = 30000
 
 
 @dataclass
@@ -163,8 +186,11 @@ def _insertar_o_actualizar(
     modulo = {"postgresql": postgresql, "sqlite": sqlite}.get(dialecto)
     if modulo is None:
         raise NotImplementedError(f"Carga no disponible para la base {dialecto}")
-    for inicio in range(0, len(filas), FILAS_POR_LOTE):
-        lote = filas[inicio : inicio + FILAS_POR_LOTE]
+    if not filas:
+        return
+    filas_por_lote = max(1, PARAMETROS_POR_LOTE // len(filas[0]))
+    for inicio in range(0, len(filas), filas_por_lote):
+        lote = filas[inicio : inicio + filas_por_lote]
         orden = modulo.insert(modelo).values(lote)
         orden = orden.on_conflict_do_update(
             index_elements=claves, set_={c: getattr(orden.excluded, c) for c in actualizar}
@@ -236,3 +262,147 @@ def cargar_consultas(
     resumen.centros = int(datos[col["establecimiento"]].nunique())
     resumen.semanas = len(semanas)
     return resumen
+
+
+# ---------------------------------------------------------------------------
+# Mediciones ambientales (RF-1, RF-4, RB-5)
+# ---------------------------------------------------------------------------
+@dataclass
+class ResumenMediciones:
+    filas: int = 0
+    estaciones: int = 0
+    sin_dato: int = 0
+    archivos_sin_estacion: list[str] = field(default_factory=list)
+
+
+def _a_utc(locales: pd.Series, zona_horaria: str) -> pd.Series:
+    """Horas locales (sin zona) a UTC. Las que no existen por el cambio de hora se corren hacia adelante; las
+    que se repiten (ambiguas) quedan vacías y se cuentan como sin dato."""
+    return (
+        pd.to_datetime(locales)
+        .dt.tz_localize(zona_horaria, ambiguous="NaT", nonexistent="shift_forward")
+        .dt.tz_convert("UTC")
+    )
+
+
+def _guardar_mediciones(sesion: Session, filas: list[dict]) -> None:
+    _insertar_o_actualizar(
+        sesion,
+        Medicion,
+        filas,
+        claves=["estacion_id", "tipo", "origen", "fecha_hora"],
+        actualizar=["valor", "unidad", "calidad"],
+    )
+
+
+def _estacion_open_meteo(sesion: Session) -> Estacion:
+    estaciones = sesion.scalars(select(Estacion).where(Estacion.fuente == FuenteEstacion.OPEN_METEO)).all()
+    if not estaciones:
+        raise ValueError("No hay estación de Open-Meteo: primero cargue el catálogo (catalogo.estaciones).")
+    if len(estaciones) > 1:
+        raise ValueError("Hay más de una estación de Open-Meteo en el catálogo; no se sabe a cuál cargar.")
+    return estaciones[0]
+
+
+def cargar_sinca(
+    sesion: Session, carpeta: Path, parametros: dict[str, Any] | None = None
+) -> ResumenMediciones:
+    """MP2,5 diario de SINCA: un archivo por estación, con el nombre de la estación del catálogo."""
+    parametros = parametros or cargar_parametros()
+    estaciones = {
+        normalizar(e.nombre): e
+        for e in sesion.scalars(select(Estacion).where(Estacion.fuente == FuenteEstacion.SINCA))
+    }
+    if not estaciones:
+        raise ValueError("No hay estaciones de SINCA: primero cargue el catálogo (catalogo.estaciones).")
+    resumen = ResumenMediciones()
+    col = COLUMNAS_SINCA
+
+    for ruta in sorted(Path(carpeta).glob("*.csv")):
+        estacion = estaciones.get(normalizar(ruta.stem))
+        if estacion is None:
+            resumen.archivos_sin_estacion.append(ruta.name)
+            continue
+        datos = _leer_csv(ruta)
+        _exigir_columnas(datos, col, ruta)
+        locales = pd.to_datetime("20" + datos[col["fecha"]] + datos[col["hora"]], format="%Y%m%d%H%M")
+        momentos = _a_utc(locales, parametros["zona_horaria"])
+        filas = []
+        for registro, momento in zip(datos.to_dict("records"), momentos, strict=True):
+            dato = valor_sinca(
+                registro[col["validado"]], registro[col["preliminar"]], registro[col["no_validado"]]
+            )
+            if dato is None or pd.isna(momento):
+                resumen.sin_dato += 1
+                continue
+            valor, calidad = dato
+            filas.append(
+                {
+                    "estacion_id": estacion.id,
+                    "fecha_hora": momento.to_pydatetime(),
+                    "tipo": TipoMedicion.MP25,
+                    "valor": valor,
+                    "unidad": UNIDAD_POR_TIPO[TipoMedicion.MP25],
+                    "origen": OrigenMedicion.OBSERVADO,
+                    "calidad": calidad,
+                }
+            )
+        _guardar_mediciones(sesion, filas)
+        resumen.filas += len(filas)
+        resumen.estaciones += 1
+
+    sesion.commit()
+    return resumen
+
+
+def _cargar_open_meteo(
+    sesion: Session,
+    ruta: Path,
+    columna_fecha: str,
+    columnas: dict[TipoMedicion, str],
+    origen: OrigenMedicion,
+    parametros: dict[str, Any] | None,
+) -> ResumenMediciones:
+    parametros = parametros or cargar_parametros()
+    estacion = _estacion_open_meteo(sesion)
+    datos = pd.read_csv(ruta)
+    _exigir_columnas(datos, {"fecha": columna_fecha}, Path(ruta))
+    momentos = _a_utc(datos[columna_fecha], parametros["zona_horaria"])
+    resumen = ResumenMediciones(estaciones=1)
+    filas = []
+    for tipo, columna in columnas.items():
+        if columna not in datos.columns:  # p. ej., Open-Meteo a veces no entrega humedad
+            continue
+        for valor, momento in zip(datos[columna], momentos, strict=True):
+            if pd.isna(valor) or pd.isna(momento):
+                resumen.sin_dato += 1
+                continue
+            filas.append(
+                {
+                    "estacion_id": estacion.id,
+                    "fecha_hora": momento.to_pydatetime(),
+                    "tipo": tipo,
+                    "valor": float(valor),
+                    "unidad": UNIDAD_POR_TIPO[tipo],
+                    "origen": origen,
+                    "calidad": None,
+                }
+            )
+    _guardar_mediciones(sesion, filas)
+    sesion.commit()
+    resumen.filas = len(filas)
+    return resumen
+
+
+def cargar_clima(sesion: Session, ruta: Path, parametros: dict[str, Any] | None = None) -> ResumenMediciones:
+    """Clima diario observado de Open-Meteo: temperatura media y mínima, y humedad."""
+    return _cargar_open_meteo(sesion, ruta, "fecha", COLUMNAS_CLIMA, OrigenMedicion.OBSERVADO, parametros)
+
+
+def cargar_pronostico_mp25(
+    sesion: Session, ruta: Path, parametros: dict[str, Any] | None = None
+) -> ResumenMediciones:
+    """Pronóstico horario de MP2,5 y MP10 de Open-Meteo para los próximos días (RF-4)."""
+    return _cargar_open_meteo(
+        sesion, ruta, "fecha_hora", COLUMNAS_PRONOSTICO_MP, OrigenMedicion.PRONOSTICO, parametros
+    )

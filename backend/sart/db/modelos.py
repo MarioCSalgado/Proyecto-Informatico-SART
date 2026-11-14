@@ -33,15 +33,18 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from sart.dominio.acuse import nuevo_token_acuse
 from sart.dominio.roles import Rol
 from sart.dominio.valores import (
     NIVELES_AMBIENTALES,
     NIVELES_DEMANDA,
     UNIDAD_POR_TIPO,
     CalidadDato,
+    EstadoCorrida,
     EstadoNotificacion,
     FuenteEstacion,
     OrigenMedicion,
+    OrigenUmbral,
     TipoAlerta,
     TipoCentro,
     TipoMedicion,
@@ -335,14 +338,103 @@ class Notificacion(Base):
         CheckConstraint(
             "estado <> 'confirmada' OR fecha_confirmacion IS NOT NULL", name="confirmada_con_fecha"
         ),
+        CheckConstraint("estado <> 'reenviada' OR fecha_reenvio IS NOT NULL", name="reenviada_con_fecha"),
+        CheckConstraint("estado <> 'escalada' OR fecha_escalamiento IS NOT NULL", name="escalada_con_fecha"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    # RF-15: el correo enlaza a /acuse/<token_acuse>; no se usa el id, que es correlativo y fácil de adivinar
+    token_acuse: Mapped[str] = mapped_column(String(64), unique=True, default=nuevo_token_acuse)
     alerta_id: Mapped[int] = mapped_column(ForeignKey("alerta.id", ondelete="CASCADE"))
     usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuario.id", ondelete="SET NULL"), index=True)
     estado: Mapped[EstadoNotificacion] = mapped_column(_enum(EstadoNotificacion, "estado_notificacion", 12))
     fecha_envio: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     fecha_confirmacion: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # RB-2: reenvío a las 24 h sin acuse y escalamiento al Subdirector a las 48 h (plazos en parametros.yaml)
+    fecha_reenvio: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    fecha_escalamiento: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+# ---------------------------------------------------------------------------
+# Umbrales y supuestos que ajusta el administrador (RB-3, RF-9; opción a, pendientes #31)
+# ---------------------------------------------------------------------------
+class UmbralCentro(Base):
+    """Umbrales de atención (p75) y alerta (p90) de un centro. Los calcula RB-3; el administrador puede
+    corregirlos con un motivo (RF-9). Se guarda la historia: solo uno vigente por centro."""
+
+    __tablename__ = "umbral_centro"
+    __table_args__ = (
+        CheckConstraint("umbral_atencion >= 0 AND umbral_atencion <= umbral_alerta", name="orden_valido"),
+        CheckConstraint("origen <> 'manual' OR motivo IS NOT NULL", name="manual_con_motivo"),
+        Index(
+            "uq_umbral_centro_vigente",
+            "centro_id",
+            unique=True,
+            postgresql_where=text("vigente"),
+            sqlite_where=text("vigente"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    centro_id: Mapped[int] = mapped_column(ForeignKey("centro_salud.id", ondelete="CASCADE"))
+    umbral_atencion: Mapped[float] = mapped_column(Float)  # consultas por semana (percentil 75)
+    umbral_alerta: Mapped[float] = mapped_column(Float)  # consultas por semana (percentil 90)
+    origen: Mapped[OrigenUmbral] = mapped_column(_enum(OrigenUmbral, "origen_umbral", 10))
+    anios_usados: Mapped[str | None] = mapped_column(String(40))  # p. ej. «2023–2025» (RB-3)
+    motivo: Mapped[str | None] = mapped_column(Text)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("usuario.id", ondelete="SET NULL"))
+    vigente: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"))
+    creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ParametroAjustado(Base):
+    """Supuesto de ``config/parametros.yaml`` que el administrador cambió desde la web (RF-9, opción a).
+
+    El YAML queda como valor de partida versionado en git; las corridas leen el YAML con los ajustes vigentes
+    encima (``sart.db.supuestos.parametros_vigentes``). Solo uno vigente por clave; se guarda la historia.
+    """
+
+    __tablename__ = "parametro_ajustado"
+    __table_args__ = (
+        Index(
+            "uq_parametro_ajustado_vigente",
+            "clave",
+            unique=True,
+            postgresql_where=text("vigente"),
+            sqlite_where=text("vigente"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    clave: Mapped[str] = mapped_column(String(100))  # ruta en el YAML, p. ej. «regla_alerta.k_margen»
+    valor: Mapped[Any] = mapped_column(JSON)
+    motivo: Mapped[str] = mapped_column(Text)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("usuario.id", ondelete="SET NULL"))
+    vigente: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"))
+    creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+# ---------------------------------------------------------------------------
+# Corridas de tareas y cargas (RNF-M-3)
+# ---------------------------------------------------------------------------
+class Corrida(Base):
+    """Log de cada corrida: tarea, fuente, inicio, fin, estado y mensaje. Con esto se sabe si una fuente
+    falló varias veces seguidas (``ingesta.avisar_tras_fallas_seguidas``)."""
+
+    __tablename__ = "corrida"
+    __table_args__ = (
+        CheckConstraint("estado = 'en_curso' OR fin IS NOT NULL", name="terminada_con_fin"),
+        Index("ix_corrida_fuente_inicio", "fuente", "inicio"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tarea: Mapped[str] = mapped_column(String(40))
+    fuente: Mapped[str | None] = mapped_column(String(40))
+    inicio: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    fin: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    estado: Mapped[EstadoCorrida] = mapped_column(_enum(EstadoCorrida, "estado_corrida", 10))
+    filas: Mapped[int | None]
+    mensaje: Mapped[str | None] = mapped_column(Text)
 
 
 # ---------------------------------------------------------------------------

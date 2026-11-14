@@ -69,6 +69,8 @@ SART/
 - **El LLM solo redacta** (RF-8): recibe cifras agregadas, nunca nombres ni correos, y no puede cambiar un nivel.
 - **Ningún supuesto escrito en el código**: k, percentiles, minutos por atención, factor de hora punta, horas de
   funcionamiento, horarios, plazos de RB-2… se leen de `config/parametros.yaml` (RNF-M-4, RF-9).
+  Las corridas usan `sart.db.supuestos.parametros_vigentes(sesion)`: el YAML con los ajustes del administrador
+  encima (opción a, pendientes #31). Solo las claves de `administracion.parametros_editables` se ajustan desde la web.
 - **Semanas epidemiológicas del MINSAL** (domingo a sábado; la SE 1 es la primera que tiene 4 o más días del año).
 - **La última semana publicada, si viene incompleta, se marca y no se usa** (RB-4).
 - **El nivel nunca se muestra solo con color** (RNF-U-1): siempre con texto o ícono.
@@ -100,7 +102,7 @@ cd backend && uv venv --python 3.12 .venv && uv pip install -e ".[dev]"
 cd backend && .venv/Scripts/python -m alembic upgrade head  # crear/actualizar las tablas
 cd backend && .venv/Scripts/python -m sart.cuentas crear --nombre "…" --correo … --rol jefatura --acepta-finalidad
                                               # crear una cuenta (RF-16); pide la contraseña
-cd backend && .venv/Scripts/python -m sart.catalogo cargar --prueba   # centros y consultas de datos/prueba
+cd backend && .venv/Scripts/python -m sart.catalogo cargar --prueba   # centros, consultas y mediciones (datos/prueba)
 cd backend && .venv/Scripts/python -m sart.cuentas asignar-centro --correo … --centro 100001  # RF-9
 cd backend && .venv/Scripts/python -m sart.cuentas activar-mfa --correo …   # MFA de un administrador:
 cd backend && .venv/Scripts/python -m sart.cuentas confirmar-mfa --correo … --codigo 123456  # (RNF-S-1)

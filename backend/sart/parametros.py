@@ -33,6 +33,7 @@ SECCIONES_OBLIGATORIAS = (
     "cuentas",
     "sesion",
     "mfa",
+    "administracion",
 )
 
 

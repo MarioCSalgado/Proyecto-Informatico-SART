@@ -45,7 +45,7 @@ Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), P
    `--acepta-finalidad` deja constancia de que la persona aceptó el uso de sus datos (RF-16).
    Para que una jefatura vea su centro, cargue el catálogo y asígnele uno (código DEIS del centro):
    ```bash
-   .venv/Scripts/python -m sart.catalogo cargar --prueba       # centros y consultas de datos/prueba (~1 min)
+   .venv/Scripts/python -m sart.catalogo cargar --prueba       # centros, consultas y mediciones de datos/prueba (~1 min)
    .venv/Scripts/python -m sart.cuentas asignar-centro --correo jefatura@demo.sart --centro 100001
    ```
 6. **Administradores: MFA** (RNF-S-1). Una cuenta con `--rol administrador` no puede entrar hasta activar

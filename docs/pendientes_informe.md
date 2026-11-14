@@ -97,3 +97,16 @@ debería reflejar:
 | 28 | §5.1 Centro_Salud y Estación | La dirección es opcional: el registro de establecimientos de prueba no la trae y las estaciones de SINCA no la publican en el archivo. | Quitar «dirección obligatoria» o indicar de dónde sale. |
 | 29 | §5.1 Alerta, RF-3, RF-4 | Solo se guardan alertas que no son «normal»: de demanda, «atención» o «alerta»; ambientales, desde «sobre la norma». Una alerta de demanda guarda su semana a través del pronóstico que la originó. | Confirmar que «atención» también genera alerta y notificación, o solo «alerta». |
 | 30 | §6 RB-4 | `semana_carga` guarda cuántos centros reportaron cada semana; la marca «completa» queda sin evaluar hasta la parte 5 (TC-01), porque falta decidir el criterio (#3). | Nada nuevo: depende de #3. |
+
+
+## Umbrales, supuestos, acuse y corridas (13/11)
+
+Migración 0004 y carga de mediciones. Decisiones que el informe debería reflejar:
+
+| # | Sección (dueño) | Qué hace el código | Qué falta en el informe |
+|---|---|---|---|
+| 31 | §3.2 RF-9, §4.6 RNF-M-4 | **Opción a:** `config/parametros.yaml` es el valor de partida versionado en git. El administrador puede ajustar desde la web solo las claves de `administracion.parametros_editables` (k, cuantiles, años del umbral, supuestos de dotación, plazos de RB-2); cada ajuste se guarda en `parametro_ajustado` con autor, motivo y auditoría, y rige desde la corrida siguiente. Las demás claves solo se cambian editando el archivo. | RNF-M-4 dice que todo se lee del YAML y RF-9 que el administrador cambia supuestos: aclarar esta convivencia. |
+| 32 | §6 RB-3, RF-9 (ver #21) | Los umbrales de cada centro se guardan con historia en `umbral_centro`. Un umbral fijado a mano (con motivo obligatorio) se **respeta en el recálculo anual** hasta que el administrador lo cambie. | Decidir si el recálculo anual debe respetar o reemplazar las correcciones manuales. |
+| 33 | §5.2 SINCA, RB-5 | De SINCA se usa el dato validado; si no hay, el preliminar, y si no, el no validado. Los días sin dato o con valor negativo no se guardan (hoy, unos 140 por estación). Las fechas se guardan en UTC a partir de la hora de Santiago. | Declarar la prioridad validado > preliminar y qué se hace con los días sin dato. |
+| 34 | §3.2 RF-15 | El enlace de acuse usa un identificador aleatorio de 43 caracteres por notificación (`token_acuse`), no el número correlativo, para que no se pueda adivinar. | Definir si la página de acuse exige iniciar sesión (recomendado) o basta el enlace. |
+| 35 | §4.7 RNF-M-3 | Cada carga queda en `corrida` (tarea, fuente, inicio, fin, estado, filas, mensaje). Si una fuente falla `ingesta.avisar_tras_fallas_seguidas` veces seguidas, el comando muestra un aviso; el envío del aviso por correo al administrador llega con RF-5. | Nada nuevo; indicar a quién se avisa. |

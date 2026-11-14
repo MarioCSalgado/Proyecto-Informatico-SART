@@ -108,3 +108,22 @@ mfa:                         # RNF-S-1: códigos TOTP para administradores (supu
   tolerancia_pasos: 1        # acepta el código de los 30 s anteriores o siguientes (reloj del teléfono)
   intentos_maximos: 5        # códigos incorrectos seguidos antes de bloquear
   bloqueo_minutos: 15
+
+administracion:              # RF-9, opción a (pendientes #31): el valor de este archivo es el de partida. El
+                             # administrador puede ajustar estas claves desde la web; el ajuste va a la base
+                             # (parametro_ajustado) con autor, motivo y auditoría (RNF-S-4), y rige desde la
+                             # corrida siguiente. Las demás claves solo se cambian editando este archivo.
+  parametros_editables:
+    - regla_alerta.k_margen
+    - umbrales.cuantil_atencion
+    - umbrales.cuantil_alerta
+    - umbrales.anios_umbral
+    - dotacion.minutos_por_atencion
+    - dotacion.factor_hora_punta
+    - dotacion.espera_objetivo_min
+    - dotacion.horas_funcionamiento_semana.SAPU
+    - dotacion.horas_funcionamiento_semana.SAR
+    - dotacion.horas_funcionamiento_semana.SUR
+    - dotacion.horas_funcionamiento_semana.hospital
+    - notificaciones.reenvio_horas
+    - notificaciones.escalamiento_horas

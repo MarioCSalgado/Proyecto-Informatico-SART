@@ -20,8 +20,15 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from sart.configuracion import RAIZ_REPOSITORIO, Configuracion
-from sart.db.modelos import Base, Estacion, Medicion, Zona
-from sart.dominio.valores import UNIDAD_POR_TIPO, FuenteEstacion, OrigenMedicion, TipoMedicion
+from sart.db.modelos import Alerta, Base, Estacion, Medicion, Notificacion, Zona
+from sart.dominio.valores import (
+    UNIDAD_POR_TIPO,
+    EstadoNotificacion,
+    FuenteEstacion,
+    OrigenMedicion,
+    TipoAlerta,
+    TipoMedicion,
+)
 
 pytestmark = pytest.mark.integracion
 
@@ -112,6 +119,44 @@ def test_restricciones_migradas_aceptan_las_unidades_de_cada_medicion(url_base_t
             )
             with pytest.raises(IntegrityError):
                 sesion.commit()
+    finally:
+        motor.dispose()
+
+
+def test_restricciones_de_notificacion_escritas_a_mano(url_base_temporal):
+    """Los CHECK de reenvío y escalamiento (RB-2) se escribieron a mano en la 0004: se prueba que existen."""
+    command.upgrade(_config(url_base_temporal), "head")
+
+    motor = create_engine(url_base_temporal)
+    try:
+        with Session(motor) as sesion:
+            zona = Zona(nombre="Concepción")
+            sesion.add(zona)
+            sesion.flush()
+            alerta = Alerta(
+                tipo=TipoAlerta.AMBIENTAL,
+                nivel="alerta",
+                fecha_emision=datetime.now(UTC),
+                mensaje="MP2,5",
+                zona_id=zona.id,
+                dia_pronosticado=datetime.now(UTC).date(),
+                valor_mp25=85.0,
+            )
+            sesion.add(alerta)
+            sesion.commit()
+
+            enviada = Notificacion(
+                alerta_id=alerta.id, estado=EstadoNotificacion.ENVIADA, fecha_envio=datetime.now(UTC)
+            )
+            sesion.add(enviada)
+            sesion.commit()
+            assert len(enviada.token_acuse) >= 43
+
+            for estado in (EstadoNotificacion.REENVIADA, EstadoNotificacion.ESCALADA):
+                enviada.estado = estado
+                with pytest.raises(IntegrityError):
+                    sesion.commit()
+                sesion.rollback()
     finally:
         motor.dispose()
 

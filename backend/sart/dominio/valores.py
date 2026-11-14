@@ -85,3 +85,18 @@ GRUPOS_EDAD_DEIS: dict[str, str] = {
     "De_15_a_64": "de_15_a_64",
     "De_65_y_mas": "de_65_y_mas",
 }
+
+
+class OrigenUmbral(StrEnum):
+    """RB-3 calcula los umbrales; RF-9 permite que el administrador los corrija con un motivo."""
+
+    CALCULADO = "calculado"
+    MANUAL = "manual"
+
+
+class EstadoCorrida(StrEnum):
+    """Estado de cada corrida de una tarea programada o de una carga (RNF-M-3)."""
+
+    EN_CURSO = "en_curso"
+    EXITOSA = "exitosa"
+    FALLIDA = "fallida"
