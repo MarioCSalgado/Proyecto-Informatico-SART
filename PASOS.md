@@ -9,9 +9,17 @@ Antes de cualquier parte, lee `CLAUDE.md`. Al terminar cada parte:
 Si algo de lo que te pido contradice el informe o la especificación, no lo hagas en silencio:
 anótalo en `docs/pendientes_informe.md` y pregúntame.
 
+## Estado (14/11/2026)
+
+Partes 1 a 7 **hechas**: el resumen de lo que quedó funcionando está en `docs/avance.md`. Lo que sigue para
+terminar la base son las partes 8, 9 y 10; después, el trabajo se reparte en el equipo con `docs/tareas_equipo.md`
+(lo crea la parte 10).
+
 ---
 
 ## Parte 1 · Ordenar los archivos
+
+> **Hecha (13/11).**
 
 La carpeta de arriba (`../`, «Proyecto Informatico») tiene material viejo que hay que ordenar
 según `../COMO_ARMAR_LA_CARPETA.md`, pasos 2 y 3. **Muéstrame el plan de movimientos antes de mover nada.**
@@ -28,6 +36,8 @@ Al final, las carpetas `../codigo/` y `../PresentacionData/` deben quedar vacía
 
 ## Parte 2 · Iniciar el repositorio
 
+> **Hecha (13/11). Repositorio privado en GitHub: `Proyecto-Informatico-SART`.**
+
 - `git init` en esta carpeta.
 - `git status` y confirma que **no** aparecen: `datos/crudos`, `datos/procesados`, `referencia/` ni archivos `.env`.
   Sí debe aparecer `datos/prueba/`.
@@ -35,12 +45,16 @@ Al final, las carpetas `../codigo/` y `../PresentacionData/` deben quedar vacía
 
 ## Parte 3 · Entender el proyecto
 
+> **Hecha (13/11). Lo contradictorio quedó en `docs/pendientes_informe.md`.**
+
 - Lee `CLAUDE.md`, todo `docs/` y `config/parametros.yaml`, y revisa por encima el notebook 5.
 - Resume en unas 10 líneas qué entendiste.
 - Lista qué información te falta o qué ves contradictorio.
 - **No escribas código en esta parte.**
 
 ## Parte 4 · Planificar el backend
+
+> **Hecha (13/11), y además: cuentas, sesión con MFA, modelo de datos completo y carga (ver `docs/avance.md`).**
 
 Propón, sin crear archivos todavía:
 - la estructura de `backend/`: `pyproject.toml` y los paquetes `sart/api`, `sart/tareas`, `sart/dominio` y `sart/db`;
@@ -51,6 +65,8 @@ Propón, sin crear archivos todavía:
 Espera mi visto bueno antes de crear archivos.
 
 ## Parte 5 · Migrar la lógica del notebook (pruebas primero)
+
+> **Hecha (14/11): TC-01, TC-05, TC-07 y TC-17; RB-4 con el criterio 1A y RB-3 anual.**
 
 Lleva a `sart/dominio`, leyendo todos los valores desde `config/parametros.yaml`:
 - semanas epidemiológicas (domingo a sábado, criterio del MINSAL) y la detección de la semana incompleta (RB-4);
@@ -66,6 +82,8 @@ Orden de trabajo:
 
 ## Parte 6 · Prueba de regresión del modelo
 
+> **Hecha (14/11): reproduce todas las cifras con el panel del notebook (`datos/procesados/panel_semanal.parquet`). Opción C del modelo. Quedan pendientes las rutas del notebook (ver la parte 8).**
+
 - Migra el ajuste del GLM quasi-Poisson y la predicción a `sart/dominio`.
 - Agrega una prueba de regresión del backtest 2024–2026 con los datos reales de `datos/`. Debe reproducir:
   - WAPE 14,9 %;
@@ -77,6 +95,8 @@ Orden de trabajo:
 
 ## Parte 7 · Frontend
 
+> **Hecha (13 y 14/11): partes fijas de los diseños de Figma; nombres en español (ver `docs/plan_reutilizacion_ing-software2.md`). Las pantallas aún no muestran datos (parte 9).**
+
 Arma `web/` a partir de `referencia/ing-software2/main`, siguiendo `docs/plan_reutilizacion_ing-software2.md`:
 - conserva Vite, TypeScript, MUI, axios, el contexto de autenticación y el patrón de permisos;
 - cambia los roles a Jefatura, Subdirector y Administrador;
@@ -85,3 +105,57 @@ Arma `web/` a partir de `referencia/ing-software2/main`, siguiendo `docs/plan_re
 - elimina las pantallas de incidentes, intervenciones y estudiantes;
 - copia la licencia como `web/LICENSE-ing-software2`;
 - no copies ningún `.env` de la referencia.
+
+## Parte 8 · Corrida semanal (RF-2, RF-3, RF-6)
+
+Conecta la lógica de `sart/dominio` con la base: hoy el modelo solo corre sobre el parquet del notebook y no se
+guarda ningún pronóstico ni alerta. **Muéstrame el plan antes de escribir código** (en particular, las dos
+decisiones de abajo).
+
+- **Panel desde la base:** arma el panel semanal (consultas por centro y semana + clima y MP2,5 agregados a la
+  semana) leyendo `consulta_semanal` y `medicion`, con las mismas columnas que espera `sart/dominio/modelo.py`.
+  Prueba de regresión: con `datos/prueba`, el panel armado desde la base debe coincidir con
+  `datos/prueba/procesados/panel_semanal.parquet`.
+- **Tarea** `sart/tareas/semanal.py` y comando `python -m sart.tareas semanal` (con `--prueba` para los datos de
+  prueba), registrada en `corrida` (RNF-M-3) y leyendo `parametros_vigentes(sesion)` (RNF-M-4):
+  1. `marcar_semanas` (RB-4) → la última semana completa es la `fecha_corte`;
+  2. ajusta el modelo y pronostica la semana en curso de **cada centro con historia** (criterio de RF-2), con su
+     intervalo de 90 %;
+  3. guarda un `pronostico` vigente por centro y semana; si se vuelve a correr, el anterior queda `vigente = false`;
+  4. clasifica con el `umbral_centro` vigente y el margen k (RF-3) y guarda una `alerta` de demanda cuando no es
+     «normal»;
+  5. dotación de hora punta con `recomendar_dotacion` (RF-6).
+- **Decisiones que necesito antes:**
+  - la dotación ¿se guarda (hoy no hay columna) o se calcula al leer, ya que es una función pura del pronóstico?;
+  - #29: ¿«atención» genera alerta y notificación, o solo «alerta»? (hoy se guardan las dos).
+- **Pruebas** (primero): todo centro con historia tiene pronóstico; correr dos veces deja uno solo vigente; un
+  pronóstico con margen sobre el p90 queda ALERTA; la semana incompleta no se usa (RB-4).
+- De paso: corrige las rutas del notebook 5 (`notebooks/analisis_informatico5.ipynb` todavía busca `datos/` y
+  `datos_prueba/` junto a sí mismo; ahora están en `../datos/crudos`, `../datos/procesados` y `../datos/prueba/`).
+
+## Parte 9 · Estado de los centros en la API y la web (RF-7)
+
+El primer endpoint de lectura, hecho con cuidado para que sirva de ejemplo al resto del equipo.
+
+- `GET /centros/estado`: por centro, el nivel de la semana, el pronóstico con su intervalo, los umbrales, la
+  dotación sugerida y el MP2,5 de su zona. La jefatura recibe **solo sus centros asignados**; el Subdirector y el
+  administrador, todos (RNF-S-2). Sin datos de pacientes (RNF-S-5).
+- Prueba de acceso por rol (TC-09): 0 accesos indebidos, incluida una jefatura que pide un centro ajeno.
+- En la web: servicio en `web/src/servicios/`, y **Mi centro** y **Red de centros** muestran los datos reales,
+  con el nivel siempre con texto o ícono (RNF-U-1) y estados de carga y vacío.
+- Revisa que el estado del centro quede a 4 clics o menos (RF-7).
+
+## Parte 10 · Preparar el trabajo en equipo
+
+- **CI en GitHub Actions** (`.github/workflows/`): backend con ruff, pytest con un servicio de PostgreSQL 16 y
+  cobertura ≥ 70 % en `sart/dominio` y `sart/tareas` (RNF-M-1, RNF-M-2); web con lint, build y Vitest. Es parte
+  de TC-13.
+- **`CONTRIBUTING.md`:** instalación en 10 minutos, una rama por tarea (`rf-5/correo-alerta`), PR revisado por
+  un compañero antes de entrar a `main`, commits en español con IDs, cómo escribir la prueba de un TC, y las
+  reglas que no se negocian de `CLAUDE.md`.
+- **`docs/tareas_equipo.md`:** el tablero con las tareas de «Qué falta» de `docs/avance.md`. Por tarea: RF y TC,
+  qué hacer, archivos que toca, de qué depende, criterio de terminado, tamaño y perfil (back, front, datos o
+  docs). La columna «Responsable» la llena Mario.
+- Al final, actualiza `docs/avance.md`.
+- Lo que se hace fuera del repositorio (subir con `git push`, proteger la rama `main` en GitHub, crear issues)
+  **pregúntamelo antes**.

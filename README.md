@@ -6,6 +6,13 @@ Proyecto Informático, Ingeniería Civil Informática, Universidad de Concepció
 Equipo: Benjamín Díaz Ulloa, Daniel Aburto Rivera, Juan Carvajal Ramírez, Joaquín Sandoval Reyes,
 Mario Salgado Orellana, Jocabed López Flores.
 
+## Estado
+
+Primer avance de código funcional (14/11/2026): cuentas con MFA, base de datos completa, carga de datos, modelo
+y reglas de alerta probados, y la web con el inicio de sesión y las pantallas por rol. Falta conectar el modelo a
+la base y a las pantallas, los correos y la administración desde la web. Detalle y próximos pasos en
+[`docs/avance.md`](docs/avance.md).
+
 ## Cómo levantarlo en local
 
 Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), Python 3.12
@@ -51,9 +58,6 @@ Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), P
    Para cambiar la contraseña de una cuenta: `.venv/Scripts/python -m sart.cuentas restablecer-clave --correo …`.
    Para recalcular los umbrales de cada centro (RB-3): `.venv/Scripts/python -m sart.catalogo recalcular-umbrales`.
 
-7. **Respaldo** (RNF-D-2): `.venv/Scripts/python -m sart.respaldo crear` deja una copia en `respaldos/` (fuera de
-   git: tiene nombres y correos). Para volver a una copia: `… restaurar respaldos/ARCHIVO.dump --confirmar` (reemplaza
-   toda la base) y después `python -m sart.catalogo cargar …` para recargar las fuentes públicas.
 6. **Administradores: MFA** (RNF-S-1). Una cuenta con `--rol administrador` no puede entrar hasta activar
    el código de una aplicación de autenticación (Google Authenticator, Microsoft Authenticator, Authy…):
    ```bash
@@ -63,10 +67,16 @@ Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), P
    ```
    Al iniciar sesión, después de la contraseña la web pide el código de 6 dígitos.
 
+7. **Respaldo** (RNF-D-2): `.venv/Scripts/python -m sart.respaldo crear` deja una copia en `respaldos/` (fuera de
+   git: tiene nombres y correos). Para volver a una copia: `… restaurar respaldos/ARCHIVO.dump --confirmar` (reemplaza
+   toda la base) y después `python -m sart.catalogo cargar …` para recargar las fuentes públicas.
+
 ## Documentos
 
 - Especificación: `docs/especificacion/`
-- Instrucciones para el asistente de código: `CLAUDE.md`
+- Qué está hecho y qué sigue: `docs/avance.md`; casos de prueba: `docs/estado_tc.md`
+- Diferencias con el informe que hay que corregir en él: `docs/pendientes_informe.md`
+- Instrucciones para el asistente de código: `CLAUDE.md` y `PASOS.md`
 - El frontend parte de ing-software2 (licencia MIT, ver `web/LICENSE-ing-software2`).
 
 Datos: DEIS/MINSAL (CC BY-NC), establecimientos (CC0), SINCA/MMA, Open-Meteo.

@@ -24,6 +24,10 @@ La especificación está en `docs/especificacion/` (exportada del informe SRS IE
 
 Además: `docs/arquitectura.md`, `config/parametros.yaml`, `docs/pendientes_informe.md`, `docs/plan_reutilizacion_ing-software2.md`.
 
+**Al empezar una sesión nueva, lee `docs/avance.md`** (qué está hecho, qué falta, decisiones tomadas y abiertas) y
+la parte de `PASOS.md` que se pida. Al terminar una parte, actualiza `docs/avance.md` y la nota de estado de esa
+parte en `PASOS.md`.
+
 Reglas para usar la especificación:
 1. Cita siempre los IDs (RF-x, RNF-x, RB-x, TC-x) en docstrings, nombres de pruebas y mensajes de commit.
 2. Si el código necesita apartarse de la especificación, **no lo hagas en silencio**: anótalo en
