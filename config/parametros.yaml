@@ -20,11 +20,12 @@ modelo:                      # CI-1, RF-2
   min_semanas_historia: 52
   nivel_intervalo: 0.90      # z = 1,645
 
-umbrales:                    # RB-3
+umbrales:                    # RB-3 (pendientes #6, decidido el 14/11)
   cuantil_atencion: 0.75
   cuantil_alerta: 0.90
-  anios_umbral: 3
+  anios_umbral: 3            # ventana = las últimas 52 × anios_umbral semanas válidas (156), sin 2020-2021
   recalculo: anual
+  mes_recalculo: 3           # marzo, antes del invierno (supuesto por validar, pendientes #36)
 
 regla_alerta:                # RF-3, RNF-Q-2, TC-17
   k_margen: 0.4              # elegido con el mismo backtest (optimista): recalibrar con 2024 y probar en 2025–2026 (E3)
@@ -88,7 +89,14 @@ ingesta:                     # RF-1, RNF-M-3
     "Covid-19, virus no identificado": covid_no_identificado
   reintentos_fuente: 3
   avisar_tras_fallas_seguidas: 2
-  cobertura_minima_semana: 0.8   # notebook: semana completa si reportan ≥ 80 % de los centros
+  causas_en_consultas: [ira_alta, influenza, neumonia, bronquitis, obstructiva, otra_respiratoria]  # las 6 J00–J98 (RF-1)
+  # RB-4 (pendientes #3, decidido el 14/11): una semana está completa si reportan al menos la cobertura mínima de
+  # los centros activos de las últimas semanas_centros_activos semanas Y su total no cae bajo factor_caida_total ×
+  # la mediana de las semanas_mediana_previa semanas anteriores (detecta centros que reportan a medias).
+  cobertura_minima_semana: 0.9     # 90 %: con 80 %, 29 de 33 centros (88 %) contaría como completa y el Gherkin de RF-1 falla
+  semanas_centros_activos: 12
+  factor_caida_total: 0.6
+  semanas_mediana_previa: 4
 
 consulta:                    # RF-7
   aviso_datos_antiguos_dias: 8

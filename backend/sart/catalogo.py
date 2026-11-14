@@ -6,6 +6,7 @@ Uso, desde ``backend/`` (con la base migrada: ``alembic upgrade head``)::
     .venv/Scripts/python -m sart.catalogo cargar --prueba          # todo, con datos/prueba
     .venv/Scripts/python -m sart.catalogo cargar --establecimientos RUTA.csv [--consultas RUTA.parquet]
         [--sinca CARPETA] [--clima RUTA.csv] [--pronostico-mp25 RUTA.csv]
+    .venv/Scripts/python -m sart.catalogo recalcular-umbrales [--hasta AAAA-MM-DD]   # RB-3, una vez al año
 
 Se puede repetir: actualiza lo que ya existe sin duplicar.
 """
@@ -15,12 +16,14 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Callable
+from datetime import date
 from pathlib import Path
 
 from sqlalchemy.orm import Session
 
 from sart.configuracion import RAIZ_REPOSITORIO
 from sart.db.sesion import SinBaseDeDatos, crear_motor
+from sart.dominio.semanas import semana_epidemiologica
 from sart.parametros import ErrorParametros
 from sart.tareas.carga import (
     cargar_catalogo,
@@ -30,6 +33,7 @@ from sart.tareas.carga import (
     cargar_sinca,
 )
 from sart.tareas.corridas import fallas_seguidas, hay_que_avisar, registrar_corrida
+from sart.tareas.semanas_y_umbrales import recalcular_umbrales
 
 PRUEBA = RAIZ_REPOSITORIO / "datos" / "prueba" / "crudos"
 ARCHIVOS_DE_PRUEBA = {
@@ -55,7 +59,40 @@ def _argumentos(argv: list[str] | None) -> argparse.Namespace:
     cargar.add_argument(
         "--pronostico-mp25", type=Path, help="pronóstico horario de MP2,5 de Open-Meteo (CSV)"
     )
+    umbrales = acciones.add_parser(
+        "recalcular-umbrales", help="recalcula los umbrales p75 y p90 de cada centro (RB-3, una vez al año)"
+    )
+    umbrales.add_argument(
+        "--hasta", type=date.fromisoformat, help="fecha AAAA-MM-DD; por defecto, la última semana completa"
+    )
     return analizador.parse_args(argv)
+
+
+def _recalcular_umbrales(hasta: date | None) -> int:
+    """RB-3: recálculo anual de umbrales, con su corrida en el log (RNF-M-3)."""
+    try:
+        motor = crear_motor()
+    except SinBaseDeDatos as error:
+        print(f"No se recalcularon los umbrales: {error}", file=sys.stderr)
+        return 1
+    try:
+        with Session(motor) as sesion:
+            try:
+                with registrar_corrida(sesion, "recalculo_umbrales") as corrida:
+                    resumen = recalcular_umbrales(sesion, hasta=hasta)
+                    corrida.filas = resumen["guardados"]
+            except (ValueError, KeyError, ErrorParametros) as error:
+                print(f"No se recalcularon los umbrales: {error}", file=sys.stderr)
+                return 1
+    finally:
+        motor.dispose()
+    anio, semana = semana_epidemiologica(resumen["hasta"])
+    print(
+        f"Umbrales recalculados hasta {anio}-SE{semana:02d}: {resumen['guardados']} centros, "
+        f"{resumen['manuales_respetados']} con umbral manual respetado y {resumen['sin_historia']} sin "
+        "historia suficiente."
+    )
+    return 0
 
 
 def _pasos(archivos: dict[str, Path | None]) -> list[tuple[str, str, str, Callable]]:
@@ -77,6 +114,12 @@ def _pasos(archivos: dict[str, Path | None]) -> list[tuple[str, str, str, Callab
             f"{r.establecimientos_sin_catalogo} establecimientos sin catálogo y "
             f"{sum(r.causas_omitidas.values())} filas de causas que no se cargan."
         )
+        if r.ultima_semana_completa:
+            anio, semana = semana_epidemiologica(r.ultima_semana_completa)
+            texto += (
+                f"\nÚltima semana completa (RB-4): {anio}-SE{semana:02d}, "
+                f"del {r.ultima_semana_completa:%d/%m/%Y}."
+            )
         return r.filas, texto
 
     def mediciones(funcion, nombre):
@@ -106,6 +149,8 @@ def _pasos(archivos: dict[str, Path | None]) -> list[tuple[str, str, str, Callab
 
 def main(argv: list[str] | None = None) -> int:
     args = _argumentos(argv)
+    if args.accion == "recalcular-umbrales":
+        return _recalcular_umbrales(args.hasta)
     archivos = {clave: getattr(args, clave) for clave in ARCHIVOS_DE_PRUEBA}
     if args.prueba:
         archivos = {clave: archivos[clave] or ruta for clave, ruta in ARCHIVOS_DE_PRUEBA.items()}

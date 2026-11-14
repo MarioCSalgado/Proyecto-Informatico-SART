@@ -2,7 +2,7 @@
 
 | Caso | RF | Implementado | Pasa | Archivo |
 |---|---|---|---|---|
-| TC-01 | RF-1 | ◐ | ◐ | `backend/tests/test_tc01_semanas.py`: calendario y reparto de semanas que cruzan el año. Falta la marca de semana incompleta (RB-4, pendientes #3) |
+| TC-01 | RF-1 | ☑ | ☑ | `backend/tests/test_tc01_semanas.py` (calendario y semanas que cruzan el año) y `test_tc01_semana_incompleta.py` (marca de RB-4) |
 | TC-02 | RF-1 | ☐ | ☐ | |
 | TC-03 | RF-2 | ☐ | ☐ | |
 | TC-04 | RF-3 | ☐ | ☐ | |
@@ -23,4 +23,3 @@
 | TC-19 | RF-10 | ☐ | ☐ | |
 | TC-20 | RF-12 | ☐ | ☐ | |
 
-◐ = parcial.

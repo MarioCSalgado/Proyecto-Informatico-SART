@@ -103,6 +103,7 @@ cd backend && .venv/Scripts/python -m alembic upgrade head  # crear/actualizar l
 cd backend && .venv/Scripts/python -m sart.cuentas crear --nombre "…" --correo … --rol jefatura --acepta-finalidad
                                               # crear una cuenta (RF-16); pide la contraseña
 cd backend && .venv/Scripts/python -m sart.catalogo cargar --prueba   # centros, consultas y mediciones (datos/prueba)
+cd backend && .venv/Scripts/python -m sart.catalogo recalcular-umbrales   # RB-3, una vez al año
 cd backend && .venv/Scripts/python -m sart.cuentas asignar-centro --correo … --centro 100001  # RF-9
 cd backend && .venv/Scripts/python -m sart.cuentas restablecer-clave --correo …   # pide la clave nueva
 cd backend && .venv/Scripts/python -m sart.cuentas activar-mfa --correo …   # MFA de un administrador:

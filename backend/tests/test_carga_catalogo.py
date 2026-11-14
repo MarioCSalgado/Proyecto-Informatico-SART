@@ -120,16 +120,17 @@ def test_consultas_en_formato_largo_que_suman_lo_mismo_que_el_archivo(sesion, co
     assert grupos == {"menores_1", "de_1_a_4", "de_5_a_14", "de_15_a_64", "de_65_y_mas"}
 
 
-def test_semanas_cargadas_quedan_sin_evaluar(sesion, consultas_recortadas):
-    """RB-4 se evalúa en la parte 5 (TC-01): por ahora solo se cuenta cuántos centros reportaron."""
+def test_cada_carga_marca_las_semanas_completas(sesion, consultas_recortadas):
+    """RB-4 y RF-1 paso 4 (TC-01): al cargar, cada semana queda evaluada con los centros que reportaron."""
     cargar_catalogo(sesion, ESTABLECIMIENTOS)
-    cargar_consultas(sesion, consultas_recortadas)
+    resumen = cargar_consultas(sesion, consultas_recortadas)
 
     semanas = sesion.scalars(select(SemanaCarga).order_by(SemanaCarga.semana)).all()
     assert [(s.anio, s.semana, s.centros_reportados, s.completa) for s in semanas] == [
-        (2026, 38, 14, None),
-        (2026, 39, 14, None),
+        (2026, 38, 14, True),
+        (2026, 39, 14, True),
     ]
+    assert resumen.ultima_semana_completa.isoformat() == "2026-09-27"  # inicio de la SE 39 de 2026
 
 
 def test_cargar_consultas_dos_veces_actualiza_sin_duplicar(sesion, consultas_recortadas):

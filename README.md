@@ -49,6 +49,7 @@ Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), P
    .venv/Scripts/python -m sart.cuentas asignar-centro --correo jefatura@demo.sart --centro 100001
    ```
    Para cambiar la contraseña de una cuenta: `.venv/Scripts/python -m sart.cuentas restablecer-clave --correo …`.
+   Para recalcular los umbrales de cada centro (RB-3): `.venv/Scripts/python -m sart.catalogo recalcular-umbrales`.
 6. **Administradores: MFA** (RNF-S-1). Una cuenta con `--rol administrador` no puede entrar hasta activar
    el código de una aplicación de autenticación (Google Authenticator, Microsoft Authenticator, Authy…):
    ```bash

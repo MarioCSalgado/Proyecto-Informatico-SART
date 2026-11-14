@@ -3,13 +3,14 @@ ambientales de SINCA y Open-Meteo (CI-3, RB-5, RF-1, RF-4).
 
 Todas las cargas se pueden repetir: actualizan lo que ya existe en vez de duplicarlo. La ingesta programada de
 las 05:00 (RF-1) usará ``cargar_consultas`` después de descargar el archivo; la marca de semana incompleta
-(RB-4) se calcula en la parte 5 (TC-01), por eso ``semana_carga.completa`` queda sin evaluar.
+(RB-4) se recalcula al final de cada carga de consultas (``semanas_y_umbrales.marcar_semanas``).
 """
 
 from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.orm import Session
 
-from sart.db.modelos import CentroSalud, ConsultaSemanal, Estacion, Medicion, SemanaCarga, Zona
+from sart.db.modelos import CentroSalud, ConsultaSemanal, Estacion, Medicion, Zona
 from sart.dominio.catalogo import clave_causa, estacion_de_comuna, normalizar, tipo_centro
 from sart.dominio.mediciones import valor_sinca
 from sart.dominio.valores import (
@@ -80,6 +81,7 @@ class ResumenConsultas:
     semanas: int = 0
     establecimientos_sin_catalogo: int = 0
     causas_omitidas: dict[str, int] = field(default_factory=dict)
+    ultima_semana_completa: date | None = None
 
 
 def _leer_csv(ruta: Path) -> pd.DataFrame:
@@ -248,19 +250,15 @@ def cargar_consultas(
         actualizar=["cantidad"],
     )
 
-    por_semana = datos.groupby([col["anio"], col["semana"]])[col["establecimiento"]].nunique()
-    semanas = [
-        {"anio": int(anio), "semana": int(semana), "centros_reportados": int(n), "completa": None}
-        for (anio, semana), n in por_semana.items()
-    ]
-    _insertar_o_actualizar(
-        sesion, SemanaCarga, semanas, claves=["anio", "semana"], actualizar=["centros_reportados", "completa"]
-    )
     sesion.commit()
+    # RB-4 y RF-1 paso 4: con las consultas nuevas, se vuelve a marcar qué semanas están completas
+    from sart.tareas.semanas_y_umbrales import marcar_semanas  # evita la importación circular
+
+    resumen.ultima_semana_completa = marcar_semanas(sesion)
 
     resumen.filas = len(filas)
     resumen.centros = int(datos[col["establecimiento"]].nunique())
-    resumen.semanas = len(semanas)
+    resumen.semanas = int(datos.groupby([col["anio"], col["semana"]]).ngroups)
     return resumen
 
 
