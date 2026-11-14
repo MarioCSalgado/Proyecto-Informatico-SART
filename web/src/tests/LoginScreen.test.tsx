@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -26,7 +26,10 @@ async function escribirCredenciales(usuario: ReturnType<typeof userEvent.setup>,
 }
 
 describe('LoginScreen (RNF-S-1)', () => {
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    cleanup()  // desmontar antes de restaurar los mocks: así ninguna petición pendiente sale a la red
+    vi.restoreAllMocks()
+  })
 
   it('una jefatura entra y llega a su centro, sin campo de código', async () => {
     vi.spyOn(axiosInstance, 'get').mockRejectedValue(new Error('sin sesión'))

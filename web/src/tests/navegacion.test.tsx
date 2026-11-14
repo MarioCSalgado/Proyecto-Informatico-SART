@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../App.tsx'
@@ -14,7 +14,11 @@ const NOMBRES: Record<Role, string> = {
 }
 
 function abrir(ruta: string, rol: Role) {
-  vi.spyOn(axiosInstance, 'get').mockResolvedValue({ data: { usuario: { id: 1, nombre: NOMBRES[rol], rol } } })
+  vi.spyOn(axiosInstance, 'get').mockImplementation(async (url: string) =>
+    url.includes('referencias')
+      ? { data: { mp25_niveles: [], comunas: [] } }
+      : { data: { usuario: { id: 1, nombre: NOMBRES[rol], rol } } },
+  )
   return render(
     <MemoryRouter initialEntries={[ruta]}>
       <AuthProvider>
@@ -25,7 +29,10 @@ function abrir(ruta: string, rol: Role) {
 }
 
 describe('pantalla de inicio según el rol (RNF-S-2)', () => {
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    cleanup()  // desmontar antes de restaurar los mocks: así ninguna petición pendiente sale a la red
+    vi.restoreAllMocks()
+  })
 
   it('cada rol tiene su pantalla de inicio', () => {
     expect(rutaInicio('Jefatura')).toBe('/mi-centro')
@@ -50,7 +57,10 @@ describe('pantalla de inicio según el rol (RNF-S-2)', () => {
 })
 
 describe('encabezado', () => {
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    cleanup()  // desmontar antes de restaurar los mocks: así ninguna petición pendiente sale a la red
+    vi.restoreAllMocks()
+  })
 
   it('muestra nombre y rol, y un botón para salir con nombre accesible', async () => {
     abrir('/red', 'Subdirector')

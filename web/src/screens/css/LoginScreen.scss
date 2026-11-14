@@ -49,26 +49,7 @@
 .acceso__nota { color: var(--texto-medio); font-size: 0.92rem; }
 .acceso__entorno { color: var(--texto-suave); font-size: 0.82rem; margin-top: 12px; }
 
-.campo { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
-.campo label { color: var(--texto-titulo); font-weight: 600; }
-.campo__caja { position: relative; }
-.campo__caja input {
-  width: 100%; height: 52px; padding: 0 52px 0 16px; border: 1px solid var(--borde); border-radius: var(--radio);
-  background: var(--superficie); color: var(--texto); font: inherit; font-size: 1.02rem;
-  transition: border-color var(--trans), box-shadow var(--trans);
-  &::placeholder { color: var(--texto-suave); }
-  &:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(65, 127, 136, 0.18); }
-}
 .campo__codigo { letter-spacing: 0.4em; font-size: 1.3rem !important; font-variant-numeric: tabular-nums; }
-.campo__icono, .campo__boton-icono {
-  position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--teal);
-}
-.campo__icono { pointer-events: none; }
-.campo__boton-icono {
-  display: grid; place-items: center; width: 36px; height: 36px; border: none; border-radius: var(--radio);
-  background: transparent; right: 8px;
-  &:hover { background: var(--teal-fondo); }
-}
 
 /* ---------- Pantallas angostas: solo el formulario, con el logo arriba ---------- */
 @media (max-width: 900px) {

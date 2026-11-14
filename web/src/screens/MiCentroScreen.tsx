@@ -1,12 +1,21 @@
+import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined'
 import ShowChartOutlinedIcon from '@mui/icons-material/ShowChartOutlined'
+import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined'
+import { AvisoPendiente } from '../components/AvisoPendiente.tsx'
 import { CabeceraPagina } from '../components/CabeceraPagina.tsx'
 import { EmptyState } from '../components/EmptyState.tsx'
+import { EscalaMp25 } from '../components/EscalaMp25.tsx'
+import { LeyendaGrafico } from '../components/LeyendaGrafico.tsx'
 import { LeyendaNiveles } from '../components/LeyendaNiveles.tsx'
+import { useReferencias } from '../hooks/useReferencias.ts'
 
-// Inicio de la jefatura (diseño «Inicio de jefatura»; RF-7). Etapa 1: estructura sin datos. En la etapa 2
-// muestra pronóstico con intervalo, nivel, gráfico de 12 semanas, dotación (RF-6), MP2,5 (RF-4) y el botón
-// de acuse de RF-15, cuando la API los entregue.
+// Inicio de la jefatura (diseño «Inicio de jefatura»; RF-7). Partes fijas del diseño: estructura, títulos,
+// leyenda del gráfico, escala de MP2,5 y botones. Lo que depende de datos (aviso de alerta, pronóstico, gráfico,
+// dotación de RF-6, valores de MP2,5 de RF-4 y el acuse de RF-15) llega cuando la API los entregue.
+// La tarjeta de virus del ISP no se incluye: no está en la especificación (pendientes #22).
 export function MiCentroScreen() {
+  const { referencias, cargando, error } = useReferencias()
+
   return (
     <div className="pagina">
       <CabeceraPagina
@@ -14,13 +23,53 @@ export function MiCentroScreen() {
         titulo="Mi centro"
         subtitulo="Pronóstico semanal de consultas respiratorias, dotación sugerida y calidad del aire."
       />
-      <section className="tarjeta">
-        <EmptyState
-          icon={<ShowChartOutlinedIcon />}
-          title="Todavía no hay pronóstico para tu centro"
-          description="Aparecerá aquí cuando estén listos el pronóstico semanal y la asignación de tu centro."
-        />
+
+      <section className="tarjeta" aria-labelledby="titulo-pronostico">
+        <div className="grilla-pronostico">
+          <div>
+            <p className="antetitulo">Próxima semana</p>
+            <h2 id="titulo-pronostico" className="tarjeta__titulo">Pronóstico de consultas</h2>
+            <p className="pronostico__vacio">Sin pronóstico todavía</p>
+            <p className="tarjeta__bajada">
+              Aquí aparecerán las consultas esperadas, su rango con 90 % de confianza y el nivel del centro.
+            </p>
+          </div>
+          <div>
+            <h3 className="subtitulo-tarjeta">Consultas respiratorias semanales</h3>
+            <p className="tarjeta__bajada">Últimas 12 semanas y pronóstico de la próxima</p>
+            <div className="grafico-vacio">
+              <EmptyState icon={<ShowChartOutlinedIcon />} title="Gráfico sin datos todavía" />
+            </div>
+            <LeyendaGrafico />
+            <p className="nota">La banda representa incertidumbre, no un máximo esperado.</p>
+          </div>
+        </div>
+        <div className="tarjeta__pie">
+          <AvisoPendiente>Disponible cuando la API entregue el pronóstico del centro (RF-2, RF-7).</AvisoPendiente>
+          <div className="acciones">
+            <button type="button" className="boton-secundario" disabled>
+              <TableChartOutlinedIcon aria-hidden="true" /> Ver como tabla
+            </button>
+            <button type="button" className="boton-secundario" disabled>
+              <DownloadOutlinedIcon aria-hidden="true" /> Descargar CSV
+            </button>
+          </div>
+        </div>
       </section>
+
+      <div className="grilla-dos">
+        <section className="tarjeta" aria-labelledby="titulo-dotacion">
+          <h2 id="titulo-dotacion" className="tarjeta__titulo">Dotación sugerida</h2>
+          <p className="tarjeta__bajada">Escenario orientativo para el centro en hora punta</p>
+          <p className="pronostico__vacio">Sin estimación todavía</p>
+          <p className="nota">
+            Estimación según demanda prevista y capacidad del centro. Validar turnos y disponibilidad local antes
+            de actuar.
+          </p>
+        </section>
+        <EscalaMp25 niveles={referencias?.mp25_niveles ?? null} cargando={cargando} error={error} />
+      </div>
+
       <LeyendaNiveles />
     </div>
   )
