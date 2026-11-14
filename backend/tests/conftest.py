@@ -116,3 +116,36 @@ def crear_base_temporal():
                 for nombre in creadas:
                     conexion.execute(text(f'DROP DATABASE IF EXISTS "{nombre}" WITH (FORCE)'))
         administrador.dispose()
+
+
+DATOS_PRUEBA = RAIZ_REPOSITORIO / "datos" / "prueba" / "crudos"
+
+
+@pytest.fixture(scope="session")
+def archivo_base_prueba(tmp_path_factory):
+    """SQLite con todo ``datos/prueba`` cargado (catálogo, consultas, SINCA y clima). Se carga una sola vez
+    por sesión de pytest porque tarda ~35 s; las pruebas que escriben usan ``base_prueba`` (una copia)."""
+    from sart.tareas.carga import cargar_catalogo, cargar_clima, cargar_consultas, cargar_sinca
+
+    ruta = tmp_path_factory.mktemp("base_prueba") / "sart.db"
+    motor = create_engine(f"sqlite:///{ruta.as_posix()}")
+    Base.metadata.create_all(motor)
+    with Session(motor) as sesion:
+        cargar_catalogo(sesion, DATOS_PRUEBA / "establecimientos.csv")
+        cargar_consultas(sesion, DATOS_PRUEBA / "at_urg_respiratorio_semanal.parquet")
+        cargar_sinca(sesion, DATOS_PRUEBA / "sinca")
+        cargar_clima(sesion, DATOS_PRUEBA / "clima_openmeteo.csv")
+    motor.dispose()
+    return ruta
+
+
+@pytest.fixture
+def base_prueba(archivo_base_prueba, tmp_path):
+    """Motor sobre una copia de la base con ``datos/prueba``: cada prueba escribe sin afectar a otras."""
+    import shutil
+
+    copia = tmp_path / "sart.db"
+    shutil.copyfile(archivo_base_prueba, copia)
+    motor = create_engine(f"sqlite:///{copia.as_posix()}")
+    yield motor
+    motor.dispose()

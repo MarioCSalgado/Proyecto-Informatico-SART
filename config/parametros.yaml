@@ -16,6 +16,9 @@ escenario:                   # §2.3
 
 modelo:                      # CI-1, RF-2
   especificacion: solo_rezagos   # o con_pronostico (pendientes #1, opción C del 14/11): cambiarla cuando se valide
+  version: "1"               # sube cuando cambian la fórmula o el panel; se guarda en cada pronóstico (RF-2 paso 3)
+  anio_inicio: 2014          # primer año del panel y origen de la tendencia (notebook 5, pendientes #9)
+  causas_senal_viral: [influenza, covid_identificado, covid_no_identificado]   # «viral» del panel (pendientes #26)
   anios_excluidos: [2020, 2021]
   anio_inicio_prueba: 2024
   armonicos: 3
@@ -47,6 +50,7 @@ dotacion:                    # CI-2, RF-6 (supuestos por validar en entrevistas,
   minutos_por_atencion: 15
   factor_hora_punta: 1.6
   espera_objetivo_min: 30
+  supuestos_validados: false # RF-6 E1: mientras sea false, el correo y la web los muestran «por validar»
   horas_funcionamiento_semana:
     SAPU: 123                # lunes a viernes 17:00–08:00 y 24 h fines de semana y festivos
     SAR: 123
