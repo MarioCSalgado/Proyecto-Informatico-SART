@@ -111,7 +111,8 @@ def crear_base_temporal():
     try:
         yield crear
     finally:
-        with administrador.connect() as conexion:
-            for nombre in creadas:
-                conexion.execute(text(f'DROP DATABASE IF EXISTS "{nombre}" WITH (FORCE)'))
+        if creadas:  # si la prueba se saltó sin crear nada, no conectarse: con la base apagada fallaría
+            with administrador.connect() as conexion:
+                for nombre in creadas:
+                    conexion.execute(text(f'DROP DATABASE IF EXISTS "{nombre}" WITH (FORCE)'))
         administrador.dispose()
