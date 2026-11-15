@@ -48,7 +48,6 @@ La corrida semanal guarda pronósticos, niveles, alertas y dotación (parte 8), 
 
 | Falta | IDs |
 |---|---|
-| CI en GitHub Actions y guía para el equipo | TC-13, RNF-M-1, RNF-M-2 |
 | Cargar el archivo **real** del DEIS: `cargar_consultas` solo entiende el formato de `datos/prueba` (pendientes #45); hasta entonces la corrida semanal solo se prueba con datos sintéticos | RF-1, TC-02 |
 | Descarga automática de DEIS, SINCA y Open-Meteo, con aviso si una fuente falla | RF-1, TC-02 |
 | Alerta ambiental diaria a las 07:00 | RF-4, TC-12 |
@@ -60,6 +59,8 @@ La corrida semanal guarda pronósticos, niveles, alertas y dotación (parte 8), 
 | Boletín redactado con el LLM | RF-8, TC-18 |
 | Planificador de horarios (05:00, 06:00, 07:00, 08:00, respaldo 04:30) y Docker Compose con API y web | RNF-P-1, TC-13 |
 | Pruebas de carga y de uso | TC-08, TC-10 |
+
+Cada fila está detallada como tarea (T1 a T14) en `docs/tareas_equipo.md`.
 
 ## Decisiones ya tomadas
 
@@ -97,9 +98,10 @@ En este orden, cada uno es una parte de `PASOS.md`:
 
 1. ~~**Parte 8 · Corrida semanal**~~ (hecha el 14/11).
 2. ~~**Parte 9 · Estado de los centros (RF-7)**~~ (hecha el 14/11).
-3. **Parte 10 · Trabajo en equipo:** CI, `CONTRIBUTING.md` y el tablero de tareas `docs/tareas_equipo.md`.
+3. ~~**Parte 10 · Trabajo en equipo**~~ (hecha el 14/11): CI en `.github/workflows/ci.yml`, `CONTRIBUTING.md` y
+   el tablero `docs/tareas_equipo.md`. La CI corre recién cuando el código esté en GitHub.
 
 ### 2. Repartir
 
-Después de la parte 10, lo de «Qué falta» se reparte desde `docs/tareas_equipo.md`, cada tarea con sus RF y TC,
-los archivos que toca, de qué depende y cuándo se da por terminada.
+Lo de «Qué falta» está repartido en 14 tareas en `docs/tareas_equipo.md` (T1 a T14), cada una con sus RF y TC,
+los archivos que toca, de qué depende y cuándo se da por terminada. Falta asignar los responsables.

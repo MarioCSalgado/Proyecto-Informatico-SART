@@ -8,10 +8,11 @@ Mario Salgado Orellana, Jocabed López Flores.
 
 ## Estado
 
-Primer avance de código funcional (14/11/2026): cuentas con MFA, base de datos completa, carga de datos, modelo
-y reglas de alerta probados, y la web con el inicio de sesión y las pantallas por rol. Falta conectar el modelo a
-la base y a las pantallas, los correos y la administración desde la web. Detalle y próximos pasos en
-[`docs/avance.md`](docs/avance.md).
+Base del sistema terminada (14/11/2026): cuentas con MFA, base de datos, carga de datos, modelo y reglas de
+alerta probados, la corrida semanal que guarda pronósticos, niveles y dotación, y la web con «Mi centro» y la
+«Red de centros» mostrando esos datos. Falta, entre otras cosas, la descarga automática, los correos y la
+administración desde la web: el detalle está en [`docs/avance.md`](docs/avance.md) y las tareas del equipo en
+[`docs/tareas_equipo.md`](docs/tareas_equipo.md). Para colaborar, ver [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Cómo levantarlo en local
 

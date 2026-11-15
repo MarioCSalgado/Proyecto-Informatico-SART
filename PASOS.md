@@ -11,9 +11,8 @@ anótalo en `docs/pendientes_informe.md` y pregúntame.
 
 ## Estado (14/11/2026)
 
-Partes 1 a 9 **hechas**: el resumen de lo que quedó funcionando está en `docs/avance.md`. Lo que sigue para
-terminar la base es la parte 10; después, el trabajo se reparte en el equipo con `docs/tareas_equipo.md`
-(lo crea la parte 10).
+Partes 1 a 10 **hechas**: el resumen de lo que quedó funcionando está en `docs/avance.md`. La base está
+terminada; el trabajo sigue repartido en el equipo con `docs/tareas_equipo.md`.
 
 ---
 
@@ -154,6 +153,9 @@ El primer endpoint de lectura, hecho con cuidado para que sirva de ejemplo al re
 - Revisa que el estado del centro quede a 4 clics o menos (RF-7).
 
 ## Parte 10 · Preparar el trabajo en equipo
+
+> **Hecha (14/11).** `.github/workflows/ci.yml`, `CONTRIBUTING.md` y `docs/tareas_equipo.md` (T1 a T14). Pendiente
+> fuera del repositorio, con el visto bueno de Mario: `git push`, proteger `main` y crear issues.
 
 - **CI en GitHub Actions** (`.github/workflows/`): backend con ruff, pytest con un servicio de PostgreSQL 16 y
   cobertura ≥ 70 % en `sart/dominio` y `sart/tareas` (RNF-M-1, RNF-M-2); web con lint, build y Vitest. Es parte
