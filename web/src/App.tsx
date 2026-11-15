@@ -6,6 +6,7 @@ import { RequiereSesion } from './componentes/RequiereSesion.tsx'
 import { RequierePermiso } from './componentes/RequierePermiso.tsx'
 import { useSesion } from './contexto/sesion.tsx'
 import { PantallaAdministracion } from './pantallas/Administracion.tsx'
+import { PantallaCentro } from './pantallas/Centro.tsx'
 import { PantallaInicioSesion } from './pantallas/InicioSesion.tsx'
 import { PantallaMiCentro } from './pantallas/MiCentro.tsx'
 import { PantallaRedCentros } from './pantallas/RedCentros.tsx'
@@ -31,6 +32,10 @@ function App() {
         <Route
           path="red"
           element={<RequierePermiso permiso="ver_todos_los_centros"><PantallaRedCentros /></RequierePermiso>}
+        />
+        <Route
+          path="red/:codigo"
+          element={<RequierePermiso permiso="ver_todos_los_centros"><PantallaCentro /></RequierePermiso>}
         />
         <Route
           path="administracion"

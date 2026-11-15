@@ -10,7 +10,7 @@
 | TC-06 | RF-5, RF-15 | ☐ | ☐ | |
 | TC-07 | RF-6 | ☑ | ☑ | `backend/tests/test_tc07_erlang.py`; en la corrida semanal, la dotación se guarda con sus supuestos (`test_rf2_rf3_corrida_semanal.py`, parte 8) |
 | TC-08 | RF-7 | ☐ | ☐ | |
-| TC-09 | RF-7, RF-9 | ☐ | ☐ | |
+| TC-09 | RF-7, RF-9 | ☑ | ☑ | `backend/tests/test_tc09_rf7_estado_centros.py` (RF-7: jefatura solo sus centros, centro ajeno 403 y auditado, subdirector y administrador todos, sin sesión 401). Falta la parte de RF-9 cuando exista su API |
 | TC-10 | RF-7 | ☐ | ☐ | (con usuarios) |
 | TC-11 | RF-2 | ☑ | ☑ | `backend/tests/test_regresion_backtest.py`: el intervalo de 90 % cubre 91,1 % de las semanas (RNF-Q-3; con los datos reales, en CI se salta) |
 | TC-12 | RF-4 | ☐ | ☐ | |

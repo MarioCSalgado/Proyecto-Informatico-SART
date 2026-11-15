@@ -23,3 +23,67 @@ export type Referencias = {
   mp25_niveles: NivelMp25[];
   comunas: string[];
 };
+
+/** Umbrales con que se clasificó el pronóstico (no los vigentes: pendientes #39). */
+export type UmbralesUsados = { atencion: number; alerta: number; origen: string };
+
+/** Pronóstico vigente de un centro (RF-2, RF-3), tal como lo entrega GET /centros/estado. Fechas en ISO. */
+export type Pronostico = {
+  anio: number;
+  semana: number;
+  inicio_semana: string;
+  fecha_corte: string;
+  valor: number;
+  limite_inferior: number;
+  limite_superior: number;
+  nivel: NivelAlerta | null;
+  valor_con_margen: number | null;
+  k_margen: number | null;
+  version_modelo: string;
+  desactualizado: boolean;  // RF-3 E2
+  datos_antiguos: boolean;  // RF-7 E1
+  umbrales: UmbralesUsados | null;
+};
+
+/** Dotación sugerida guardada con los supuestos usados (RF-6). */
+export type Dotacion = {
+  profesionales: number;
+  llegadas_hora_punta: number;
+  espera_media_min: number;
+  espera_con_uno_menos_min: number | null;
+  supuestos: {
+    minutos_por_atencion?: number;
+    factor_hora_punta?: number;
+    horas_funcionamiento_semana?: number;
+    espera_objetivo_min?: number;
+    supuestos_validados?: boolean;
+  };
+  por_validar: boolean;  // RF-6 E1
+};
+
+/** MP2,5 de la zona del centro (RB-5, RF-7 E3). */
+export type Mp25Zona = {
+  estado: 'ok' | 'datos_insuficientes';
+  estacion: string | null;
+  de_respaldo: boolean;
+  fecha: string | null;
+  valor: number | null;
+  nivel: { clave: string; nombre: string } | null;
+};
+
+export type SemanaObservada = {
+  anio: number;
+  semana: number;
+  inicio: string;
+  consultas: number;
+  nivel_observado: NivelAlerta | null;
+};
+
+/** Estado de un centro (RF-7): solo cifras agregadas, sin datos de pacientes (RNF-S-5). */
+export type EstadoCentro = {
+  centro: { codigo_deis: number; nombre: string; tipo: string; comuna: string };
+  pronostico: Pronostico | null;
+  dotacion: Dotacion | null;
+  mp25: Mp25Zona;
+  ultimas_semanas: SemanaObservada[];
+};

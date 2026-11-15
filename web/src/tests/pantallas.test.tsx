@@ -26,6 +26,7 @@ function abrir(ruta: string, rol: Rol, { referenciasFallan = false } = {}) {
       if (referenciasFallan) throw new Error('sin conexión')
       return { data: REFERENCIAS }
     }
+    if (url === 'centros/estado') return { data: [] }  // sin pronósticos todavía: estados vacíos
     return { data: { usuario: { id: 1, nombre: `${rol} Demo`, rol } } }
   })
   return render(

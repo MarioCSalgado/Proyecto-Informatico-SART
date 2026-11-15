@@ -11,8 +11,8 @@ anótalo en `docs/pendientes_informe.md` y pregúntame.
 
 ## Estado (14/11/2026)
 
-Partes 1 a 8 **hechas**: el resumen de lo que quedó funcionando está en `docs/avance.md`. Lo que sigue para
-terminar la base son las partes 9 y 10; después, el trabajo se reparte en el equipo con `docs/tareas_equipo.md`
+Partes 1 a 9 **hechas**: el resumen de lo que quedó funcionando está en `docs/avance.md`. Lo que sigue para
+terminar la base es la parte 10; después, el trabajo se reparte en el equipo con `docs/tareas_equipo.md`
 (lo crea la parte 10).
 
 ---
@@ -138,6 +138,10 @@ decisiones de abajo).
   `datos_prueba/` junto a sí mismo; ahora están en `../datos/crudos`, `../datos/procesados` y `../datos/prueba/`).
 
 ## Parte 9 · Estado de los centros en la API y la web (RF-7)
+
+> **Hecha (14/11).** `GET /centros/estado` y `/centros/{codigo}/estado` (TC-09), Mi centro y Red de centros con
+> datos, y el detalle `/red/<código>`. Decisiones en `docs/pendientes_informe.md` #46 a #48. La jefatura llega
+> a su pronóstico en 0 clics: Mi centro es su pantalla de inicio.
 
 El primer endpoint de lectura, hecho con cuidado para que sirva de ejemplo al resto del equipo.
 

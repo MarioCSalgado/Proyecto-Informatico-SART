@@ -27,27 +27,27 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
 | Corrida semanal | Marca RB-4, reentrena el GLM, guarda un pronóstico vigente por centro y semana con su nivel (umbral y k usados), la alerta si no es «normal» (salvo pronóstico desactualizado) y la dotación con sus supuestos; todo en `corrida` y la auditoría | RF-2, RF-3, RF-6, RNF-M-3, RNF-S-4 | `python -m sart.tareas semanal [--fecha AAAA-MM-DD \| --prueba]`, `sart/tareas/semanal.py` |
 | Qué se notifica | Solo ALERTA, por centro y semana; repetir la corrida solo notifica si sube el nivel (#29) | RF-3, RF-5 | `sart/db/alertas.py` (`alertas_por_notificar`, para RF-5) |
 | Respaldo | Respaldo diario, poda y restauración probada en 59 s | RNF-D-2, TC-14 | `python -m sart.respaldo …` |
-| API | `GET /salud`, `POST /auth/sesion`, `GET /auth/yo`, `POST /auth/cerrar-sesion`, `GET /referencias` | RNF-S-2 | `sart/api/` · documentación en http://127.0.0.1:8000/docs |
+| API | `GET /salud`, `POST /auth/sesion`, `GET /auth/yo`, `POST /auth/cerrar-sesion`, `GET /referencias`, `GET /centros/estado` y `GET /centros/{codigo}/estado` (la jefatura solo ve sus centros; un centro ajeno da 403 y queda en la auditoría) | RF-7, RNF-S-2, TC-09 | `sart/api/` · documentación en http://127.0.0.1:8000/docs |
 | Web | Inicio de sesión (con el código MFA), encabezado por rol, permisos, rutas con URL; partes fijas de los diseños de Figma para Mi centro, Red de centros y Administración, de 390 px a 1440 px; la escala de MP2,5 viene de la API | RF-7, RNF-U-1, RNF-S-2 | `web/src/` |
+| Estado de los centros | Mi centro con el pronóstico, su rango, el nivel, el gráfico de 12 semanas (o tabla), la dotación guardada y el MP2,5 de la zona (RB-5); Red de centros con conteos, filtros, tabla ordenada por nivel y calendario de calor; detalle de un centro en `/red/<código>`; avisos de datos antiguos y de pronóstico desactualizado | RF-7, RF-6, RB-5, RNF-U-1 | `web/src/pantallas/`, `web/src/componentes/DetalleCentro.tsx`, `GraficoConsultas.tsx` |
 | Sistema de diseño | Colores, tipografía (Figtree + Noto Sans), formas y componentes de SART; tokens en `App.scss` y tema de MUI con los mismos valores; contrastes AA verificados; niveles con texto e ícono SVG | RNF-U-1 | `DESIGN.md`, `web/src/tema.ts` |
 
 ### Cifras verificadas
 
-- Backend: **297 pruebas pasan** sin la base (unos 5 minutos: las de la corrida semanal cargan `datos/prueba` una
-  vez por sesión, ~35 s); con PostgreSQL y `datos/` corren además las de integración, TC-14 y la regresión.
-  Cobertura de `sart/dominio` + `sart/tareas`: **95 %** (RNF-M-1 pide ≥ 70 %). Ruff: 0 errores.
-- Web: **37 pruebas** con Vitest, lint y build sin errores.
+- Backend: **329 pruebas pasan** con PostgreSQL y `datos/` (sin la base, se saltan las de integración, TC-14 y la
+  regresión); unos 4–5 minutos, porque las de la corrida semanal y de RF-7 cargan `datos/prueba` una vez por
+  sesión (~35 s). Cobertura de `sart/dominio` + `sart/tareas`: **97 %** (RNF-M-1 pide ≥ 70 %). Ruff: 0 errores.
+- Web: **47 pruebas** con Vitest, lint y build sin errores.
 - Regresión del backtest 2024–2026 con los datos reales: WAPE 14,9 %; k = 0 → precisión 0,85 y sensibilidad
   0,48; k = 0,4 → 0,73 y 0,66; línea base «semana anterior» → 0,69 y 0,68; cobertura del intervalo 91,1 %.
 
 ## Qué falta
 
-La corrida semanal ya guarda pronósticos, niveles, alertas y dotación en la base (parte 8), pero la API todavía
-no tiene endpoints para leerlos: las pantallas siguen con sus partes fijas y estados vacíos.
+La corrida semanal guarda pronósticos, niveles, alertas y dotación (parte 8), y la API y la web ya los muestran
+(parte 9). Siguen con sus partes fijas la administración, el acuse (RF-15) y la exportación (RF-11).
 
 | Falta | IDs |
 |---|---|
-| Endpoints de lectura del estado de los centros y conectarlos a la web | RF-7, TC-09 |
 | CI en GitHub Actions y guía para el equipo | TC-13, RNF-M-1, RNF-M-2 |
 | Cargar el archivo **real** del DEIS: `cargar_consultas` solo entiende el formato de `datos/prueba` (pendientes #45); hasta entonces la corrida semanal solo se prueba con datos sintéticos | RF-1, TC-02 |
 | Descarga automática de DEIS, SINCA y Open-Meteo, con aviso si una fuente falla | RF-1, TC-02 |
@@ -96,8 +96,7 @@ Están anotadas en `docs/pendientes_informe.md` para pasarlas al informe. Las pr
 En este orden, cada uno es una parte de `PASOS.md`:
 
 1. ~~**Parte 8 · Corrida semanal**~~ (hecha el 14/11).
-2. **Parte 9 · Estado de los centros (RF-7):** primer endpoint de lectura y las pantallas conectadas, como
-   ejemplo que el resto copia.
+2. ~~**Parte 9 · Estado de los centros (RF-7)**~~ (hecha el 14/11).
 3. **Parte 10 · Trabajo en equipo:** CI, `CONTRIBUTING.md` y el tablero de tareas `docs/tareas_equipo.md`.
 
 ### 2. Repartir

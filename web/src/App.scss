@@ -469,3 +469,123 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   .pestanas { justify-self: stretch; }
   :root { --relleno-tarjeta-x: 18px; --relleno-tarjeta-y: 22px; }
 }
+
+/* ============================================================
+   Estado de los centros con datos (RF-7, parte 9)
+   ============================================================ */
+
+/* Avisos de calidad de los datos: azul noche, no colores de nivel (no son un nivel) */
+.aviso--importante {
+  align-items: flex-start; background: var(--lavado-azul); border-left: 4px solid var(--azul-noche);
+  .aviso__icono { color: var(--azul-noche); margin-top: 2px; }
+}
+
+/* Bloque del pronóstico con cifras */
+.pronostico__rango { color: rgba(255, 255, 255, 0.85); font-size: 0.95rem; strong { color: #fff; } }
+.pronostico__nivel { margin-top: 6px; .nivel { min-height: 34px; font-size: 1rem; } }
+.pronostico__umbrales { color: rgba(255, 255, 255, 0.75); font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+.tarjeta__pie-dato { color: var(--texto-medio); font-size: 0.86rem; }
+
+/* Gráfico de consultas (DESIGN.md · Gráfico de consultas) */
+.grafico-contenedor { margin: 18px 0 14px; }
+.grafico { display: block; width: 100%; height: auto; overflow: visible; font-family: var(--fuente-texto); }
+.grafico__marca {
+  line { stroke: var(--borde); stroke-width: 1; }
+  text { fill: var(--texto-suave); font-size: 12px; font-variant-numeric: tabular-nums; }
+}
+.grafico__umbral {
+  line { stroke: var(--alerta-texto); stroke-width: 1.5; stroke-dasharray: 6 4; }
+  text { fill: var(--alerta-texto); font-size: 12px; font-weight: 600; }
+}
+.grafico__banda { fill: rgba(65, 127, 136, 0.18); }
+.grafico__pronostico { stroke: var(--teal); stroke-width: 3; stroke-dasharray: 4 5; stroke-linecap: round; }
+.grafico__observado { fill: none; stroke: var(--azul-noche); stroke-width: 3; stroke-linejoin: round; }
+.grafico__punto { fill: var(--azul-noche); stroke: var(--superficie); stroke-width: 1.5; }
+.grafico__punto--pronostico { fill: var(--teal); stroke-width: 2.5; }
+.grafico__eje { fill: var(--texto-suave); font-size: 12px; }
+.grafico__eje--pronostico { fill: var(--teal-texto); font-weight: 700; }
+
+/* Tabla alternativa del gráfico, dentro del bloque (sin márgenes negativos) */
+.tabla-contenedor--interna {
+  margin: 18px 0 14px; border: 1px solid var(--borde); border-radius: var(--radio-bloque);
+  .tabla { min-width: 520px; }
+  .tabla th:first-child, .tabla td:first-child { padding-left: 16px; }
+}
+.tabla__numero { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tabla th.tabla__numero { text-align: right; }
+.tabla__rango { display: block; color: var(--texto-suave); font-size: 0.8rem; }
+.tabla__fila-pronostico td { background: var(--lavado-teal); font-weight: 600; }
+.tabla__centro {
+  text-align: left; font-weight: 600;
+  a { color: var(--texto-titulo); text-decoration: none; &:hover { color: var(--teal-texto); text-decoration: underline; } }
+}
+.tabla__codigo { display: block; color: var(--texto-suave); font-size: 0.8rem; font-weight: 400; }
+.tabla__sin-dato { color: var(--texto-suave); }
+/* El nombre del centro es el encabezado de su fila: se lee como texto, no como encabezado de columna */
+.tabla tbody th {
+  padding: 14px 16px; padding-left: var(--relleno-tarjeta-x); border-top: 1px solid var(--borde); background: none;
+  color: var(--texto-titulo); font-size: 0.95rem; letter-spacing: normal; text-transform: none; white-space: normal;
+  min-width: 220px;
+}
+.tabla tbody tr { transition: background-color var(--trans); &:hover { background: var(--superficie-suave); } }
+.tabla-carga { margin-top: 20px; }
+
+/* Calendario de calor: 12 cuadros chicos con la abreviatura del nivel (RNF-U-1) */
+.calendario {
+  display: flex; gap: 2px; list-style: none; margin: 0; padding: 0;
+  .nivel-corto { min-width: 23px; height: 26px; padding: 0; font-size: 0.68rem; border-radius: 5px; }
+  .nivel-corto:not([class*="nivel--"]) { color: var(--texto-suave); background: var(--superficie-suave); }
+}
+
+/* Dotación con cifras */
+.dotacion__cifra { color: var(--texto-titulo); font-weight: 600; margin-top: 18px; }
+.dotacion__numero {
+  font-family: var(--fuente-titulos); font-size: 3rem; font-weight: 700; line-height: 1; letter-spacing: -0.02em;
+  margin-right: 4px;
+}
+.dotacion__detalle { color: var(--texto); margin-top: 8px; }
+.dotacion__supuestos {
+  display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 14px 0 0; padding: 0;
+  li {
+    padding: 4px 12px; border-radius: var(--radio-pildora); background: var(--superficie); color: var(--texto-medio);
+    font-size: 0.82rem;
+  }
+}
+.etiqueta-por-validar {
+  display: inline-flex; margin-top: 12px; padding: 4px 12px; border-radius: var(--radio-pildora);
+  border: 1px dashed var(--teal-texto); color: var(--teal-texto); font-size: 0.8rem; font-weight: 700;
+}
+
+/* MP2,5 actual de la zona (RB-5) */
+.escala-mp__actual {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin-top: 16px; padding: 14px 16px;
+  border-radius: var(--radio-bloque); background: var(--lavado-azul); color: var(--texto-titulo); font-weight: 600;
+}
+.escala-mp__actual--insuficiente { display: block; font-weight: 400; color: var(--texto); }
+.escala-mp__valor { font-family: var(--fuente-titulos); font-size: 1.8rem; font-weight: 700; line-height: 1; }
+.escala-mp__origen { flex-basis: 100%; color: var(--texto-medio); font-size: 0.85rem; font-weight: 400; }
+.etiqueta-respaldo {
+  margin-left: 8px; padding: 1px 8px; border-radius: var(--radio-pildora); background: var(--superficie);
+  color: var(--texto-titulo); font-size: 0.75rem; font-weight: 700;
+}
+.escala-mp__nivel--actual { background: var(--superficie); box-shadow: inset 0 0 0 2px currentColor; }
+.escala-mp__marca {
+  margin-right: 8px; padding: 1px 8px; border-radius: var(--radio-pildora); background: currentColor;
+  font-size: 0.72rem; font-weight: 700; vertical-align: 2px;
+  color: inherit;
+}
+.escala-mp__nivel--actual .escala-mp__marca { background: transparent; border: 1px solid currentColor; }
+
+/* Selector de centro en la cabecera y enlace de vuelta */
+.campo--compacto { margin-bottom: 0; min-width: 260px; }
+.enlace-volver { justify-self: start; }
+
+@media (max-width: 900px) {
+  .campo--compacto { min-width: 0; width: 100%; }
+  .dotacion__numero { font-size: 2.5rem; }
+}
+
+/* En celular el gráfico se dibuja a la mitad de su tamaño: sus rótulos se agrandan para quedar en ~11 px */
+@media (max-width: 600px) {
+  .grafico__marca text, .grafico__eje, .grafico__umbral text { font-size: 21px; }
+}
