@@ -109,6 +109,7 @@ cd backend && .venv/Scripts/python -m sart.cuentas crear --nombre "…" --correo
                                               # crear una cuenta (RF-16); pide la contraseña
 cd backend && .venv/Scripts/python -m sart.catalogo cargar --prueba   # centros, consultas y mediciones (datos/prueba)
 cd backend && .venv/Scripts/python -m sart.catalogo recalcular-umbrales   # RB-3, una vez al año
+cd backend && .venv/Scripts/python -m sart.demo preparar   # escenario local: datos, pronóstico y cuentas demo
 cd backend && .venv/Scripts/python -m sart.tareas semanal [--fecha AAAA-MM-DD | --prueba]
                                               # corrida de los lunes: pronóstico, nivel y dotación (RF-2, RF-3, RF-6)
 cd backend && .venv/Scripts/python -m sart.respaldo crear     # respaldo (RNF-D-2); también: listar, restaurar ARCHIVO --confirmar

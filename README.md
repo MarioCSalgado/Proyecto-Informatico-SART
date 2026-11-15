@@ -45,7 +45,22 @@ Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), P
    npm run dev
    ```
    Abrir http://localhost:5173. La web llama a `/api/...` y Vite lo reenvía a la API en el puerto 8000.
-5. **Cuenta para entrar** (en `backend/`; pide la contraseña, mínimo 12 caracteres):
+5. **Escenario de prueba en un paso** (en `backend/`): carga los datos de prueba, calcula los umbrales, corre
+   el pronóstico de la semana y crea las cuentas demo del video del equipo:
+   ```bash
+   .venv/Scripts/python -m sart.demo preparar
+   ```
+   | Rol | Correo | Clave |
+   |---|---|---|
+   | Jefatura (centro 100001) | `jefatura.capturas@demo.sart` | `demo-WYDVvVkcQmq_jO4I` |
+   | Subdirector | `subdirector.capturas@demo.sart` | `demo-WYDVvVkcQmq_jO4I` |
+   | Administrador | `admin@demo.sart` | `demo-WYDVvVkcQmq_jO4I`, y el código `123456` |
+
+   El código `123456` sale de `MFA_CODIGO_DESARROLLO` en el `.env` (ya viene en `.env.example`). El comando
+   solo corre con `COOKIE_SEGURA=false` y se puede repetir sin duplicar nada. Estas cuentas existen solo en la
+   base local de cada uno.
+
+   **Paso a paso, o para crear otras cuentas** (pide la contraseña, mínimo 12 caracteres):
    ```bash
    .venv/Scripts/python -m sart.cuentas crear --nombre "Jefatura Demo" --correo jefatura@demo.sart \
        --rol jefatura --acepta-finalidad

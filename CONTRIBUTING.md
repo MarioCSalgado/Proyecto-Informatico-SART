@@ -16,16 +16,16 @@ docker compose exec db pg_isready    # «accepting connections»
 cd backend
 uv venv --python 3.12 .venv && uv pip install -e ".[dev]"
 .venv/Scripts/python -m alembic upgrade head        # en Linux/macOS: .venv/bin/python
-.venv/Scripts/python -m sart.catalogo cargar --prueba
-.venv/Scripts/python -m sart.catalogo recalcular-umbrales
-.venv/Scripts/python -m sart.tareas semanal --prueba
-.venv/Scripts/python -m sart.cuentas crear --nombre "Tu Nombre" --correo tu@demo.sart --rol subdirector --acepta-finalidad
+.venv/Scripts/python -m sart.demo preparar             # datos de prueba, pronóstico y cuentas demo (ver README)
 .venv/Scripts/python -m uvicorn sart.api.app:app --port 8000
 
 cd ../web
 npm install
 npm run dev                          # http://localhost:5173
 ```
+
+Para entrar, las cuentas demo del `README.md` (las mismas del video): por ejemplo `jefatura.capturas@demo.sart`
+con la clave `demo-WYDVvVkcQmq_jO4I`; el administrador `admin@demo.sart` pide además el código `123456`.
 
 Si el puerto 5432 está ocupado, en `.env` usar `POSTGRES_PORT=5433` y `:5433` en `DATABASE_URL`. Más comandos en
 `CLAUDE.md` (sección «Comandos») y en el `README.md`.
