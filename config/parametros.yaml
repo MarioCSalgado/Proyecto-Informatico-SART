@@ -105,7 +105,8 @@ ingesta:                     # RF-1, RNF-M-3
   semanas_mediana_previa: 4
 
 consulta:                    # RF-7
-  aviso_datos_antiguos_dias: 8
+  aviso_datos_antiguos_dias: 8   # RF-7 E1: desde el sábado que cierra la semana de corte
+  semanas_historial: 12          # semanas observadas en el gráfico de Mi centro y el calendario de la red
 
 auditoria:                   # RNF-S-4
   retencion_meses: 12
