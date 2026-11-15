@@ -22,7 +22,8 @@ La especificación está en `docs/especificacion/` (exportada del informe SRS IE
 | `11_trazabilidad.md` | Matriz RF → RNF → TC y casos de prueba TC-01 a TC-20 |
 | `02_restricciones_y_ciencias.md` | Restricciones de diseño (cost, schedule, legal…) y CI-1 a CI-3 |
 
-Además: `docs/arquitectura.md`, `config/parametros.yaml`, `docs/pendientes_informe.md`, `docs/plan_reutilizacion_ing-software2.md`.
+Además: `docs/arquitectura.md`, `config/parametros.yaml`, `docs/pendientes_informe.md`, `docs/plan_reutilizacion_ing-software2.md`,
+y `DESIGN.md` (sistema de diseño de la web: léelo antes de tocar estilos o pantallas).
 
 **Al empezar una sesión nueva, lee `docs/avance.md`** (qué está hecho, qué falta, decisiones tomadas y abiertas) y
 la parte de `PASOS.md` que se pida. Al terminar una parte, actualiza `docs/avance.md` y la nota de estado de esa

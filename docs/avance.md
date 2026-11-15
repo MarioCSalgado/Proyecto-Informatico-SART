@@ -29,6 +29,7 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
 | Respaldo | Respaldo diario, poda y restauración probada en 59 s | RNF-D-2, TC-14 | `python -m sart.respaldo …` |
 | API | `GET /salud`, `POST /auth/sesion`, `GET /auth/yo`, `POST /auth/cerrar-sesion`, `GET /referencias` | RNF-S-2 | `sart/api/` · documentación en http://127.0.0.1:8000/docs |
 | Web | Inicio de sesión (con el código MFA), encabezado por rol, permisos, rutas con URL; partes fijas de los diseños de Figma para Mi centro, Red de centros y Administración, de 390 px a 1440 px; la escala de MP2,5 viene de la API | RF-7, RNF-U-1, RNF-S-2 | `web/src/` |
+| Sistema de diseño | Colores, tipografía (Figtree + Noto Sans), formas y componentes de SART; tokens en `App.scss` y tema de MUI con los mismos valores; contrastes AA verificados; niveles con texto e ícono SVG | RNF-U-1 | `DESIGN.md`, `web/src/tema.ts` |
 
 ### Cifras verificadas
 
