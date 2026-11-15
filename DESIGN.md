@@ -31,7 +31,6 @@ referencia; los colores, los componentes y la identidad son de SART.
 |---|---|---|---|
 | Azul noche | `#1b3352` | `--azul-noche` | Superficie oscura de marca: encabezado, portada del acceso, bloque del pronóstico. Títulos sobre claro (`--texto-titulo` es su variante) |
 | Azul noche claro | `#2a4566` | `--azul-noche-claro` | Elementos sobre el azul noche: cuadro del logo, píldora de la sección activa, separadores |
-| Azul noche profundo | `#13263f` | `--azul-noche-profundo` | Pie de la portada y fondos bajo el azul noche (solo como superficie) |
 | Verde azulado | `#417f88` | `--teal` | **Acción principal** (botón lleno), foco de campos, serie del pronóstico en gráficos. Con texto blanco: 4,55:1 (AA) |
 | Verde azulado oscuro | `#336a72` | `--teal-oscuro` | Botón principal al pasar el cursor o presionado |
 | Verde azulado texto | `#2f7480` | `--teal-texto` | Enlaces, antetítulos e íconos sobre fondos claros (5,3:1 sobre blanco) |
@@ -211,7 +210,6 @@ alternativa («Ver como tabla»); la forma de la línea distingue las series, no
   /* Marca */
   --azul-noche: #1b3352;
   --azul-noche-claro: #2a4566;
-  --azul-noche-profundo: #13263f;
   --teal: #417f88;
   --teal-oscuro: #336a72;
   --teal-texto: #2f7480;

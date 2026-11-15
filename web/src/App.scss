@@ -8,7 +8,6 @@
   /* Marca */
   --azul-noche: #1b3352;
   --azul-noche-claro: #2a4566;
-  --azul-noche-profundo: #13263f;
   --teal: #417f88;
   --teal-oscuro: #336a72;
   --teal-texto: #2f7480;
@@ -21,7 +20,6 @@
   --lavado-azul: #e7edf4;
   --superficie: #ffffff;
   --superficie-suave: #f4f7f8;
-  --teal-fondo: var(--lavado-teal); /* nombre anterior */
 
   /* Texto y bordes */
   --texto-titulo: #1b2e45;
@@ -320,10 +318,6 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .pronostico__grafico { padding: var(--relleno-tarjeta-y) var(--relleno-tarjeta-x); }
 .pronostico .tarjeta__pie { margin: 0; padding: 18px var(--relleno-tarjeta-x); background: var(--superficie-suave); }
 
-.pronostico__vacio {
-  font-family: var(--fuente-titulos); color: var(--texto-titulo); font-size: 1.6rem; font-weight: 700; margin: 16px 0 8px;
-}
-.grilla-pronostico { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; }
 .grilla-dos { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; align-items: start; }
 .grafico-vacio {
   display: grid; place-items: center; min-height: 230px; margin: 18px 0 16px; border-radius: var(--radio-bloque);
@@ -447,7 +441,6 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 @media (min-width: 900px) {
   .pronostico__cuerpo { grid-template-columns: minmax(300px, 1fr) minmax(0, 2fr); }
-  .grilla-pronostico { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 48px; }
   .grilla-dos { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
   .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .filtros { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.3fr); }

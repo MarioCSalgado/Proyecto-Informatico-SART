@@ -71,7 +71,7 @@
 }
 .acceso__info {
   margin-bottom: clamp(12px, 2.6vh, 20px); padding: 12px 16px; border-radius: var(--radio-bloque);
-  background: var(--teal-fondo); color: var(--texto);
+  background: var(--lavado-teal); color: var(--texto);
 }
 .acceso .campo { gap: clamp(6px, 1.2vh, 10px); margin-bottom: clamp(12px, 2.6vh, 22px); }
 .acceso .campo__caja input { min-height: clamp(44px, 7vh, 52px); }  /* 44 px: área táctil mínima */

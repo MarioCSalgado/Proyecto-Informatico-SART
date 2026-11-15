@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 from sart.configuracion import RAIZ_REPOSITORIO
 from sart.db.modelos import CentroSalud
 from sart.parametros import cargar_parametros
-from sart.tareas.panel import leer_consultas, panel_desde_la_base
+from sart.tareas.panel import leer_conteos_semanales, panel_desde_la_base
 
 PANEL_NOTEBOOK = RAIZ_REPOSITORIO / "datos" / "prueba" / "procesados" / "panel_semanal.parquet"
 CLAVES = ["estab", "inicio_semana"]
@@ -93,10 +93,10 @@ def test_con_los_parametros_vigentes_y_son_solo_las_6_causas(motor, notebook):
     assert _diferencias(panel, notebook, otras) == {}
 
     with Session(motor) as sesion:
-        covid = leer_consultas(sesion, COVID)
+        covid = leer_conteos_semanales(sesion, causas_consulta=COVID, causas_virales=COVID)
         codigos = {c.id: str(c.codigo_antiguo) for c in sesion.scalars(select(CentroSalud))}
     covid["estab"] = covid["estab"].map(codigos)
-    por_semana = covid.groupby(["estab", "anio", "semana"])["cantidad"].sum().rename("covid").reset_index()
+    por_semana = covid[["estab", "anio", "semana", "y"]].rename(columns={"y": "covid"})
     comparacion = (
         notebook[["estab", "anio", "semana", "y"]].merge(por_semana, how="left").fillna({"covid": 0})
     )

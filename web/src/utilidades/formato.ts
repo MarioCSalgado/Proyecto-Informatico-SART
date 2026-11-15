@@ -10,7 +10,7 @@ export const entero = (n: number) => ENTERO.format(Math.round(n));
 export const decimal = (n: number) => DECIMAL.format(n);
 
 /** Fecha ISO «2026-09-27» como día local (sin corrimiento por zona horaria). */
-export function fechaLocal(iso: string): Date {
+function fechaLocal(iso: string): Date {
     const [anio = 1970, mes = 1, dia = 1] = iso.split("-").map(Number);
     return new Date(anio, mes - 1, dia);
 }

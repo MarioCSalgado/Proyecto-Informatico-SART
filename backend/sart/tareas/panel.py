@@ -42,23 +42,6 @@ def _hasta(consulta, hasta: date | None):
     )
 
 
-def leer_consultas(sesion: Session, causas: Iterable[str], hasta: date | None = None) -> pd.DataFrame:
-    """Filas de ``consulta_semanal`` de esas causas: estab (id del centro), anio, semana, causa, grupo_edad y
-    cantidad. Con ``hasta``, solo las semanas que empiezan ese día o antes."""
-    consulta = _hasta(
-        select(
-            ConsultaSemanal.centro_id.label("estab"),
-            ConsultaSemanal.anio,
-            ConsultaSemanal.semana,
-            ConsultaSemanal.causa,
-            ConsultaSemanal.grupo_edad,
-            ConsultaSemanal.cantidad,
-        ).where(ConsultaSemanal.causa.in_(list(causas))),
-        hasta,
-    )
-    return pd.DataFrame(sesion.execute(consulta).all(), columns=list(consulta.selected_columns.keys()))
-
-
 def leer_conteos_semanales(
     sesion: Session,
     *,
