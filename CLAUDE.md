@@ -94,7 +94,7 @@ SART/
 
 ## Comandos
 
-Requisitos: Docker Desktop, Python 3.12 (con `uv` o `venv`), Node 20+. La API lee el `.env` de la raíz sola
+Requisitos: Docker Desktop, Python 3.12 (con `uv` o `venv`), Node 22+. La API lee el `.env` de la raíz sola
 (`sart/configuracion.py`); las variables de entorno tienen prioridad sobre el archivo.
 
 ```bash

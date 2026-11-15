@@ -6,7 +6,7 @@ hecho y qué falta, en `docs/avance.md`; las tareas para tomar, en `docs/tareas_
 ## 1. Instalación (unos 10 minutos)
 
 Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), Python 3.12 con
-[uv](https://docs.astral.sh/uv/) y Node 20 o superior.
+[uv](https://docs.astral.sh/uv/) y Node 22 o superior.
 
 ```bash
 cp .env.example .env                 # cambiar la clave de PostgreSQL y el JWT_SECRET (instrucciones en el archivo)

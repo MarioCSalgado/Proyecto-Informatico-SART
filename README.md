@@ -17,7 +17,7 @@ administración desde la web: el detalle está en [`docs/avance.md`](docs/avance
 ## Cómo levantarlo en local
 
 Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), Python 3.12
-(recomendado con [uv](https://docs.astral.sh/uv/)) y Node 20 o superior.
+(recomendado con [uv](https://docs.astral.sh/uv/)) y Node 22 o superior (la CI usa Node 22).
 
 1. **Configuración.** Copiar `.env.example` a `.env` y cambiar la clave de PostgreSQL y el `JWT_SECRET`.
    El `.env` nunca se sube a git. La API lo lee sola; no hace falta pasarlo como argumento.
@@ -51,13 +51,18 @@ Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), P
        --rol jefatura --acepta-finalidad
    ```
    `--acepta-finalidad` deja constancia de que la persona aceptó el uso de sus datos (RF-16).
-   Para que una jefatura vea su centro, cargue el catálogo y asígnele uno (código DEIS del centro):
+   Para que las pantallas tengan datos, cargue los de prueba, calcule los umbrales, corra el pronóstico de la
+   semana y asígnele un centro a la jefatura (código DEIS del centro):
    ```bash
    .venv/Scripts/python -m sart.catalogo cargar --prueba       # centros, consultas y mediciones de datos/prueba (~1 min)
+   .venv/Scripts/python -m sart.catalogo recalcular-umbrales   # percentiles 75 y 90 de cada centro (RB-3)
+   .venv/Scripts/python -m sart.tareas semanal --prueba        # pronóstico, nivel y dotación (RF-2, RF-3, RF-6)
    .venv/Scripts/python -m sart.cuentas asignar-centro --correo jefatura@demo.sart --centro 100001
    ```
+   La jefatura ve «Mi centro»; para ver la «Red de centros», cree también una cuenta con `--rol subdirector`.
+   Como los datos de prueba terminan en septiembre de 2026, las pantallas avisan que el pronóstico está
+   desactualizado y que los datos son antiguos: es lo esperado.
    Para cambiar la contraseña de una cuenta: `.venv/Scripts/python -m sart.cuentas restablecer-clave --correo …`.
-   Para recalcular los umbrales de cada centro (RB-3): `.venv/Scripts/python -m sart.catalogo recalcular-umbrales`.
 
 6. **Administradores: MFA** (RNF-S-1). Una cuenta con `--rol administrador` no puede entrar hasta activar
    el código de una aplicación de autenticación (Google Authenticator, Microsoft Authenticator, Authy…):
@@ -67,6 +72,8 @@ Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), P
    .venv/Scripts/python -m sart.cuentas reiniciar-mfa --correo admin@demo.sart   # teléfono perdido
    ```
    Al iniciar sesión, después de la contraseña la web pide el código de 6 dígitos.
+   **Solo para probar en local**, se puede fijar un código en `.env` con `MFA_CODIGO_DESARROLLO=123456`: rige
+   únicamente con `COOKIE_SEGURA=false` y `/salud` avisa que está activo. Nunca en producción.
 
 7. **Respaldo** (RNF-D-2): `.venv/Scripts/python -m sart.respaldo crear` deja una copia en `respaldos/` (fuera de
    git: tiene nombres y correos). Para volver a una copia: `… restaurar respaldos/ARCHIVO.dump --confirmar` (reemplaza
@@ -74,6 +81,9 @@ Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), P
 
 ## Documentos
 
+- **Para colaborar:** `CONTRIBUTING.md` (ramas, PR, pruebas y reglas) y `docs/tareas_equipo.md` (tareas y
+  responsables)
+- **Diseño de la web:** `DESIGN.md` (colores, tipografía y componentes; leer antes de tocar pantallas)
 - Especificación: `docs/especificacion/`
 - Qué está hecho y qué sigue: `docs/avance.md`; casos de prueba: `docs/estado_tc.md`
 - Diferencias con el informe que hay que corregir en él: `docs/pendientes_informe.md`
