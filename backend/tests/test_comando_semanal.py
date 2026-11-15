@@ -23,6 +23,8 @@ def test_semanal_con_prueba_pronostica_la_se_40(base_prueba, monkeypatch, capsys
         assert sesion.scalars(select(Corrida).where(Corrida.tarea == TAREA)).one().filas == 14
 
 
-def test_semanal_sin_base_de_datos(capsys):
+def test_semanal_sin_base_de_datos(monkeypatch, capsys):
+    monkeypatch.delenv("DATABASE_URL", raising=False)  # la CI la define para todo el job
+
     assert main(["semanal"]) == 1
     assert "DATABASE_URL" in capsys.readouterr().err
