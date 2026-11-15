@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hmac
 from datetime import UTC, datetime
 from enum import Enum, auto
 from typing import Any
@@ -88,8 +89,13 @@ def revisar_inicio(
     *,
     ahora: datetime | None = None,
     parametros: dict[str, Any] | None = None,
+    codigo_fijo: str | None = None,
 ) -> ResultadoMfa:
-    """Revisa el código de un administrador con la clave ya verificada; guarda fallos, bloqueo y paso."""
+    """Revisa el código de un administrador con la clave ya verificada; guarda fallos, bloqueo y paso.
+
+    ``codigo_fijo`` es el código de desarrollo (``configuracion.codigo_mfa_desarrollo``): se acepta además
+    del TOTP, pero no salta el bloqueo ni sirve si la cuenta no tiene MFA activado.
+    """
     ahora = ahora or datetime.now(UTC)
     mfa = (parametros or cargar_parametros())["mfa"]
     if usuario.mfa_secreto is None or usuario.mfa_activado_en is None:
@@ -98,6 +104,11 @@ def revisar_inicio(
         return ResultadoMfa.BLOQUEADO
     if not (codigo or "").strip():
         return ResultadoMfa.FALTA_CODIGO
+    if codigo_fijo and hmac.compare_digest("".join((codigo or "").split()), codigo_fijo):
+        usuario.mfa_intentos_fallidos = 0
+        usuario.mfa_bloqueado_hasta = None
+        sesion.commit()
+        return ResultadoMfa.CORRECTO
 
     paso = verificar_codigo(
         usuario.mfa_secreto,

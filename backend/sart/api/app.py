@@ -12,7 +12,7 @@ from sqlalchemy import create_engine, text
 
 from sart import __version__
 from sart.api import auth, centros, referencias
-from sart.configuracion import obtener_configuracion
+from sart.configuracion import codigo_mfa_desarrollo, obtener_configuracion
 from sart.parametros import ErrorParametros, cargar_parametros
 
 app = FastAPI(title="SART", version=__version__)
@@ -51,4 +51,7 @@ def salud() -> dict:
         "base_de_datos": _revisar_base_de_datos(),
     }
     estado = "ok" if all(v == "ok" for v in componentes.values()) else "degradado"
+    # Aviso visible si rige el código MFA fijo de desarrollo (pendientes #49); no cambia el estado
+    fijo = codigo_mfa_desarrollo(obtener_configuracion()) is not None
+    componentes["mfa"] = "código fijo de desarrollo activo (solo local)" if fijo else "ok"
     return {"estado": estado, "version": __version__, "componentes": componentes}

@@ -7,6 +7,7 @@ pueden sobrescribirlas). Los supuestos del dominio no van aquí, sino en ``confi
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -25,6 +26,21 @@ class Configuracion(BaseSettings):
     sart_parametros: Path | None = None
     # Cookie de sesión solo por HTTPS (RNF-S-3). Poner COOKIE_SEGURA=false solo en desarrollo local.
     cookie_segura: bool = True
+    # Código MFA fijo para probar en local (pendientes #49). Solo vale con COOKIE_SEGURA=false: ver
+    # codigo_mfa_desarrollo(). Nunca definirlo en producción.
+    mfa_codigo_desarrollo: str | None = None
+
+
+def codigo_mfa_desarrollo(configuracion: Configuracion) -> str | None:
+    """El código MFA fijo de desarrollo, o ``None`` si no rige (RNF-S-1, pendientes #49).
+
+    Rige solo si está definido, tiene 6 dígitos y la cookie no es segura (``COOKIE_SEGURA=false``, es decir,
+    un entorno local por http). En producción la cookie es segura (RNF-S-3) y el código fijo se ignora.
+    """
+    codigo = (configuracion.mfa_codigo_desarrollo or "").strip()
+    if configuracion.cookie_segura or not re.fullmatch(r"\d{6}", codigo):
+        return None
+    return codigo
 
 
 def obtener_configuracion() -> Configuracion:

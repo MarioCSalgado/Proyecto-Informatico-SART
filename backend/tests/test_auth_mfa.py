@@ -147,3 +147,55 @@ def test_jefatura_no_necesita_codigo(cliente, crear_cuenta):
 
     assert respuesta.status_code == 200
     assert "usuario" in respuesta.json()
+
+
+# ---------------------------------------------------------------------------
+# Código fijo de desarrollo (pendientes #49): solo con MFA_CODIGO_DESARROLLO y COOKIE_SEGURA=false
+# ---------------------------------------------------------------------------
+CODIGO_FIJO = "135790"
+
+
+def test_codigo_fijo_de_desarrollo_entra_en_local(cliente, secreto_admin, monkeypatch):
+    monkeypatch.setenv("MFA_CODIGO_DESARROLLO", CODIGO_FIJO)  # «cliente» ya pone COOKIE_SEGURA=false
+
+    primero = _entrar(cliente, codigo=CODIGO_FIJO)
+    segundo = _entrar(cliente, codigo=CODIGO_FIJO)  # a diferencia del TOTP, se puede repetir
+
+    assert primero.status_code == 200 and NOMBRE_COOKIE in primero.headers["set-cookie"]
+    assert segundo.status_code == 200
+
+
+def test_codigo_fijo_no_vale_con_cookie_segura(cliente, secreto_admin, monkeypatch):
+    """En producción (COOKIE_SEGURA=true, RNF-S-3) el código fijo se ignora: solo vale el TOTP."""
+    monkeypatch.setenv("MFA_CODIGO_DESARROLLO", CODIGO_FIJO)
+    monkeypatch.setenv("COOKIE_SEGURA", "true")
+
+    assert _entrar(cliente, codigo=CODIGO_FIJO).status_code == 401
+    assert _entrar(cliente, codigo=_codigo(secreto_admin)).status_code == 200
+
+
+def test_sin_la_variable_no_hay_codigo_fijo(cliente, secreto_admin, monkeypatch):
+    monkeypatch.delenv("MFA_CODIGO_DESARROLLO", raising=False)
+
+    assert _entrar(cliente, codigo=CODIGO_FIJO).status_code == 401
+
+
+@pytest.mark.parametrize("mal_formado", ["", "123", "abcdef", "1234567"])
+def test_codigo_fijo_mal_formado_se_ignora(cliente, secreto_admin, monkeypatch, mal_formado):
+    monkeypatch.setenv("MFA_CODIGO_DESARROLLO", mal_formado)
+
+    assert _entrar(cliente, codigo=mal_formado or "000000").status_code == 401
+
+
+def test_el_codigo_fijo_no_salta_el_bloqueo(cliente, secreto_admin, monkeypatch):
+    monkeypatch.setenv("MFA_CODIGO_DESARROLLO", CODIGO_FIJO)
+    for _ in range(5):
+        _entrar(cliente, codigo="000000")
+
+    assert _entrar(cliente, codigo=CODIGO_FIJO).status_code == 429
+
+
+def test_salud_avisa_si_el_codigo_fijo_esta_activo(cliente, monkeypatch):
+    monkeypatch.setenv("MFA_CODIGO_DESARROLLO", CODIGO_FIJO)
+
+    assert "código fijo" in cliente.get("/salud").json()["componentes"]["mfa"]

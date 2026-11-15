@@ -19,7 +19,7 @@ from pydantic import BaseModel
 
 from sart.api.dependencias import SesionDB, UsuarioActual, secreto_jwt
 from sart.api.tokens import NOMBRE_COOKIE, emitir_token
-from sart.configuracion import obtener_configuracion
+from sart.configuracion import codigo_mfa_desarrollo, obtener_configuracion
 from sart.db.cuentas import buscar_por_correo
 from sart.db.mfa import ResultadoMfa, revisar_inicio
 from sart.db.modelos import Usuario
@@ -90,7 +90,9 @@ def iniciar_sesion(
         usuario.hash_contrasena = hashear(datos.contrasena)
         sesion.commit()
     if usuario.rol is Rol.ADMINISTRADOR:
-        resultado = revisar_inicio(sesion, usuario, datos.codigo)
+        resultado = revisar_inicio(
+            sesion, usuario, datos.codigo, codigo_fijo=codigo_mfa_desarrollo(obtener_configuracion())
+        )
         if resultado is ResultadoMfa.FALTA_CODIGO:
             return RespuestaMfaRequerido()
         if resultado is ResultadoMfa.NO_ACTIVADO:
