@@ -104,4 +104,5 @@ En este orden, cada uno es una parte de `PASOS.md`:
 ### 2. Repartir
 
 Lo de «Qué falta» está repartido en 14 tareas en `docs/tareas_equipo.md` (T1 a T14), cada una con sus RF y TC,
-los archivos que toca, de qué depende y cuándo se da por terminada. Falta asignar los responsables.
+los archivos que toca, de qué depende y cuándo se da por terminada. Responsables asignados por sorteo el 14/11
+(Benjamín, Daniel, Juan, Joaquín y Jocabed).

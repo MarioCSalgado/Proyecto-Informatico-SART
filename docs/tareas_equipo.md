@@ -1,7 +1,9 @@
 # Tablero de tareas del equipo
 
 Lo que falta para la entrega, a partir de «Qué falta» de `docs/avance.md` (14/11/2026). Cada tarea se hace en su
-rama y entra por PR revisado por un compañero (ver `CONTRIBUTING.md`). **Mario asigna la columna «Responsable».**
+rama y entra por PR revisado por un compañero (ver `CONTRIBUTING.md`).
+
+**Asignación (14/11/2026):** por sorteo entre Benjamín, Daniel, Juan, Joaquín y Jocabed (Mario no toma tareas de esta etapa), 3 tareas por persona y una con 2. Daniel, solo tareas sin interfaz, como pidió. Sorteo reproducible con `random.Random(20261114)`. Si alguien quiere cambiar, se acuerda entre los dos y se actualiza la tabla.
 Al terminar una tarea, se marca aquí y se actualiza `docs/estado_tc.md` si cerró un TC.
 
 Tamaño: **S** ≈ 1 día · **M** ≈ 2–4 días · **L** ≈ una semana. Perfil: back (Python, API, base), front (React),
@@ -11,20 +13,20 @@ datos (fuentes y modelo), docs.
 
 | # | Tarea | IDs | Depende de | Tamaño | Perfil | Responsable | Estado |
 |---|---|---|---|---|---|---|---|
-| T1 | Cargar el archivo real del DEIS | RF-1, TC-02 · #45 | — | M | datos, back | | Pendiente |
-| T2 | Descarga automática de DEIS, SINCA y Open-Meteo | RF-1, TC-02, RNF-M-3 | T1 | L | datos, back | | Pendiente |
-| T3 | Alerta ambiental diaria (07:00) | RF-4, TC-12 | — | M | back | | Pendiente |
-| T4 | Correo de alerta | RF-5, TC-06 | — | M | back | | Pendiente |
-| T5 | «Confirmar lectura», reenvío y escalamiento | RF-15, RB-2, TC-06 · #34 | T4 | L | back, front | | Pendiente |
-| T6 | Administración de cuentas y centros desde la web | RF-9, RF-16, TC-09, TC-16 | — | L | back, front | | Pendiente |
-| T7 | Umbrales y parámetros desde la web | RF-9, RB-3, TC-17 | T6 | M | back, front | | Pendiente |
-| T8 | Historial de alertas | RF-10, TC-19 | — | M | back, front | | Pendiente |
-| T9 | Exportación CSV | RF-11, TC-15 | — | S | back, front | | Pendiente |
-| T10 | Mapa de centros | RF-12, TC-20 | — | M | front | | Pendiente |
-| T11 | Planificador de horarios y Docker Compose completo | RNF-P-1, RNF-P-2, TC-13 | T2, T3, T4 | M | back | | Pendiente |
-| T12 | Boletín redactado con el LLM | RF-8, TC-18 | T4 | M | back | | Pendiente |
-| T13 | Pruebas de carga y de uso | TC-08, TC-10, RNF-R-1, RNF-R-2 | T6 | M | docs, front | | Pendiente |
-| T14 | Cerrar las decisiones abiertas con el equipo | #18, #22, #24, #34, #38, #40, #42 | — | S | docs | | Pendiente |
+| T1 | Cargar el archivo real del DEIS | RF-1, TC-02 · #45 | — | M | datos, back | Daniel Aburto | Pendiente |
+| T2 | Descarga automática de DEIS, SINCA y Open-Meteo | RF-1, TC-02, RNF-M-3 | T1 | L | datos, back | Daniel Aburto | Pendiente |
+| T3 | Alerta ambiental diaria (07:00) | RF-4, TC-12 | — | M | back | Joaquín Sandoval | Pendiente |
+| T4 | Correo de alerta | RF-5, TC-06 | — | M | back | Joaquín Sandoval | Pendiente |
+| T5 | «Confirmar lectura», reenvío y escalamiento | RF-15, RB-2, TC-06 · #34 | T4 | L | back, front | Juan Carvajal | Pendiente |
+| T6 | Administración de cuentas y centros desde la web | RF-9, RF-16, TC-09, TC-16 | — | L | back, front | Juan Carvajal | Pendiente |
+| T7 | Umbrales y parámetros desde la web | RF-9, RB-3, TC-17 | T6 | M | back, front | Jocabed López | Pendiente |
+| T8 | Historial de alertas | RF-10, TC-19 | — | M | back, front | Jocabed López | Pendiente |
+| T9 | Exportación CSV | RF-11, TC-15 | — | S | back, front | Joaquín Sandoval | Pendiente |
+| T10 | Mapa de centros | RF-12, TC-20 | — | M | front | Benjamín Díaz | Pendiente |
+| T11 | Planificador de horarios y Docker Compose completo | RNF-P-1, RNF-P-2, TC-13 | T2, T3, T4 | M | back | Daniel Aburto | Pendiente |
+| T12 | Boletín redactado con el LLM | RF-8, TC-18 | T4 | M | back | Juan Carvajal | Pendiente |
+| T13 | Pruebas de carga y de uso | TC-08, TC-10, RNF-R-1, RNF-R-2 | T6 | M | docs, front | Benjamín Díaz | Pendiente |
+| T14 | Cerrar las decisiones abiertas con el equipo | #18, #22, #24, #34, #38, #40, #42 | — | S | docs | Jocabed López | Pendiente |
 
 ## Detalle
 
