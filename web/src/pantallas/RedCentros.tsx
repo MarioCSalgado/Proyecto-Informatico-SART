@@ -1,7 +1,7 @@
 import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined'
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { AvisoPendiente } from '../componentes/AvisoPendiente.tsx'
 import { BloqueCarga } from '../componentes/BloqueCarga.tsx'
@@ -17,6 +17,9 @@ import { entero, rangoSemana } from '../utilidades/formato.ts'
 const NIVELES: Nivel[] = ['alerta', 'atencion', 'normal']
 const ETIQUETAS: Record<Nivel, string> = { alerta: 'Alerta', atencion: 'Atención', normal: 'Normal' }
 const COLUMNAS = ['Centro', 'Comuna', 'Pronóstico', 'Nivel', 'Confirmación', 'Últimas 12 semanas']
+const MapaCentros = lazy(() =>
+  import('../componentes/MapaCentros.tsx').then(({ MapaCentros: Mapa }) => ({ default: Mapa })),
+)
 
 function normalizar(texto: string): string {
   return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -128,6 +131,20 @@ export function PantallaRedCentros() {
           <span>Dentro de cada nivel, el mayor pronóstico primero.</span>
         </p>
       </div>
+
+      {centros && (
+        <section className="tarjeta" aria-labelledby="titulo-mapa-centros">
+          <div className="tarjeta__encabezado">
+            <div>
+              <h2 id="titulo-mapa-centros" className="tarjeta__titulo">Mapa de centros</h2>
+              <p className="tarjeta__bajada">Ubicación, nivel de pronóstico y estación asignada</p>
+            </div>
+          </div>
+          <Suspense fallback={<p className="mapa-centros__vacio" role="status">Cargando mapa…</p>}>
+            <MapaCentros centros={filtrados} />
+          </Suspense>
+        </section>
+      )}
 
       <section className="tarjeta" aria-labelledby="titulo-seguimiento">
         <div className="tarjeta__encabezado">

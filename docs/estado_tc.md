@@ -21,5 +21,5 @@
 | TC-17 | RF-3, RF-9 | ☑ | ☑ | `backend/tests/test_tc17_regla_alerta.py`; de punta a punta en la corrida semanal, con el ajuste de k por el administrador (`test_rf2_rf3_corrida_semanal.py::test_rf3_alerta_solo_por_el_margen_y_cambio_de_k`) |
 | TC-18 | RF-8 | ☐ | ☐ | |
 | TC-19 | RF-10 | ☐ | ☐ | |
-| TC-20 | RF-12 | ☐ | ☐ | |
+| TC-20 | RF-12 | ☑ | ☑ | `web/src/tests/estadoCentros.test.tsx` (33 centros, coordenadas, nivel, estación y filtros); contrato RF-7 en `backend/tests/test_tc09_rf7_estado_centros.py`; validación visual a 390 px |
 

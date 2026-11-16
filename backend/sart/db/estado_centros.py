@@ -151,6 +151,12 @@ def estado_de_centros(
             hasta,  # holgura: cada centro corta en su fecha
         )
 
+    ids_estaciones_asignadas = {centro.estacion_id for centro in centros}
+    estaciones_asignadas = dict(
+        sesion.execute(
+            select(Estacion.id, Estacion.nombre).where(Estacion.id.in_(ids_estaciones_asignadas))
+        ).all()
+    )
     respaldo = sesion.scalar(select(Estacion).where(Estacion.es_respaldo.is_(True)))
     estaciones = {c.estacion_id for c in centros} | ({respaldo.id} if respaldo else set())
     mediciones = _ultimas_mediciones(sesion, estaciones, zona)
@@ -203,6 +209,9 @@ def estado_de_centros(
                     "nombre": centro.nombre,
                     "tipo": centro.tipo.value,
                     "comuna": centro.comuna,
+                    "latitud": centro.latitud,
+                    "longitud": centro.longitud,
+                    "estacion_asignada": estaciones_asignadas[centro.estacion_id],
                 },
                 "pronostico": None
                 if p is None
