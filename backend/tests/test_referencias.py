@@ -48,3 +48,5 @@ def test_referencias_con_sesion(cliente, crear_cuenta):
     }
     assert cuerpo["mp25_niveles"][-1]["hasta"] is None
     assert cuerpo["comunas"] == cargar_parametros()["escenario"]["comunas"]
+    assert cuerpo["finalidad_version"] == cargar_parametros()["cuentas"]["version_texto_finalidad"]
+    assert "correo institucional" in cuerpo["finalidad_texto"]  # RF-16: lo que acepta el funcionario

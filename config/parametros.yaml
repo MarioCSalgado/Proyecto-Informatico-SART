@@ -113,6 +113,12 @@ auditoria:                   # RNF-S-4
 
 cuentas:                     # RF-16, RNF-S-1 (supuestos nuevos: ver docs/pendientes_informe.md)
   version_texto_finalidad: "2026-1"   # versión del texto de §5.3 que acepta el funcionario
+  # Texto que el funcionario lee antes de aceptar (§5.3). Si cambia, subir version_texto_finalidad.
+  texto_finalidad: >-
+    SART guarda su nombre, correo institucional, rol y centros asignados solo para darle acceso según su rol
+    y enviarle las notificaciones de alertas (RF-5, RF-7). No se usan para otro fin. Se conservan mientras la
+    cuenta esté activa y se eliminan al darla de baja o al terminar el proyecto. Puede pedir conocerlos,
+    corregirlos o eliminarlos al administrador (Ley 19.628 y Ley 21.719).
   largo_minimo_contrasena: 12
 
 sesion:                      # RNF-S-1

@@ -28,6 +28,8 @@ class NivelMp25Publico(BaseModel):
 class Referencias(BaseModel):
     mp25_niveles: list[NivelMp25Publico]
     comunas: list[str]
+    finalidad_version: str  # texto de §5.3 que acepta el funcionario al crear su cuenta (RF-16)
+    finalidad_texto: str
 
 
 @router.get("/referencias", response_model=Referencias)
@@ -36,4 +38,6 @@ def referencias(_usuario: UsuarioActual) -> Referencias:
     return Referencias(
         mp25_niveles=[NivelMp25Publico(**asdict(n)) for n in niveles_mp25(parametros["mp25_niveles"])],
         comunas=list(parametros["escenario"]["comunas"]),
+        finalidad_version=str(parametros["cuentas"]["version_texto_finalidad"]),
+        finalidad_texto=str(parametros["cuentas"]["texto_finalidad"]),
     )
