@@ -11,22 +11,22 @@ datos (fuentes y modelo), docs.
 
 ## Resumen
 
-| # | Tarea | IDs | Depende de | Tamaño | Perfil | Responsable | Estado |
-|---|---|---|---|---|---|---|---|
-| T1 | Cargar el archivo real del DEIS | RF-1, TC-02 · #45 | — | M | datos, back | Daniel Aburto | Pendiente |
-| T2 | Descarga automática de DEIS, SINCA y Open-Meteo | RF-1, TC-02, RNF-M-3 | T1 | L | datos, back | Daniel Aburto | Pendiente |
-| T3 | Alerta ambiental diaria (07:00) | RF-4, TC-12 | — | M | back | Joaquín Sandoval | Pendiente |
-| T4 | Correo de alerta | RF-5, TC-06 | — | M | back | Joaquín Sandoval | Pendiente |
-| T5 | «Confirmar lectura», reenvío y escalamiento | RF-15, RB-2, TC-06 · #34 | T4 | L | back, front | Juan Carvajal | Pendiente |
-| T6 | Administración de cuentas y centros desde la web | RF-9, RF-16, TC-09, TC-16 | — | L | back, front | Juan Carvajal | Pendiente |
-| T7 | Umbrales y parámetros desde la web | RF-9, RB-3, TC-17 | T6 | M | back, front | Jocabed López | Pendiente |
-| T8 | Historial de alertas | RF-10, TC-19 | — | M | back, front | Jocabed López | Pendiente |
-| T9 | Exportación CSV | RF-11, TC-15 | — | S | back, front | Joaquín Sandoval | Pendiente |
-| T10 | Mapa de centros | RF-12, TC-20 | — | M | front | Benjamín Díaz | Pendiente |
-| T11 | Planificador de horarios y Docker Compose completo | RNF-P-1, RNF-P-2, TC-13 | T2, T3, T4 | M | back | Daniel Aburto | Pendiente |
-| T12 | Boletín redactado con el LLM | RF-8, TC-18 | T4 | M | back | Juan Carvajal | Pendiente |
-| T13 | Pruebas de carga y de uso | TC-08, TC-10, RNF-R-1, RNF-R-2 | T6 | M | docs, front | Benjamín Díaz | Pendiente |
-| T14 | Cerrar las decisiones abiertas con el equipo | #18, #22, #24, #34, #38, #40, #42 | — | S | docs | Jocabed López | Pendiente |
+| # | Issue | Tarea | IDs | Depende de | Tamaño | Perfil | Responsable | Estado |
+|---|---|---|---|---|---|---|---|---|
+| T1 | [#2](https://github.com/MarioCSalgado/Proyecto-Informatico-SART/issues/2) | Cargar el archivo real del DEIS | RF-1, TC-02 · #45 | — | M | datos, back | Daniel Aburto | Pendiente |
+| T2 | [#3](https://github.com/MarioCSalgado/Proyecto-Informatico-SART/issues/3) | Descarga automática de DEIS, SINCA y Open-Meteo | RF-1, TC-02, RNF-M-3 | T1 | L | datos, back | Daniel Aburto | Pendiente |
+| T3 | [#4](https://github.com/MarioCSalgado/Proyecto-Informatico-SART/issues/4) | Alerta ambiental diaria (07:00) | RF-4, TC-12 | — | M | back | Joaquín Sandoval | Pendiente |
+| T4 | [#5](https://github.com/MarioCSalgado/Proyecto-Informatico-SART/issues/5) | Correo de alerta | RF-5, TC-06 | — | M | back | Joaquín Sandoval | Pendiente |
+| T5 | [#6](https://github.com/MarioCSalgado/Proyecto-Informatico-SART/issues/6) | «Confirmar lectura», reenvío y escalamiento | RF-15, RB-2, TC-06 · #34 | T4 | L | back, front | Juan Carvajal | Pendiente |
+| T6 | [#7](https://github.com/MarioCSalgado/Proyecto-Informatico-SART/issues/7) | Administración de cuentas y centros desde la web | RF-9, RF-16, TC-09, TC-16 | — | L | back, front | Juan Carvajal | Pendiente |
+| T7 | [#8](https://github.com/MarioCSalgado/Proyecto-Informatico-SART/issues/8) | Umbrales y parámetros desde la web | RF-9, RB-3, TC-17 | T6 | M | back, front | Jocabed López | Pendiente |
+| T8 | [#9](https://github.com/MarioCSalgado/Proyecto-Informatico-SART/issues/9) | Historial de alertas | RF-10, TC-19 | — | M | back, front | Jocabed López | Pendiente |
+| T9 | [#10](https://github.com/MarioCSalgado/Proyecto-Informatico-SART/issues/10) | Exportación CSV | RF-11, TC-15 | — | S | back, front | Joaquín Sandoval | Pendiente |
+| T10 | [#11](https://github.com/MarioCSalgado/Proyecto-Informatico-SART/issues/11) | Mapa de centros | RF-12, TC-20 | — | M | front | Benjamín Díaz | Pendiente |
+| T11 | [#12](https://github.com/MarioCSalgado/Proyecto-Informatico-SART/issues/12) | Planificador de horarios y Docker Compose completo | RNF-P-1, RNF-P-2, TC-13 | T2, T3, T4 | M | back | Daniel Aburto | Pendiente |
+| T12 | [#13](https://github.com/MarioCSalgado/Proyecto-Informatico-SART/issues/13) | Boletín redactado con el LLM | RF-8, TC-18 | T4 | M | back | Juan Carvajal | Pendiente |
+| T13 | [#14](https://github.com/MarioCSalgado/Proyecto-Informatico-SART/issues/14) | Pruebas de carga y de uso | TC-08, TC-10, RNF-R-1, RNF-R-2 | T6 | M | docs, front | Benjamín Díaz | Pendiente |
+| T14 | [#15](https://github.com/MarioCSalgado/Proyecto-Informatico-SART/issues/15) | Cerrar las decisiones abiertas con el equipo | #18, #22, #24, #34, #38, #40, #42 | — | S | docs | Jocabed López | Pendiente |
 
 ## Detalle
 

@@ -33,7 +33,8 @@ Si el puerto 5432 está ocupado, en `.env` usar `POSTGRES_PORT=5433` y `:5433` e
 ## 2. Flujo de trabajo
 
 1. **Elegir una tarea** de `docs/tareas_equipo.md` (la asigna Mario en la columna «Responsable»). Si no está en el
-   tablero, conversarla antes.
+   tablero, conversarla antes. Cada tarea tiene su issue en GitHub (columna «Issue» del tablero); el PR lo cierra
+   con la línea `Closes #N` (en inglés: GitHub no reconoce «Cierra»).
 2. **Una rama por tarea**, desde `main` actualizado, con el requisito y una descripción corta:
    `rf-5/correo-alerta`, `rf-11/exportacion-csv`, `docs/guia-instalacion`.
 3. **La prueba primero:** desde el Gherkin de §3.2 o el TC de §11 (ver la sección 3), y después el código.
