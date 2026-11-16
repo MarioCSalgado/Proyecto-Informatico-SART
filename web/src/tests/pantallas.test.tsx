@@ -27,6 +27,7 @@ function abrir(ruta: string, rol: Rol, { referenciasFallan = false } = {}) {
       return { data: REFERENCIAS }
     }
     if (url === 'centros/estado') return { data: [] }  // sin pronósticos todavía: estados vacíos
+    if (url === 'administracion/usuarios') return { data: [] }
     return { data: { usuario: { id: 1, nombre: `${rol} Demo`, rol } } }
   })
   return render(
@@ -137,7 +138,7 @@ describe('Administración', () => {
     const pestanas = await screen.findAllByRole('tab')
     expect(pestanas.map((p) => p.textContent)).toEqual(['Usuarios', 'Umbrales', 'Historial'])
 
-    const usuarios = screen.getByRole('table', { name: /Usuarios y permisos/ })
+    const usuarios = await screen.findByRole('table', { name: /Usuarios y permisos/ })
     expect(within(usuarios).getAllByRole('columnheader').map((c) => c.textContent)).toEqual([
       'Usuario / correo', 'Rol', 'Centro o alcance', 'Acción',
     ])

@@ -1,7 +1,5 @@
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined'
-import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined'
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined'
-import PersonAddAltOutlinedIcon from '@mui/icons-material/PersonAddAltOutlined'
 import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined'
 import { Tab, Tabs } from '@mui/material'
 import { useState } from 'react'
@@ -10,40 +8,14 @@ import { CabeceraPagina } from '../componentes/CabeceraPagina.tsx'
 import { IconoNivel } from '../componentes/NivelAlerta.tsx'
 import { TablaVacia } from '../componentes/TablaVacia.tsx'
 import { useSesion } from '../contexto/sesion.tsx'
+import { UsuariosAdministracion } from './UsuariosAdministracion.tsx'
 
 const PESTANAS = ['Usuarios', 'Umbrales', 'Historial'] as const
 type Pestana = (typeof PESTANAS)[number]
 
 const PENDIENTE_RF9 = (
-  <>Se habilita con la API de administración (RF-9). Mientras tanto se usa el comando <code>python -m sart.cuentas</code>.</>
+  <>Se habilita con la API de umbrales (RF-9, tarea T7).</>
 )
-
-function Usuarios() {
-  return (
-    <section className="tarjeta" aria-labelledby="titulo-usuarios">
-      <div className="tarjeta__encabezado">
-        <div>
-          <h2 id="titulo-usuarios" className="tarjeta__titulo">Usuarios y permisos</h2>
-          <p className="tarjeta__bajada">Solo el administrador crea cuentas, con la aceptación de la finalidad (RF-16).</p>
-        </div>
-        <button type="button" className="boton-primario" disabled>
-          <PersonAddAltOutlinedIcon aria-hidden="true" /> Crear usuario
-        </button>
-      </div>
-      <TablaVacia
-        titulo="Usuarios y permisos"
-        columnas={['Usuario / correo', 'Rol', 'Centro o alcance', 'Acción']}
-        icono={<GroupOutlinedIcon />}
-        mensaje="La lista de cuentas aparecerá aquí"
-      />
-      <p className="nota">
-        Jefatura: solo su centro · Subdirector: lectura y seguimiento de la red · Administrador: cuentas, umbrales
-        e historial, con verificación en dos pasos.
-      </p>
-      <AvisoPendiente>{PENDIENTE_RF9}</AvisoPendiente>
-    </section>
-  )
-}
 
 function Umbrales() {
   return (
@@ -107,9 +79,8 @@ function Historial() {
   )
 }
 
-// Administración (diseño «Administración»; RF-9, RF-16, RNF-S-4). Partes fijas: aviso de la sesión protegida,
-// pestañas, encabezados de tabla y el formulario de umbrales (desactivado hasta que exista la API de RF-9).
-// Sin la columna «Estado» de las cuentas: la baja borra la cuenta (pendientes #18 y #24).
+// Administración (diseño «Administración»; RF-9, RF-16, RNF-S-4). «Usuarios» ya usa la API (T6); «Umbrales» e
+// «Historial» siguen con sus partes fijas hasta T7.
 export function PantallaAdministracion() {
   const { usuario } = useSesion()
   const [pestana, setPestana] = useState<Pestana>('Usuarios')
@@ -135,7 +106,7 @@ export function PantallaAdministracion() {
         </Tabs>
       </div>
       <div role="tabpanel" id={`panel-${pestana}`} aria-labelledby={`pestana-${pestana}`}>
-        {pestana === 'Usuarios' && <Usuarios />}
+        {pestana === 'Usuarios' && <UsuariosAdministracion />}
         {pestana === 'Umbrales' && <Umbrales />}
         {pestana === 'Historial' && <Historial />}
       </div>

@@ -582,3 +582,18 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 @media (max-width: 600px) {
   .grafico__marca text, .grafico__eje, .grafico__umbral text { font-size: 21px; }
 }
+
+/* ---------- Administración de cuentas (RF-9, RF-16) ---------- */
+.error-formulario {
+  margin: 0 0 16px; padding: 12px 16px; border-radius: var(--radio-bloque);
+  background: var(--error-fondo); color: var(--error-texto); border-left: 4px solid var(--error-texto);
+}
+.casillas {
+  display: grid; gap: 8px; max-height: 240px; overflow-y: auto; margin: 0 0 22px; padding: 12px 16px;
+  border: 1px solid var(--borde-fuerte); border-radius: var(--radio-bloque);
+  legend { padding: 0 6px; color: var(--texto-titulo); font-weight: 600; }
+}
+.casillas__opcion { display: flex; align-items: center; gap: 10px; min-height: 32px; input { width: 18px; height: 18px; } }
+.finalidad p { margin: 6px 0 10px; }
+.finalidad__titulo { font-size: 1rem; color: var(--texto-titulo); }
+.acciones { display: flex; flex-wrap: wrap; gap: 16px; }
