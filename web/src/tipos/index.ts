@@ -113,3 +113,11 @@ export type EstadoCentro = {
   mp25: Mp25Zona;
   ultimas_semanas: SemanaObservada[];
 };
+
+/** Notificación vista desde la página de acuse (RF-15), tal como la entrega GET /acuse/{token}. */
+export type Acuse = {
+  estado: 'enviada' | 'fallida' | 'confirmada' | 'reenviada' | 'escalada';
+  fecha_envio: string;
+  fecha_confirmacion: string | null;
+  alerta: { tipo: string; nivel: string; mensaje: string; fecha_emision: string; lugar: string; dia_pronosticado: string | null };
+};

@@ -11,6 +11,10 @@ const RUTAS_API = {
     USUARIO: (id: number) => `administracion/usuarios/${id}`,  // DELETE: baja (RF-16 E2)
     CENTROS: (id: number) => `administracion/usuarios/${id}/centros`,  // PUT: centros asignados (RF-9)
   },
+  ACUSE: {
+    VER: (token: string) => `acuse/${token}`,  // GET: la alerta y el estado; no registra nada (RF-15)
+    CONFIRMAR: (token: string) => `acuse/${token}/confirmar`,  // POST: botón «Confirmar lectura»
+  },
   AUTH: {
     SESION: "auth/sesion",          // POST: inicia sesión y pone la cookie
     CERRAR: "auth/cerrar-sesion",   // POST: borra la cookie
