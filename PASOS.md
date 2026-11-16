@@ -155,7 +155,8 @@ El primer endpoint de lectura, hecho con cuidado para que sirva de ejemplo al re
 ## Parte 10 · Preparar el trabajo en equipo
 
 > **Hecha (14/11).** `.github/workflows/ci.yml`, `CONTRIBUTING.md` y `docs/tareas_equipo.md` (T1 a T14). Pendiente
-> fuera del repositorio, con el visto bueno de Mario: `git push`, proteger `main` y crear issues.
+> fuera del repositorio, con el visto bueno de Mario: `git push`, proteger `main` y crear issues. El 16/11 se agregó
+> la plantilla de PR `.github/pull_request_template.md`, citada en `CONTRIBUTING.md` y el `README.md`.
 
 - **CI en GitHub Actions** (`.github/workflows/`): backend con ruff, pytest con un servicio de PostgreSQL 16 y
   cobertura ≥ 70 % en `sart/dominio` y `sart/tareas` (RNF-M-1, RNF-M-2); web con lint, build y Vitest. Es parte
