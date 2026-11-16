@@ -99,7 +99,7 @@ En este orden, cada uno es una parte de `PASOS.md`:
 1. ~~**Parte 8 · Corrida semanal**~~ (hecha el 14/11).
 2. ~~**Parte 9 · Estado de los centros (RF-7)**~~ (hecha el 14/11).
 3. ~~**Parte 10 · Trabajo en equipo**~~ (hecha el 14/11): CI en `.github/workflows/ci.yml`, `CONTRIBUTING.md` y
-   el tablero `docs/tareas_equipo.md`. La CI corre recién cuando el código esté en GitHub. El 16/11 se sumó la
+   el tablero `docs/tareas_equipo.md`. El código está en GitHub y la CI corre con cada push a `main` (en verde desde el 15/11). El 16/11 se sumó la
    plantilla de pull request `.github/pull_request_template.md` (qué hace, IDs, cómo se probó, capturas y la lista
    de revisión con las reglas que no se negocian); la mencionan `CONTRIBUTING.md` (paso 6) y el `README.md`.
 
