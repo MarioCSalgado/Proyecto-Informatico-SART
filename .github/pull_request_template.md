@@ -6,6 +6,12 @@
 
 <!-- RF-x, RNF-x, RB-x, TC-x. Ejemplo: RF-5, TC-06. Tarea de docs/tareas_equipo.md: T… -->
 
+Closes #
+
+<!-- Número del issue de la tarea (columna «Issue» de docs/tareas_equipo.md). «Closes #N» va en inglés
+     porque GitHub solo reconoce esa palabra: así cierra el issue solo al unir el PR. Si el PR no corresponde
+     a un issue, borrar la línea. -->
+
 ## Cómo se probó
 
 <!-- Pruebas nuevas o cambiadas (archivo y caso) y lo que revisaste a mano. -->
