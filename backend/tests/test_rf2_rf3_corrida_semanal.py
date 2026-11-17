@@ -295,3 +295,20 @@ def test_rf6_sur_sin_horas_definidas_queda_sin_dotacion_y_se_informa(sesion):
     assert sesion.get(DotacionSugerida, p.id) is None
     assert centro.nombre in resumen.sin_dotacion
     assert len(_vigentes(sesion)) == CENTROS_CON_HISTORIA
+
+
+def test_rf2_corrida_real_pronostica_31_centros(archivo_base_real, tmp_path):
+    import shutil
+
+    from sqlalchemy import create_engine
+
+    copia = tmp_path / "real.db"
+    shutil.copyfile(archivo_base_real, copia)
+    motor = create_engine(f"sqlite:///{copia.as_posix()}")
+    try:
+        with Session(motor) as sesion:
+            recalcular_umbrales(sesion, hasta=FECHA_CORTE)
+            correr_semanal(sesion, fecha=LUNES)
+            assert len(_vigentes(sesion)) == 31
+    finally:
+        motor.dispose()

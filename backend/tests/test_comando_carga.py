@@ -76,3 +76,40 @@ def test_una_fuente_que_falla_dos_veces_seguidas_genera_aviso(url, tmp_path, cap
         ("carga_clima", "Open-Meteo", EstadoCorrida.FALLIDA),
         ("carga_clima", "Open-Meteo", EstadoCorrida.FALLIDA),
     ]
+
+
+def test_tc02_columna_real_renombrada_conserva_datos_y_registra_falla(url, tmp_path, capsys):
+    import pandas as pd
+    from sqlalchemy import func
+
+    from sart.db.modelos import ConsultaSemanal
+
+    ruta = tmp_path / "real.parquet"
+    fila = {
+        "EstablecimientoCodigo": "100001",
+        "Anio": 2026,
+        "SemanaEstadistica": 20,
+        "Causa": "IRA Alta (J00-J06)",
+        "NumTotal": 10,
+        "NumMenor1Anio": 10,
+        "Num1a4Anios": 0,
+        "Num5a14Anios": 0,
+        "Num15a64Anios": 0,
+        "Num65oMas": 0,
+    }
+    pd.DataFrame([fila]).to_parquet(ruta)
+    argumentos = [*BASICOS, "--consultas", str(ruta)]
+    assert cli.main(argumentos) == 0
+    pd.DataFrame([fila]).rename(columns={"Num65oMas": "columna_nueva"}).to_parquet(ruta)
+    assert cli.main(argumentos) == 1
+    assert "Num65oMas" in capsys.readouterr().err
+    motor = create_engine(url)
+    with Session(motor) as sesion:
+        assert sesion.scalar(select(func.sum(ConsultaSemanal.cantidad))) == 10
+        estados = list(
+            sesion.scalars(
+                select(Corrida.estado).where(Corrida.tarea == "carga_consultas").order_by(Corrida.id)
+            )
+        )
+        assert estados == [EstadoCorrida.EXITOSA, EstadoCorrida.FALLIDA]
+    motor.dispose()

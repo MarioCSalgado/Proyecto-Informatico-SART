@@ -116,3 +116,36 @@ def test_hasta_la_fecha_de_corte_y_fila_a_pronosticar(motor):
     assert len(fila) == 14 and fila["y"].isna().all()
     assert (fila.set_index("estab")["y_l1"] == previa["y"]).all()
     assert panel["inicio_semana"].max() == pd.Timestamp(objetivo)
+
+
+def test_rf2_panel_real_equivalente_al_notebook(archivo_base_real):
+    """Prueba de cierre estricta: un parquet fraccionario debe revelar la diferencia de contrato."""
+    import os
+    from pathlib import Path
+
+    from sqlalchemy import create_engine
+
+    referencia = pd.read_parquet(
+        Path(os.environ["SART_DATOS_REALES"]) / "procesados" / "panel_semanal.parquet"
+    )
+    if "sistema_semanas" in referencia:
+        assert referencia.pop("sistema_semanas").eq("CDC").all()
+    motor = create_engine(f"sqlite:///{archivo_base_real.as_posix()}")
+    try:
+        with Session(motor) as sesion:
+            panel = panel_desde_la_base(sesion, cargar_parametros())
+            codigos = {c.id: str(c.codigo_deis) for c in sesion.scalars(select(CentroSalud))}
+        panel["estab"] = panel["estab"].map(codigos)
+    finally:
+        motor.dispose()
+    referencia["estab"] = referencia["estab"].astype(str).str.replace(r"\.0$", "", regex=True)
+    panel = panel.sort_values(CLAVES).reset_index(drop=True)
+    referencia = referencia.sort_values(CLAVES).reset_index(drop=True)
+    assert set(panel.columns) == set(referencia.columns)
+    assert panel[CLAVES].equals(referencia[CLAVES]), "Difieren las claves del panel real"
+    diferencias = _diferencias(panel, referencia, set(referencia.columns) - TEXTOS - set(CLAVES))
+    assert diferencias == {}, (
+        f"Diferencias reales por columna: {diferencias}. Si la referencia conserva fracciones, "
+        "debe resolverse el contrato de reparto entero antes de cerrar T1; no ampliar tolerancias."
+    )
+    assert panel.estacion.equals(referencia.estacion)

@@ -167,3 +167,144 @@ def test_comando_cargar_con_datos_de_prueba(tmp_path, monkeypatch, capsys, consu
 def test_comando_sin_archivos_explica_que_falta(capsys):
     assert cli.main(["cargar"]) == 1
     assert "--prueba" in capsys.readouterr().err
+
+
+# RF-1 / T1
+def _real(anio=2026, semana=20, cantidad=10, causa="IRA Alta (J00-J06)"):
+    return {
+        "EstablecimientoCodigo": "100001",
+        "Anio": anio,
+        "SemanaEstadistica": semana,
+        "Causa": causa,
+        "NumTotal": cantidad,
+        "NumMenor1Anio": cantidad,
+        "Num1a4Anios": 0,
+        "Num5a14Anios": 0,
+        "Num15a64Anios": 0,
+        "Num65oMas": 0,
+    }
+
+
+def _cargar_real(sesion, tmp_path, filas):
+    ruta = tmp_path / "real.parquet"
+    pd.DataFrame(filas).to_parquet(ruta, index=False)
+    return cargar_consultas(sesion, ruta)
+
+
+def test_rf1_real_excluye_totales_y_conserva_covid_como_senal(sesion, tmp_path):
+    cargar_catalogo(sesion, ESTABLECIMIENTOS)
+    filas = [
+        _real(causa=c)
+        for c in [
+            "IRA Alta (J00-J06)",
+            "Influenza (J09-J11)",
+            "TOTAL ATENCIONES POR COVID-19, Virus Identificado U07.1",
+            "TOTAL ATENCIONES POR COVID-19  Virus no Identificado U07.2",
+            "TOTAL CAUSA SISTEMA RESPIRATORIO (J00-J98)",
+            "- Causas sistema respiratorio (J00-J98)",
+            "- Por covid-19, virus identificado U07.1",
+        ]
+    ]
+    resumen = _cargar_real(sesion, tmp_path, filas)
+    from sart.parametros import cargar_parametros
+    from sart.tareas.panel import leer_conteos_semanales
+
+    p = cargar_parametros()
+    panel = leer_conteos_semanales(
+        sesion,
+        causas_consulta=p["ingesta"]["causas_en_consultas"],
+        causas_virales=p["modelo"]["causas_senal_viral"],
+    )
+    assert panel.iloc[0]["y"] == 20
+    assert panel.iloc[0]["viral"] == 30
+    assert resumen.filas == 20
+    assert sum(resumen.causas_omitidas.values()) == 3
+
+
+def test_rf1_real_sin_codigo_y_duplicados_no_inflan_conteos(sesion, tmp_path):
+    cargar_catalogo(sesion, ESTABLECIMIENTOS)
+    fila = _real()
+    resumen = _cargar_real(sesion, tmp_path, [fila, fila, {**fila, "EstablecimientoCodigo": None}])
+    assert resumen.filas_sin_codigo == 1
+    assert resumen.duplicados_omitidos == 1
+    assert sesion.scalar(select(func.sum(ConsultaSemanal.cantidad))) == 10
+
+
+def test_rf1_real_conflicto_no_modifica_ultimo_dato(sesion, tmp_path):
+    cargar_catalogo(sesion, ESTABLECIMIENTOS)
+    _cargar_real(sesion, tmp_path, [_real()])
+    with pytest.raises(ValueError, match="contradictorios"):
+        _cargar_real(sesion, tmp_path, [_real(), _real(cantidad=12)])
+    assert sesion.scalar(select(func.sum(ConsultaSemanal.cantidad))) == 10
+
+
+@pytest.mark.parametrize(
+    "columna,valor", [("NumMenor1Anio", -1), ("NumTotal", 11), ("Num1a4Anios", None), ("NumTotal", 10.5)]
+)
+def test_rf1_real_rechaza_conteos_invalidos(sesion, tmp_path, columna, valor):
+    cargar_catalogo(sesion, ESTABLECIMIENTOS)
+    with pytest.raises(ValueError):
+        _cargar_real(sesion, tmp_path, [{**_real(), columna: valor}])
+    assert sesion.scalar(select(func.count()).select_from(ConsultaSemanal)) == 0
+
+
+def test_tc01_cruce_recarga_y_correccion_conservan_aportes(sesion, tmp_path):
+    cargar_catalogo(sesion, ESTABLECIMIENTOS)
+    filas = [_real(2015, 52, 9), _real(2016, 52, 10)]
+    primera = _cargar_real(sesion, tmp_path, filas)
+    segunda = _cargar_real(sesion, tmp_path, filas[::-1])
+    assert primera.filas == segunda.filas == 10
+
+    def total():
+        return dict(
+            sesion.execute(
+                select(ConsultaSemanal.anio, func.sum(ConsultaSemanal.cantidad)).group_by(
+                    ConsultaSemanal.anio
+                )
+            ).all()
+        )
+
+    assert total() == {2015: 11, 2016: 8}
+    _cargar_real(sesion, tmp_path, [_real(2015, 52, 18), _real(2016, 52, 10)])
+    assert total() == {2015: 20, 2016: 8}
+    with pytest.raises(ValueError, match="completa"):
+        _cargar_real(sesion, tmp_path, [_real(2016, 52, 10)])
+    assert total() == {2015: 20, 2016: 8}
+
+
+def test_rf1_fallo_de_marca_revierte_las_consultas(sesion, tmp_path, monkeypatch):
+    cargar_catalogo(sesion, ESTABLECIMIENTOS)
+    _cargar_real(sesion, tmp_path, [_real()])
+
+    def fallar(*args, **kwargs):
+        raise ValueError("marca fallida")
+
+    monkeypatch.setattr("sart.tareas.semanas_y_umbrales.marcar_semanas", fallar)
+    with pytest.raises(ValueError, match="marca fallida"):
+        _cargar_real(sesion, tmp_path, [_real(cantidad=50)])
+    assert sesion.scalar(select(func.sum(ConsultaSemanal.cantidad))) == 10
+
+
+def test_catalogo_real_codigo_antiguo_con_guion(sesion, tmp_path):
+    datos = pd.read_csv(ESTABLECIMIENTOS, sep=";", encoding="latin-1", dtype=str).iloc[:1]
+    datos["EstablecimientoCodigoAntiguo"] = "09-001"
+    ruta = tmp_path / "catalogo.csv"
+    datos.to_csv(ruta, sep=";", encoding="utf-8-sig", index=False)
+    cargar_catalogo(sesion, ruta)
+    assert sesion.scalar(select(CentroSalud.codigo_antiguo)) == 9001
+
+
+@pytest.mark.integracion
+def test_rf1_real_upsert_agrupado_en_postgresql(crear_base_temporal, tmp_path):
+    motor = create_engine(crear_base_temporal())
+    Base.metadata.create_all(motor)
+    try:
+        with Session(motor) as sesion:
+            cargar_catalogo(sesion, ESTABLECIMIENTOS)
+            filas = [_real(2015, 52, 9), _real(2016, 52, 10)]
+            _cargar_real(sesion, tmp_path, filas)
+            _cargar_real(sesion, tmp_path, filas)
+            assert sesion.scalar(select(func.sum(ConsultaSemanal.cantidad))) == 19
+            assert sesion.scalar(select(func.count()).select_from(ConsultaSemanal)) == 10
+    finally:
+        motor.dispose()

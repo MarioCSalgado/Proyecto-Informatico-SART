@@ -92,3 +92,16 @@ def test_etiqueta_que_cruza_el_anio_se_reparte_por_dias():
 def test_etiqueta_sin_dias_es_un_error():
     with pytest.raises(ValueError, match="ningún día"):
         fracciones_de_etiqueta(2026, 54)
+
+
+def test_tc01_reparto_entero_por_mayor_resto():
+    from sart.dominio.ingesta_deis import repartir_entero
+
+    partes = fracciones_de_etiqueta(2016, 52)
+    assert repartir_entero(10, partes) == {(2015, 52): 2, (2016, 52): 8}
+    for cantidad in range(100):
+        resultado = repartir_entero(cantidad, partes)
+        assert sum(resultado.values()) == cantidad
+        assert resultado == repartir_entero(cantidad, dict(reversed(list(partes.items()))))
+    assert repartir_entero(1, {(2025, 1): 0.5, (2024, 1): 0.5}) == {(2025, 1): 0, (2024, 1): 1}
+    assert repartir_entero(7, fracciones_de_etiqueta(2026, 53)) == {(2025, 53): 7}
