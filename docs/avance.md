@@ -39,6 +39,11 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
 - Web: **49 pruebas** con Vitest, lint y build sin errores.
 - Mapa (TC-20): prueba con 33 centros verifica ubicación, nivel y estación; validación visual en 390 px con la
   demo actual, que carga 14 centros elegibles desde `datos/prueba`.
+- TC-08 (avance, no cerrado): el 16/11 se ejecutó durante 5 minutos una carga de 70 usuarios virtuales sobre
+  `GET /centros/estado`, con una sesión local compartida: 3.209 solicitudes exitosas, 0 fallidas, 10,70
+  solicitudes/s y p95 de 1.159 ms. Cumple los umbrales de carga de RF-7 en el endpoint actual; faltan la prueba
+  sobre el boletín y Lighthouse móvil con 4G (RNF-R-1, RNF-R-2). Arnés: `herramientas/pruebas_carga_tc08.mjs`;
+  ejecutor local: `herramientas/ejecutar_prueba_carga_tc08.ps1`.
 - Regresión del backtest 2024–2026 con los datos reales: WAPE 14,9 %; k = 0 → precisión 0,85 y sensibilidad
   0,48; k = 0,4 → 0,73 y 0,66; línea base «semana anterior» → 0,69 y 0,68; cobertura del intervalo 91,1 %.
 
@@ -58,7 +63,7 @@ La corrida semanal guarda pronósticos, niveles, alertas y dotación (parte 8), 
 | Exportación CSV | RF-11, TC-15 |
 | Boletín redactado con el LLM | RF-8, TC-18 |
 | Planificador de horarios (05:00, 06:00, 07:00, 08:00, respaldo 04:30) y Docker Compose con API y web | RNF-P-1, TC-13 |
-| Pruebas de carga y de uso | TC-08, TC-10 |
+| Pruebas de carga y de uso: TC-08 tiene una medición preliminar del endpoint; faltan el boletín y Lighthouse. TC-10 aún requiere 3–5 participantes. | TC-08, TC-10 |
 
 Cada fila está detallada como tarea (T1 a T14) en `docs/tareas_equipo.md`.
 

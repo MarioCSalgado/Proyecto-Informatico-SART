@@ -14,6 +14,13 @@ anótalo en `docs/pendientes_informe.md` y pregúntame.
 Partes 1 a 10 **hechas**: el resumen de lo que quedó funcionando está en `docs/avance.md`. La base está
 terminada; el trabajo sigue repartido en el equipo con `docs/tareas_equipo.md`.
 
+### Seguimiento T13 · 16/11/2026
+
+TC-08 tiene una medición de carga preliminar satisfactoria en `GET /centros/estado` (70 usuarios virtuales,
+10,70 solicitudes/s, p95 1.159 ms). No se cierra: falta probar el boletín y Lighthouse móvil con 4G. TC-10 sigue
+pendiente de realizar con 3–5 participantes. La interfaz de T6 no es requisito: las cuentas de prueba se pueden
+preparar por CLI. Ver `docs/tareas_equipo.md` y `docs/estado_tc.md`.
+
 ---
 
 ## Parte 1 · Ordenar los archivos
