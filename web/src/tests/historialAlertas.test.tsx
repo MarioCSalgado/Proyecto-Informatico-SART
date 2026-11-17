@@ -1,9 +1,10 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import type { AxiosRequestConfig } from 'axios'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../App.tsx'
+import type { Rol } from '../acceso/permisos.ts'
 import { ProveedorSesion } from '../contexto/sesion.tsx'
 import clienteApi from '../servicios/clienteApi.ts'
 
@@ -21,16 +22,17 @@ const ALERTA = {
     supuestos: { supuestos_validados: false }, por_validar: true,
   },
   observacion: { consultas: 110, semana_alta: true },
+  notificaciones: { tipo: 'propia', estado: null, fecha_confirmacion: null },
 }
 
 function abrir(
   consultar: (config?: AxiosRequestConfig) => Promise<unknown> = async () => [ALERTA],
-  sesion = true,
+  rol: Rol | null = 'Jefatura',
 ) {
   const peticiones = vi.spyOn(clienteApi, 'get').mockImplementation(async (url: string, config) => {
     if (url === 'auth/yo') {
-      if (!sesion) throw new Error('Sin sesión')
-      return { data: { usuario: { id: 1, nombre: 'Jefatura Demo', rol: 'Jefatura' } } }
+      if (!rol) throw new Error('Sin sesión')
+      return { data: { usuario: { id: 1, nombre: `${rol} Demo`, rol } } }
     }
     if (url === 'centros/estado') {
       return { data: [{ centro: CHIGUAYANTE, pronostico: null, mp25: {}, ultimas_semanas: [] }] }
@@ -55,7 +57,8 @@ describe('RF-10 · Historial de alertas', () => {
   it('TC-19 muestra los datos guardados y distingue cero, ausencia de observación y ausencia de umbral', async () => {
     abrir(async () => [
       ALERTA,
-      { ...ALERTA, id: 2, dotacion: null, nivel: 'atencion', observacion: { consultas: 0, semana_alta: false } },
+      { ...ALERTA, id: 2, dotacion: null, nivel: 'atencion', observacion: { consultas: 0, semana_alta: false },
+        notificaciones: { tipo: 'no_aplica' } },
       { ...ALERTA, id: 3, dotacion: null, observacion: { consultas: null, semana_alta: null } },
       { ...ALERTA, id: 4, dotacion: null, pronostico: { ...ALERTA.pronostico, umbral_alerta: null },
         observacion: { consultas: 90, semana_alta: null } },
@@ -76,7 +79,50 @@ describe('RF-10 · Historial de alertas', () => {
     expect(filas[1]!.getByText('No superó el umbral')).toBeInTheDocument()
     expect(filas[2]!.getByText('Sin observación válida')).toBeInTheDocument()
     expect(filas[3]!.getByText('Sin umbral registrado')).toBeInTheDocument()
-    expect(screen.getByText('Estado de confirmación de lectura aún no disponible.')).toBeInTheDocument()
+    expect(filas[1]!.getByText('No aplica: Atención no genera correo.')).toBeInTheDocument()
+  })
+
+  it('RF-10 distingue el acuse propio de envío, confirmación, ausencia y seguimiento', async () => {
+    const fecha = '2025-07-07T11:00:00Z'
+    const casos = [
+      [null, 'Sin notificación registrada'],
+      ['enviada', 'Enviada sin confirmar'],
+      ['confirmada', 'Confirmada'],
+      ['fallida', 'Fallida'],
+      ['reenviada', 'Reenviada'],
+      ['escalada', 'Escalada'],
+    ] as const
+    abrir(async () => casos.map(([estado], id) => ({
+      ...ALERTA, id,
+      notificaciones: { tipo: 'propia', estado, fecha_confirmacion: estado === 'confirmada' ? fecha : null },
+    })))
+
+    const tabla = await screen.findByRole('table', { name: 'Historial de alertas emitidas' })
+    expect(within(tabla).getByRole('columnheader', { name: 'Notificación y acuse' })).toBeInTheDocument()
+    const filas = within(tabla).getAllByRole('row').slice(1)
+    casos.forEach(([, etiqueta], i) => expect(within(filas[i]!).getByText(etiqueta)).toBeInTheDocument())
+    const fechas = Array.from(filas[2]!.querySelectorAll('time')).map((hora) => hora.dateTime)
+    expect(fechas).toEqual([ALERTA.fecha_emision, fecha])
+  })
+
+  it.each(['Subdirector', 'Administrador'] as const)('RF-10 muestra a %s conteos por alerta', async (rol) => {
+    abrir(async () => [
+      { ...ALERTA, id: 1, notificaciones: { tipo: 'resumen', estados: [
+        { estado: 'enviada', total: 1 }, { estado: 'fallida', total: 1 }, { estado: 'confirmada', total: 2 },
+        { estado: 'reenviada', total: 2 }, { estado: 'escalada', total: 2 },
+      ] } },
+      { ...ALERTA, id: 2, notificaciones: { tipo: 'resumen', estados: [] } },
+    ], rol)
+
+    const tabla = await screen.findByRole('table', { name: 'Historial de alertas emitidas' })
+    const [, primera, segunda] = within(tabla).getAllByRole('row')
+    expect(within(primera!).getByText('1 enviada sin confirmar')).toBeInTheDocument()
+    expect(within(primera!).getByText('1 fallida')).toBeInTheDocument()
+    expect(within(primera!).getByText('2 confirmadas')).toBeInTheDocument()
+    expect(within(primera!).getByText('2 reenviadas')).toBeInTheDocument()
+    expect(within(primera!).getByText('2 escaladas')).toBeInTheDocument()
+    expect(within(segunda!).getByText('Sin notificaciones registradas')).toBeInTheDocument()
+    expect(primera!.querySelectorAll('time')).toHaveLength(1)
   })
 
   it('RF-10 envía los cuatro filtros a la API, limita el selector a los centros visibles y permite limpiar', async () => {
@@ -116,6 +162,25 @@ describe('RF-10 · Historial de alertas', () => {
     expect(consultar).toHaveBeenCalledTimes(1)
   })
 
+  it('RF-10 descarta una respuesta anterior que llega después de aplicar un filtro', async () => {
+    const usuario = userEvent.setup()
+    let completarAnterior!: (filas: unknown) => void
+    const consultar = vi.fn<(config?: AxiosRequestConfig) => Promise<unknown>>()
+      .mockImplementationOnce(() => new Promise((resolve) => { completarAnterior = resolve }))
+      .mockResolvedValue([])
+    abrir(consultar)
+    await waitFor(() => expect(consultar).toHaveBeenCalledTimes(1))
+
+    await usuario.selectOptions(screen.getByLabelText('Nivel'), 'atencion')
+    await usuario.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+    expect(await screen.findByText('Ninguna alerta coincide con los filtros')).toBeInTheDocument()
+    expect(consultar.mock.calls[0]?.[0]?.signal?.aborted).toBe(true)
+
+    await act(async () => { completarAnterior([ALERTA]) })
+    expect(screen.getByText('Ninguna alerta coincide con los filtros')).toBeInTheDocument()
+    expect(screen.queryByRole('rowheader', { name: /SAR Chiguayante/ })).not.toBeInTheDocument()
+  })
+
   it('RF-10 anuncia la carga y permite reintentar tras un error', async () => {
     const usuario = userEvent.setup()
     const consultar = vi.fn<() => Promise<unknown>>().mockResolvedValue([])
@@ -131,7 +196,7 @@ describe('RF-10 · Historial de alertas', () => {
   })
 
   it('RNF-S-2 protege la ruta sin sesión', async () => {
-    const peticiones = abrir(undefined, false)
+    const peticiones = abrir(undefined, null)
     expect(await screen.findByRole('button', { name: 'Ingresar' })).toBeInTheDocument()
     expect(peticiones.mock.calls.some(([ruta]) => ruta === 'alertas/historial')).toBe(false)
   })

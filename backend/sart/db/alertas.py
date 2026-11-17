@@ -7,9 +7,11 @@ vuelve a quedar pendiente en la corrida siguiente.
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Sequence
+from datetime import datetime
 
-from sqlalchemy import Row, func, select, tuple_
+from sqlalchemy import Row, and_, func, select, tuple_
 from sqlalchemy.orm import Session, joinedload
 
 from sart.db.modelos import (
@@ -96,8 +98,12 @@ def historial_de_alertas(
         select(Alerta, CentroSalud, Pronostico, UmbralCentro.umbral_alerta, consultas)
         .select_from(Alerta)
         .join(CentroSalud, Alerta.centro_id == CentroSalud.id)
-        .join(Pronostico, Alerta.pronostico_id == Pronostico.id)
-        .outerjoin(UmbralCentro, Pronostico.umbral_id == UmbralCentro.id)
+        # Las FK identifican cada fila, pero no garantizan que sus centros coincidan (RNF-S-2).
+        .join(Pronostico, and_(Alerta.pronostico_id == Pronostico.id, Pronostico.centro_id == CentroSalud.id))
+        .outerjoin(
+            UmbralCentro,
+            and_(Pronostico.umbral_id == UmbralCentro.id, UmbralCentro.centro_id == CentroSalud.id),
+        )
         .options(joinedload(Pronostico.dotacion))
         .where(Alerta.tipo == TipoAlerta.DEMANDA, Alerta.centro_id.in_([centro.id for centro in centros]))
         .order_by(
@@ -112,3 +118,32 @@ def historial_de_alertas(
     if nivel is not None:
         consulta = consulta.where(Alerta.nivel == nivel)
     return sesion.execute(consulta).all()
+
+
+def acuses_propios(
+    sesion: Session, alertas: list[int], usuario_id: int
+) -> dict[int, tuple[EstadoNotificacion, datetime | None]]:
+    """Lee solo el estado y el acuse del destinatario autenticado (RF-10, RNF-S-2)."""
+    if not alertas:
+        return {}
+    filas = sesion.execute(
+        select(Notificacion.alerta_id, Notificacion.estado, Notificacion.fecha_confirmacion).where(
+            Notificacion.alerta_id.in_(alertas), Notificacion.usuario_id == usuario_id
+        )
+    )
+    return {alerta_id: (estado, fecha) for alerta_id, estado, fecha in filas}
+
+
+def resumen_notificaciones(sesion: Session, alertas: list[int]) -> dict[int, dict[EstadoNotificacion, int]]:
+    """Cuenta estados por alerta sin recuperar destinatarios ni credenciales de acuse (RF-10)."""
+    if not alertas:
+        return {}
+    filas = sesion.execute(
+        select(Notificacion.alerta_id, Notificacion.estado, func.count())
+        .where(Notificacion.alerta_id.in_(alertas))
+        .group_by(Notificacion.alerta_id, Notificacion.estado)
+    )
+    resumen: dict[int, dict[EstadoNotificacion, int]] = defaultdict(dict)
+    for alerta_id, estado, total in filas:
+        resumen[alerta_id][estado] = total
+    return dict(resumen)

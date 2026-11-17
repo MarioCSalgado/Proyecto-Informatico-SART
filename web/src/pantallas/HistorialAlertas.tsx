@@ -1,24 +1,58 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { AvisoPendiente } from '../componentes/AvisoPendiente.tsx'
 import { BloqueCarga } from '../componentes/BloqueCarga.tsx'
 import { CabeceraPagina } from '../componentes/CabeceraPagina.tsx'
 import { NivelAlerta } from '../componentes/NivelAlerta.tsx'
 import { TablaVacia } from '../componentes/TablaVacia.tsx'
 import { useEstadoCentros } from '../hooks/useEstadoCentros.ts'
-import { obtenerHistorialAlertas, type AlertaHistorica, type FiltrosHistorial } from '../servicios/alertas.ts'
+import {
+  obtenerHistorialAlertas, type AlertaHistorica, type EstadoNotificacion, type FiltrosHistorial,
+} from '../servicios/alertas.ts'
 import { entero, rangoSemana } from '../utilidades/formato.ts'
 
 const COLUMNAS = [
   'Centro', 'Emisión', 'Semana objetivo', 'Nivel', 'Pronóstico', 'Consultas observadas', 'Comparación', 'Dotación sugerida',
+  'Notificación y acuse',
 ]
-const FECHA_EMISION = new Intl.DateTimeFormat('es-CL', {
+const FECHA_LOCAL = new Intl.DateTimeFormat('es-CL', {
   dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Santiago',
 })
+const ETIQUETAS: Record<EstadoNotificacion, [singular: string, plural: string]> = {
+  enviada: ['enviada sin confirmar', 'enviadas sin confirmar'],
+  fallida: ['fallida', 'fallidas'],
+  confirmada: ['confirmada', 'confirmadas'],
+  reenviada: ['reenviada', 'reenviadas'],
+  escalada: ['escalada', 'escaladas'],
+}
 
 function resultadoObservado({ consultas, semana_alta }: AlertaHistorica['observacion']): string {
   if (consultas === null) return 'Sin observación válida'
   if (semana_alta === null) return 'Sin umbral registrado'
   return semana_alta ? 'Superó el umbral' : 'No superó el umbral'
+}
+
+function Notificaciones({ datos }: { datos: AlertaHistorica['notificaciones'] }) {
+  if (datos.tipo === 'no_aplica') {
+    return <span className="tabla__sin-dato">No aplica: Atención no genera correo.</span>
+  }
+  if (datos.tipo === 'resumen') {
+    if (datos.estados.length === 0) return <span className="tabla__sin-dato">Sin notificaciones registradas</span>
+    return datos.estados.map(({ estado, total }) => (
+      <div key={estado}>{entero(total)} {ETIQUETAS[estado][total === 1 ? 0 : 1]}</div>
+    ))
+  }
+  if (datos.estado === null) return <span className="tabla__sin-dato">Sin notificación registrada</span>
+
+  const etiqueta = ETIQUETAS[datos.estado][0]
+  return (
+    <>
+      {etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1)}
+      {datos.fecha_confirmacion && (
+        <time className="tabla__rango" dateTime={datos.fecha_confirmacion}>
+          {FECHA_LOCAL.format(new Date(datos.fecha_confirmacion))}
+        </time>
+      )}
+    </>
+  )
 }
 
 function FilaAlerta({ alerta }: { alerta: AlertaHistorica }) {
@@ -28,7 +62,7 @@ function FilaAlerta({ alerta }: { alerta: AlertaHistorica }) {
       <th scope="row" className="tabla__centro">
         {centro.nombre}<span className="tabla__codigo">{centro.codigo_deis}</span>
       </th>
-      <td><time dateTime={fecha_emision}>{FECHA_EMISION.format(new Date(fecha_emision))}</time></td>
+      <td><time dateTime={fecha_emision}>{FECHA_LOCAL.format(new Date(fecha_emision))}</time></td>
       <td>
         SE {pronostico.semana} · {pronostico.anio}
         <span className="tabla__rango">{rangoSemana(pronostico.inicio_semana)}</span>
@@ -50,6 +84,7 @@ function FilaAlerta({ alerta }: { alerta: AlertaHistorica }) {
           </>
         ) : <span className="tabla__sin-dato">Sin dotación registrada</span>}
       </td>
+      <td><Notificaciones datos={alerta.notificaciones} /></td>
     </tr>
   )
 }
@@ -191,7 +226,6 @@ export function PantallaHistorialAlertas() {
             </table>
           </div>
         )}
-        <AvisoPendiente>Estado de confirmación de lectura aún no disponible.</AvisoPendiente>
       </section>
     </div>
   )

@@ -9,7 +9,7 @@ from alembic import command
 from alembic.config import Config
 from conftest import SECRETO_DE_PRUEBA
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
@@ -18,10 +18,12 @@ from sart.api.dependencias import obtener_sesion_db
 from sart.api.tokens import NOMBRE_COOKIE, emitir_token
 from sart.db.modelos import (
     Alerta,
+    Auditoria,
     CentroSalud,
     ConsultaSemanal,
     DotacionSugerida,
     Estacion,
+    Notificacion,
     Pronostico,
     SemanaCarga,
     UmbralCentro,
@@ -30,23 +32,23 @@ from sart.db.modelos import (
 )
 from sart.dominio.roles import Rol
 from sart.dominio.semanas import inicio_semana
-from sart.dominio.valores import FuenteEstacion, OrigenUmbral, TipoAlerta, TipoCentro
+from sart.dominio.valores import EstadoNotificacion, FuenteEstacion, OrigenUmbral, TipoAlerta, TipoCentro
 
 RUTA = "/alertas/historial"
 ANIO = 2025
 EMISION = datetime(2025, 7, 7, 9, tzinfo=UTC)
 
 
-def _emitir(sesion, centro, umbral, semana, *, nivel="alerta", vigente=True):
+def _emitir(sesion, centro, umbral, semana, *, anio=ANIO, nivel="alerta", vigente=True):
     pronostico = Pronostico(
         centro_id=centro.id,
-        anio=ANIO,
+        anio=anio,
         semana=semana,
         valor=95 if not vigente else 130,
         limite_inferior=70,
         limite_superior=150,
         version_modelo="prueba",
-        fecha_corte=inicio_semana(ANIO, semana) - timedelta(weeks=1),
+        fecha_corte=inicio_semana(anio, semana) - timedelta(weeks=1),
         vigente=vigente,
         nivel=nivel if umbral else None,
         umbral_id=umbral.id if umbral else None,
@@ -63,16 +65,16 @@ def _emitir(sesion, centro, umbral, semana, *, nivel="alerta", vigente=True):
         )
     sesion.add(pronostico)
     sesion.flush()
-    sesion.add(
-        Alerta(
-            tipo=TipoAlerta.DEMANDA,
-            nivel=nivel,
-            fecha_emision=EMISION,
-            mensaje="Alerta de prueba",
-            centro_id=centro.id,
-            pronostico_id=pronostico.id,
-        )
+    alerta = Alerta(
+        tipo=TipoAlerta.DEMANDA,
+        nivel=nivel,
+        fecha_emision=EMISION,
+        mensaje="Alerta de prueba",
+        centro_id=centro.id,
+        pronostico_id=pronostico.id,
     )
+    sesion.add(alerta)
+    return alerta
 
 
 def _preparar_historial(motor):
@@ -98,10 +100,11 @@ def _preparar_historial(motor):
                 correo=f"{nombre}@demo.sart",
                 rol=rol,
                 hash_contrasena="x",
-                centros=[a] if nombre == "jefatura" else [],
+                centros=[a] if nombre in {"jefatura", "otra_jefatura"} else [],
             )
             for nombre, rol in (
                 ("jefatura", Rol.JEFATURA),
+                ("otra_jefatura", Rol.JEFATURA),
                 ("sin_centros", Rol.JEFATURA),
                 ("subdirector", Rol.SUBDIRECTOR),
                 ("administrador", Rol.ADMINISTRADOR),
@@ -125,10 +128,10 @@ def _preparar_historial(motor):
         sesion.add_all([anterior, actual, umbral_b])
         sesion.flush()
 
-        _emitir(sesion, a, anterior, 28, vigente=False)
+        alertas = {28: _emitir(sesion, a, anterior, 28, vigente=False)}
         _emitir(sesion, a, actual, 28, nivel="atencion")
         for semana in (29, 30, 31, 32):
-            _emitir(sesion, a, anterior, semana)
+            alertas[semana] = _emitir(sesion, a, anterior, semana)
         _emitir(sesion, a, None, 33)
         _emitir(sesion, b, umbral_b, 28)
         sesion.add(
@@ -162,6 +165,33 @@ def _preparar_historial(motor):
                     causa=causa,
                     grupo_edad="1_4",
                     cantidad=total,
+                )
+            )
+        sesion.flush()
+        jefatura = cuentas["jefatura"].id
+        subdirector = cuentas["subdirector"].id
+        estado = EstadoNotificacion
+        for semana, usuario_id, nivel in (
+            (28, jefatura, estado.ENVIADA),
+            (28, subdirector, estado.CONFIRMADA),
+            (28, cuentas["otra_jefatura"].id, estado.FALLIDA),
+            (28, None, estado.CONFIRMADA),  # Se conserva el historial tras la baja de la cuenta.
+            (29, jefatura, estado.CONFIRMADA),
+            (30, jefatura, estado.REENVIADA),
+            (30, subdirector, estado.ESCALADA),
+            (31, jefatura, estado.ESCALADA),
+            (32, subdirector, estado.FALLIDA),
+        ):
+            sesion.add(
+                Notificacion(
+                    alerta_id=alertas[semana].id,
+                    usuario_id=usuario_id,
+                    estado=nivel,
+                    fecha_envio=EMISION,
+                    fecha_confirmacion=EMISION + timedelta(hours=2) if nivel == estado.CONFIRMADA else None,
+                    fecha_reenvio=EMISION + timedelta(hours=24) if nivel == estado.REENVIADA else None,
+                    fecha_escalamiento=EMISION + timedelta(hours=48) if nivel == estado.ESCALADA else None,
+                    token_acuse=f"token-privado-{semana}-{usuario_id}",
                 )
             )
         sesion.commit()
@@ -234,11 +264,138 @@ def test_rf10_sin_sesion_da_401(cliente):
     assert cliente.get(RUTA).status_code == 401
 
 
-def test_rf10_jefatura_no_puede_consultar_centros_ajenos(historial):
+def test_rf10_filtra_por_anio_epidemiologico_al_cruzar_diciembre(historial, motor_memoria):
+    with Session(motor_memoria) as sesion:
+        centro = sesion.scalar(select(CentroSalud).where(CentroSalud.codigo_deis == 100001))
+        umbral = sesion.scalar(
+            select(UmbralCentro).where(UmbralCentro.centro_id == centro.id, UmbralCentro.vigente.is_(True))
+        )
+        _emitir(sesion, centro, umbral, 52, anio=2024)
+        for semana in (1, 2, 3):
+            _emitir(sesion, centro, umbral, semana)
+        sesion.commit()
+
+    respuesta = historial("jefatura").get(RUTA, params={"desde": "2024-12-31", "hasta": "2025-01-06"})
+    assert respuesta.status_code == 200
+    assert [(fila["pronostico"]["anio"], fila["pronostico"]["semana"]) for fila in respuesta.json()] == [
+        (2025, 2),
+        (2025, 1),
+    ]
+
+
+def test_rnf_s2_historial_no_expone_referencias_de_otro_centro(historial, motor_memoria):
+    with Session(motor_memoria) as sesion:
+        centro = sesion.scalar(select(CentroSalud).where(CentroSalud.codigo_deis == 100001))
+        alerta_ajena = sesion.scalar(select(Alerta).where(Alerta.centro_id != centro.id))
+        pronostico_ajeno = sesion.get(Pronostico, alerta_ajena.pronostico_id)
+        # Las FK individuales admiten estas referencias, aun cuando los centros no coinciden.
+        alerta = _emitir(sesion, centro, None, 34)
+        pronostico = sesion.get(Pronostico, alerta.pronostico_id)
+        pronostico.umbral_id = pronostico_ajeno.umbral_id
+        sesion.add(
+            Alerta(
+                tipo=TipoAlerta.DEMANDA,
+                nivel="alerta",
+                fecha_emision=EMISION,
+                mensaje="Referencia cruzada de prueba",
+                centro_id=centro.id,
+                pronostico_id=pronostico_ajeno.id,
+            )
+        )
+        sesion.commit()
+
+    respuesta = historial("jefatura").get(RUTA)
+    assert respuesta.status_code == 200
+    filas = respuesta.json()
+    assert len(filas) == 8  # Siete válidas más la alerta local con umbral inutilizable.
+    (sin_umbral,) = [fila for fila in filas if fila["pronostico"]["semana"] == 34]
+    assert sin_umbral["pronostico"]["umbral_alerta"] is None
+
+
+def test_rnf_s2_historial_no_cachea_resultados_de_una_sesion(historial):
+    jefatura = historial("jefatura").get(RUTA)
+    assert jefatura.headers["Cache-Control"] == "no-store"
+    assert {fila["centro"]["codigo_deis"] for fila in jefatura.json()} == {100001}
+
+    red = historial("subdirector").get(RUTA)
+    assert red.headers["Cache-Control"] == "no-store"
+    assert {fila["centro"]["codigo_deis"] for fila in red.json()} == {100001, 100002}
+
+
+def test_rf10_jefatura_no_puede_consultar_centros_ajenos_y_se_audita(historial, motor_memoria):
     api = historial("jefatura")
-    assert api.get(RUTA, params={"codigo_deis": 100002}).status_code == 403
-    assert api.get(RUTA, params={"codigo_deis": 999999}).status_code == 403
+    assert api.get(RUTA, params={"codigo_deis": 100001}).status_code == 200
+    for codigo in (100002, 999999):
+        respuesta = api.get(RUTA, params={"codigo_deis": codigo})
+        assert respuesta.status_code == 403
+        assert respuesta.json() == {"detail": "Este centro no está asignado a su cuenta."}
     assert historial("sin_centros").get(RUTA).json() == []
+
+    with Session(motor_memoria) as sesion:
+        autor_id = sesion.scalar(select(Usuario.id).where(Usuario.nombre == "jefatura"))
+        registros = list(sesion.scalars(select(Auditoria).order_by(Auditoria.id)))
+        assert [registro.entidad_id for registro in registros] == ["100002", "999999"]
+        for registro in registros:
+            assert registro.autor_id == autor_id
+            assert registro.autor_rol == Rol.JEFATURA.value
+            assert registro.accion == "acceso_denegado"
+            assert registro.entidad == "centro_salud"
+            assert registro.motivo == "RF-10: centro no asignado"
+            assert registro.valor_anterior is None
+            assert registro.valor_nuevo is None
+
+
+def test_rf10_jefatura_ve_solo_su_notificacion_por_alerta(historial):
+    respuesta = historial("jefatura").get(RUTA)
+    assert respuesta.status_code == 200
+    filas = respuesta.json()
+    estados = {
+        fila["pronostico"]["semana"]: fila["notificaciones"] for fila in filas if fila["nivel"] == "alerta"
+    }
+    assert estados[28] == {"tipo": "propia", "estado": "enviada", "fecha_confirmacion": None}
+    assert estados[29] == {
+        "tipo": "propia",
+        "estado": "confirmada",
+        "fecha_confirmacion": "2025-07-07T11:00:00Z",
+    }
+    assert estados[30]["estado"] == "reenviada"
+    assert estados[31]["estado"] == "escalada"
+    assert estados[32] == estados[33] == {"tipo": "propia", "estado": None, "fecha_confirmacion": None}
+    (atencion,) = [fila for fila in filas if fila["nivel"] == "atencion"]
+    assert atencion["notificaciones"] == {"tipo": "no_aplica"}
+    assert "token-privado" not in respuesta.text and "@demo.sart" not in respuesta.text
+
+    respuesta = historial("otra_jefatura").get(RUTA, params={"nivel": "alerta"})
+    (alerta,) = [fila for fila in respuesta.json() if fila["pronostico"]["semana"] == 28]
+    assert alerta["notificaciones"] == {"tipo": "propia", "estado": "fallida", "fecha_confirmacion": None}
+
+
+@pytest.mark.parametrize("rol", ["subdirector", "administrador"])
+def test_rf10_resumen_por_alerta_para_roles_de_red(historial, rol):
+    respuesta = historial(rol).get(RUTA, params={"codigo_deis": 100001})
+    assert respuesta.status_code == 200
+    filas = respuesta.json()
+    assert len(filas) == len({fila["id"] for fila in filas}) == 7
+    estados = {
+        fila["pronostico"]["semana"]: fila["notificaciones"] for fila in filas if fila["nivel"] == "alerta"
+    }
+    assert estados[28] == {
+        "tipo": "resumen",
+        "estados": [
+            {"estado": "enviada", "total": 1},
+            {"estado": "fallida", "total": 1},
+            {"estado": "confirmada", "total": 2},
+        ],
+    }
+    assert estados[30] == {
+        "tipo": "resumen",
+        "estados": [
+            {"estado": "reenviada", "total": 1},
+            {"estado": "escalada", "total": 1},
+        ],
+    }
+    assert estados[33] == {"tipo": "resumen", "estados": []}
+    assert "token-privado" not in respuesta.text and "@demo.sart" not in respuesta.text
 
 
 @pytest.mark.parametrize("rol", ["subdirector", "administrador"])
@@ -316,6 +473,11 @@ def test_tc19_historial_en_postgresql(crear_base_temporal, monkeypatch):
             assert reemplazada["pronostico"]["valor"] == 95
             assert reemplazada["pronostico"]["umbral_alerta"] == 100
             assert reemplazada["observacion"] == {"consultas": 110, "semana_alta": True}
+            assert reemplazada["notificaciones"]["estados"] == [
+                {"estado": "enviada", "total": 1},
+                {"estado": "fallida", "total": 1},
+                {"estado": "confirmada", "total": 2},
+            ]
 
             respuesta = api.get(RUTA, params={"codigo_deis": 100002})
             assert respuesta.status_code == 200
@@ -325,7 +487,55 @@ def test_tc19_historial_en_postgresql(crear_base_temporal, monkeypatch):
             api.cookies.set(NOMBRE_COOKIE, tokens["jefatura"])
             respuesta = api.get(RUTA)
             assert respuesta.status_code == 200
-            assert {fila["centro"]["codigo_deis"] for fila in respuesta.json()} == {100001}
+            filas = respuesta.json()
+            assert {fila["centro"]["codigo_deis"] for fila in filas} == {100001}
+            (reemplazada,) = [fila for fila in filas if not fila["pronostico"]["vigente"]]
+            assert reemplazada["notificaciones"] == {
+                "tipo": "propia",
+                "estado": "enviada",
+                "fecha_confirmacion": None,
+            }
             assert api.get(RUTA, params={"codigo_deis": 100002}).status_code == 403
+            assert api.get(RUTA, params={"codigo_deis": "9" * 61}).status_code == 403
+
+            # El esquema migrado conserva el aviso sin destinatario al dar de baja la cuenta.
+            with Session(motor) as sesion:
+                destinataria = sesion.scalar(select(Usuario).where(Usuario.nombre == "otra_jefatura"))
+                sesion.delete(destinataria)
+                jefatura_id = sesion.scalar(select(Usuario.id).where(Usuario.nombre == "jefatura"))
+                notificacion = sesion.scalar(
+                    select(Notificacion).where(
+                        Notificacion.alerta_id == reemplazada["id"], Notificacion.usuario_id == jefatura_id
+                    )
+                )
+                # Los mismos dos campos que actualiza el acuse de T5.
+                notificacion.estado = EstadoNotificacion.CONFIRMADA
+                notificacion.fecha_confirmacion = EMISION + timedelta(hours=3)
+                sesion.commit()
+
+            filtros = {"codigo_deis": 100001, "desde": "2025-07-06", "hasta": "2025-07-06", "nivel": "alerta"}
+            api.cookies.set(NOMBRE_COOKIE, tokens["otra_jefatura"])
+            assert api.get(RUTA, params=filtros).status_code == 401
+            api.cookies.set(NOMBRE_COOKIE, tokens["jefatura"])
+            (propia,) = api.get(RUTA, params=filtros).json()
+            assert propia["notificaciones"] == {
+                "tipo": "propia",
+                "estado": "confirmada",
+                "fecha_confirmacion": "2025-07-07T12:00:00Z",
+            }
+            api.cookies.set(NOMBRE_COOKIE, tokens["subdirector"])
+            (red,) = api.get(RUTA, params=filtros).json()
+            assert red["notificaciones"]["estados"] == [
+                {"estado": "fallida", "total": 1},
+                {"estado": "confirmada", "total": 3},
+            ]
+
+        with Session(motor) as sesion:
+            registros = list(
+                sesion.scalars(
+                    select(Auditoria).where(Auditoria.accion == "acceso_denegado").order_by(Auditoria.id)
+                )
+            )
+            assert [registro.entidad_id for registro in registros] == ["100002", None]
     finally:
         motor.dispose()

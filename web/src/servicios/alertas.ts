@@ -3,6 +3,19 @@ import clienteApi from './clienteApi.ts'
 import RUTAS_API from './rutasApi.ts'
 
 const nivelEmitido = z.enum(['atencion', 'alerta'])
+const estadoNotificacion = z.enum(['enviada', 'fallida', 'confirmada', 'reenviada', 'escalada'])
+const notificaciones = z.discriminatedUnion('tipo', [
+  z.object({ tipo: z.literal('no_aplica') }),
+  z.object({
+    tipo: z.literal('propia'),
+    estado: estadoNotificacion.nullable(),
+    fecha_confirmacion: z.iso.datetime({ offset: true }).nullable(),
+  }),
+  z.object({
+    tipo: z.literal('resumen'),
+    estados: z.array(z.object({ estado: estadoNotificacion, total: z.number().int().positive() })),
+  }),
+])
 
 // Campos que utiliza la pantalla de RF-10, según GET /alertas/historial.
 const alertaHistorica = z.object({
@@ -23,10 +36,12 @@ const alertaHistorica = z.object({
     consultas: z.number().nullable(),
     semana_alta: z.boolean().nullable(),
   }),
+  notificaciones,
 })
 const historial = z.array(alertaHistorica)
 
 export type AlertaHistorica = z.infer<typeof alertaHistorica>
+export type EstadoNotificacion = z.infer<typeof estadoNotificacion>
 export type FiltrosHistorial = {
   codigo_deis?: number
   desde?: string
