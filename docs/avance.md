@@ -54,7 +54,6 @@ La corrida semanal guarda pronósticos, niveles, alertas y dotación (parte 8), 
 | Correo de alerta (sale de `alertas_por_notificar`), «Confirmar lectura», reenvío a las 24 h y escalamiento a las 48 h | RF-5, RF-15, RB-2, TC-06 |
 | Administración desde la web: cuentas, centros asignados, umbrales y parámetros | RF-9, RF-16 |
 | Historial de alertas | RF-10, TC-19 |
-| Exportación CSV | RF-11, TC-15 |
 | Mapa de centros | RF-12, TC-20 |
 | Boletín redactado con el LLM | RF-8, TC-18 |
 | Planificador de horarios (05:00, 06:00, 07:00, 08:00, respaldo 04:30) y Docker Compose con API y web | RNF-P-1, TC-13 |

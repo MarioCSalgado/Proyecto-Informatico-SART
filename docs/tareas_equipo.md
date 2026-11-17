@@ -21,7 +21,7 @@ datos (fuentes y modelo), docs.
 | T6 | Administración de cuentas y centros desde la web | RF-9, RF-16, TC-09, TC-16 | — | L | back, front | Juan Carvajal | Pendiente |
 | T7 | Umbrales y parámetros desde la web | RF-9, RB-3, TC-17 | T6 | M | back, front | Jocabed López | Pendiente |
 | T8 | Historial de alertas | RF-10, TC-19 | — | M | back, front | Jocabed López | Pendiente |
-| T9 | Exportación CSV | RF-11, TC-15 | — | S | back, front | Joaquín Sandoval | Pendiente |
+| T9 | Exportación CSV | RF-11, TC-15 | — | S | back, front | Joaquín Sandoval | Hecha (17/11, la hizo Mario) |
 | T10 | Mapa de centros | RF-12, TC-20 | — | M | front | Benjamín Díaz | Pendiente |
 | T11 | Planificador de horarios y Docker Compose completo | RNF-P-1, RNF-P-2, TC-13 | T2, T3, T4 | M | back | Daniel Aburto | Pendiente |
 | T12 | Boletín redactado con el LLM | RF-8, TC-18 | T4 | M | back | Juan Carvajal | Pendiente |
@@ -93,6 +93,9 @@ datos (fuentes y modelo), docs.
 - **Terminado cuando:** pasa TC-19.
 
 ### T9 · Exportación CSV (RF-11, TC-15)
+- **Hecha (17/11, Mario):** `GET /exportar/centros.csv[?codigo_deis=]` y los botones «Descargar CSV» (Mi centro) y
+  «Exportar red CSV» (Red de centros). TC-15 en `backend/tests/test_tc15_exportacion_csv.py`. Decisiones en
+  pendientes #56.
 - **Qué hacer:** activar «Descargar CSV» (Mi centro) y «Exportar red CSV» (Red de centros) con los mismos datos de
   `GET /centros/estado`, respetando lo que cada rol puede ver. Sin datos de pacientes; citar la fuente (CC BY-NC).
 - **Terminado cuando:** pasa TC-15.

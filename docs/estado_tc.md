@@ -16,7 +16,7 @@
 | TC-12 | RF-4 | ☐ | ☐ | |
 | TC-13 | Transversal | ☐ | ☐ | |
 | TC-14 | RF-1 | ☑ | ☑ | `backend/tests/test_tc14_restauracion.py` (simulacro con la base de desarrollo el 14/11: 59 s) |
-| TC-15 | RF-11 | ☐ | ☐ | |
+| TC-15 | RF-11 | ☑ | ☑ | `backend/tests/test_tc15_exportacion_csv.py` (CSV UTF-8 solo con los centros del usuario, centro ajeno 403 auditado, mismas cifras que RF-7, esquema sin columnas de pacientes y contrato OpenAPI) y `web/src/tests/exportacion.test.tsx` |
 | TC-16 | RF-16 | ☑ | ☑ | `backend/tests/test_tc16_alta_sin_aceptacion.py` (backend y comando; falta la pantalla de RF-16) |
 | TC-17 | RF-3, RF-9 | ☑ | ☑ | `backend/tests/test_tc17_regla_alerta.py`; de punta a punta en la corrida semanal, con el ajuste de k por el administrador (`test_rf2_rf3_corrida_semanal.py::test_rf3_alerta_solo_por_el_margen_y_cambio_de_k`) |
 | TC-18 | RF-8 | ☐ | ☐ | |
