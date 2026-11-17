@@ -154,3 +154,9 @@ T1: se corrigió la clasificación de las atenciones COVID y la distribución
 de consultas entre semanas que cruzan el año, conservando el total y
 evitando cantidades decimales. La justificación y las validaciones
 se detallan en la PR de T1.
+
+## T11 · Planificador y Docker Compose (17/11)
+
+| # | Sección (dueño) | Qué hace el código | Qué falta en el informe |
+|---|---|---|---|
+| 57 | §2.6, §4 RNF-P-1, RNF-P-2, §9.3 | **Supuestos nuevos en `horarios`:** `dia_semanal: lunes`, `boletin: "07:30"` (después del pronóstico de las 06:00 y antes de `boletin_limite`) y `seguimiento_cada_minutos: 60` (RB-2). El planificador es un proceso propio (`python -m sart.planificador`) que cada minuto corre lo que toca, cada tarea con `python -m …`; si estuvo detenido no pone al día lo perdido. **Reparto de recursos** (suma 2,0 vCPU y 3,9 GB): base 0,75 vCPU y 1 GB, API 0,5 y 768 MB, planificador 0,6 y 2 GB (la corrida semanal es lo más pesado), web 0,15 y 128 MB. La web es estática con nginx, que reenvía `/api` a la API (mismo origen para la cookie). El respaldo corre desde el planificador con el `pg_dump` 17 de la imagen (respalda la base 16). | Agregar al despliegue (§9) el planificador como contenedor, los horarios nuevos y el reparto de recursos; confirmar la hora del boletín. |

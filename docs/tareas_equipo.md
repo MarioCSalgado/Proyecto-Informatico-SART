@@ -23,7 +23,7 @@ datos (fuentes y modelo), docs.
 | T8 | Historial de alertas | RF-10, TC-19 | — | M | back, front | Jocabed López | En curso: historial probado con datos controlados; falta el backtest real |
 | T9 | Exportación CSV | RF-11, TC-15 | — | S | back, front | Joaquín Sandoval | Pendiente |
 | T10 | Mapa de centros | RF-12, TC-20 | — | M | front | Benjamín Díaz | Pendiente |
-| T11 | Planificador de horarios y Docker Compose completo | RNF-P-1, RNF-P-2, TC-13 | T2, T3, T4 | M | back | Daniel Aburto | Pendiente |
+| T11 | Planificador de horarios y Docker Compose completo | RNF-P-1, RNF-P-2, TC-13 | T2, T3, T4 | M | back | Daniel Aburto | Hecha (17/11, la hizo Mario) |
 | T12 | Boletín redactado con el LLM | RF-8, TC-18 | T4 | M | back | Juan Carvajal | Pendiente |
 | T13 | Pruebas de carga y de uso | TC-08, TC-10, RNF-R-1, RNF-R-2 | T6 | M | docs, front | Benjamín Díaz | Pendiente |
 | T14 | Cerrar las decisiones abiertas con el equipo | #18, #22, #24, #34, #38, #40, #42 | — | S | docs | Jocabed López | Pendiente |
@@ -111,6 +111,9 @@ datos (fuentes y modelo), docs.
 - **Terminado cuando:** pasa TC-20 y se ve bien a 390 px.
 
 ### T11 · Planificador y Docker Compose completo (RNF-P-1, RNF-P-2, TC-13)
+- **Hecha (17/11, Mario):** `python -m sart.planificador` (horarios de `config/parametros.yaml`, cada tarea en su
+  proceso) y `docker compose up -d --build` con base, API, planificador y web (nginx con `/api`), dentro de
+  2 vCPU y 3,9 GB. Construcción desde cero: 89 s. Decisiones en pendientes #57.
 - **Qué hacer:** correr a su hora el respaldo (04:30), la ingesta (05:00), el pronóstico (lunes 06:00), la alerta
   ambiental (07:00) y el boletín (antes de 08:00), con los horarios de `config/parametros.yaml`; agregar la API y
   la web a `docker-compose.yml`, dentro de 2 vCPU y 4 GB.
