@@ -10,14 +10,10 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from conftest import SECRETO_DE_PRUEBA
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event, func, select, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
-from sart.api.configuracion_administracion import router
-from sart.api.dependencias import obtener_sesion_db
 from sart.api.tokens import NOMBRE_COOKIE, emitir_token
 from sart.db.auditoria import registrar_auditoria
 from sart.db.modelos import (
@@ -46,22 +42,6 @@ HISTORIAL = "/administracion/historial"
 CLAVE_K = "regla_alerta.k_margen"
 
 
-@pytest.fixture
-def api_t7(motor_memoria, monkeypatch):
-    """Monta solo T7. Cada petición usa la misma base SQLite aislada."""
-    monkeypatch.setenv("JWT_SECRET", SECRETO_DE_PRUEBA)
-    aplicacion = FastAPI()
-    aplicacion.include_router(router)
-
-    def sesion_de_prueba():
-        with Session(motor_memoria) as sesion:
-            yield sesion
-
-    aplicacion.dependency_overrides[obtener_sesion_db] = sesion_de_prueba
-    with TestClient(aplicacion) as cliente:
-        yield cliente
-
-
 def _autenticar(cliente, motor, rol):
     with Session(motor) as sesion:
         usuario = Usuario(nombre="Cuenta de prueba", correo=f"{rol}@demo.sart", rol=rol, hash_contrasena="x")
@@ -75,8 +55,8 @@ def _autenticar(cliente, motor, rol):
 
 
 @pytest.fixture
-def admin(api_t7, motor_memoria):
-    return _autenticar(api_t7, motor_memoria, Rol.ADMINISTRADOR)
+def admin(cliente, motor_memoria):
+    return _autenticar(cliente, motor_memoria, Rol.ADMINISTRADOR)
 
 
 @pytest.fixture
@@ -108,21 +88,21 @@ def _crear_centro(motor):
 
 
 @pytest.mark.parametrize("rol", [None, Rol.JEFATURA, Rol.SUBDIRECTOR])
-def test_rf9_tc09_configuracion_solo_para_administradores(api_t7, motor_memoria, rol):
+def test_rf9_tc09_configuracion_solo_para_administradores(cliente, motor_memoria, rol):
     if rol is not None:
-        _autenticar(api_t7, motor_memoria, rol)
+        _autenticar(cliente, motor_memoria, rol)
     esperado = 401 if rol is None else 403
-    assert api_t7.get("/administracion/umbrales").status_code == esperado
-    assert api_t7.get(PARAMETROS).status_code == esperado
-    assert api_t7.get(HISTORIAL).status_code == esperado
+    assert cliente.get("/administracion/umbrales").status_code == esperado
+    assert cliente.get(PARAMETROS).status_code == esperado
+    assert cliente.get(HISTORIAL).status_code == esperado
     assert (
-        api_t7.put(
+        cliente.put(
             UMBRAL, json={"umbral_atencion": 650, "umbral_alerta": 713, "motivo": "Prueba"}
         ).status_code
         == esperado
     )
     assert (
-        api_t7.put(f"{PARAMETROS}/{CLAVE_K}", json={"valor": 0, "motivo": "Prueba"}).status_code == esperado
+        cliente.put(f"{PARAMETROS}/{CLAVE_K}", json={"valor": 0, "motivo": "Prueba"}).status_code == esperado
     )
 
 
