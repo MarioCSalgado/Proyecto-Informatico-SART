@@ -9,13 +9,14 @@ from urllib.parse import parse_qs, urlsplit
 
 import pandas as pd
 import pytest
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
 from sart.db.modelos import ConsultaSemanal, Corrida, Medicion
 from sart.dominio.valores import EstadoCorrida
 from sart.parametros import cargar_parametros
 from sart.tareas.carga import cargar_catalogo
 from sart.tareas.descarga import correr_descarga, descargar_http, url_sinca
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
 
 
 @pytest.fixture

@@ -8,7 +8,6 @@ las 05:00 (RF-1) usará ``cargar_consultas`` después de descargar el archivo; l
 
 from __future__ import annotations
 
-from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path

@@ -22,6 +22,9 @@ from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
 import pandas as pd
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from sart.configuracion import RAIZ_REPOSITORIO
 from sart.db.modelos import CentroSalud, Estacion
 from sart.db.sesion import crear_motor
@@ -36,8 +39,6 @@ from sart.tareas.carga import (
     cargar_sinca,
 )
 from sart.tareas.corridas import fallas_seguidas, hay_que_avisar, registrar_corrida
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 
 @dataclass
