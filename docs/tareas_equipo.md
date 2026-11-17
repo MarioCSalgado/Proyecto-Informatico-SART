@@ -11,11 +11,11 @@ datos (fuentes y modelo), docs.
 
 ## Resumen
 
-| # | Tarea | IDs | Depende de | Tamaño | Perfil | Responsable | Estado |
-|---|---|---|---|---|---|---|---|
+| # | Tarea | IDs | Depende de | Tamaño | Perfil | Responsable | Estado    |
+|---|---|---|---|---|---|---|-----------|
 | T1 | Cargar el archivo real del DEIS | RF-1, TC-02 · #45 | — | M | datos, back | Daniel Aburto | Pendiente |
 | T2 | Descarga automática de DEIS, SINCA y Open-Meteo | RF-1, TC-02, RNF-M-3 | T1 | L | datos, back | Daniel Aburto | Pendiente |
-| T3 | Alerta ambiental diaria (07:00) | RF-4, TC-12 | — | M | back | Joaquín Sandoval | Pendiente |
+| T3 | Alerta ambiental diaria (07:00) | RF-4, TC-12 | — | M | back | Joaquín Sandoval | Listo     |
 | T4 | Correo de alerta | RF-5, TC-06 | — | M | back | Joaquín Sandoval | Pendiente |
 | T5 | «Confirmar lectura», reenvío y escalamiento | RF-15, RB-2, TC-06 · #34 | T4 | L | back, front | Juan Carvajal | Pendiente |
 | T6 | Administración de cuentas y centros desde la web | RF-9, RF-16, TC-09, TC-16 | — | L | back, front | Juan Carvajal | Pendiente |
