@@ -6,12 +6,13 @@ export type Seccion = {
   ruta: string
   etiqueta: string
   permiso: Permiso
-  icono: 'pulso' | 'red' | 'ajustes'
+  icono: 'pulso' | 'red' | 'historial' | 'ajustes'
 }
 
 export const SECCIONES: readonly Seccion[] = [
   { ruta: '/mi-centro', etiqueta: 'Mi centro', permiso: 'ver_mi_centro', icono: 'pulso' },
   { ruta: '/red', etiqueta: 'Red de centros', permiso: 'ver_todos_los_centros', icono: 'red' },
+  { ruta: '/historial-alertas', etiqueta: 'Historial de alertas', permiso: 'ver_historial_alertas', icono: 'historial' },
   { ruta: '/administracion', etiqueta: 'Administración', permiso: 'administrar_cuentas', icono: 'ajustes' },
 ]
 
