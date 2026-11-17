@@ -49,7 +49,9 @@ def _por_semana(series: dict[int, dict[date, float]]) -> dict[date, dict[int, fl
     return dict(reportes)
 
 
-def marcar_semanas(sesion: Session, parametros: dict[str, Any] | None = None) -> date | None:
+def marcar_semanas(
+    sesion: Session, parametros: dict[str, Any] | None = None, *, confirmar: bool = True
+) -> date | None:
     """Evalúa RB-4 y deja la marca en ``semana_carga``. Devuelve la última semana completa."""
     from sart.tareas.carga import _insertar_o_actualizar  # evita la importación circular con carga.py
 
@@ -77,7 +79,8 @@ def marcar_semanas(sesion: Session, parametros: dict[str, Any] | None = None) ->
     _insertar_o_actualizar(
         sesion, SemanaCarga, filas, claves=["anio", "semana"], actualizar=["centros_reportados", "completa"]
     )
-    sesion.commit()
+    if confirmar:
+        sesion.commit()
     return ultima_semana_completa(evaluacion)
 
 

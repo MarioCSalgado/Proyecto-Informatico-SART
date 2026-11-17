@@ -149,3 +149,82 @@ def base_prueba(archivo_base_prueba, tmp_path):
     motor = create_engine(f"sqlite:///{copia.as_posix()}")
     yield motor
     motor.dispose()
+
+
+@pytest.fixture(scope="session")
+def archivos_deis_reales():
+    """Rutas opcionales de DEIS: solo catálogo y consultas, sin insumos ambientales."""
+    from pathlib import Path
+
+    valor = os.environ.get("SART_DATOS_REALES")
+    if not valor:
+        pytest.skip("sin SART_DATOS_REALES: validación real opcional de DEIS")
+    crudos = Path(valor) / "crudos"
+    registro = crudos / "establecimientos.csv"
+    if not registro.is_file():
+        registro = crudos / "establecimientos_20260818.csv"
+    consultas = crudos / "at_urg_respiratorio_semanal.parquet"
+    faltantes = [str(ruta) for ruta in (registro, consultas) if not ruta.is_file()]
+    if faltantes:
+        pytest.fail("Archivos DEIS faltantes: " + ", ".join(faltantes))
+    return registro, consultas
+
+
+@pytest.fixture(scope="session")
+def archivo_base_deis_real(tmp_path_factory, archivos_deis_reales):
+    """SQLite temporal con establecimientos y urgencias reales; no usa la base local."""
+    from sart.tareas.carga import cargar_catalogo, cargar_consultas
+
+    registro, consultas = archivos_deis_reales
+    ruta = tmp_path_factory.mktemp("base_deis_real") / "sart.db"
+    motor = create_engine(f"sqlite:///{ruta.as_posix()}")
+    try:
+        Base.metadata.create_all(motor)
+        with Session(motor) as sesion:
+            cargar_catalogo(sesion, registro)
+            cargar_consultas(sesion, consultas)
+    finally:
+        motor.dispose()
+    return ruta
+
+
+@pytest.fixture(scope="session")
+def archivo_base_real(tmp_path_factory):
+    """Validación opcional del panel y pronósticos completos; nunca usa la base del desarrollador.
+
+    SART_DATOS_REALES apunta a la carpeta que contiene crudos/ y procesados/.
+    Se necesitan también los insumos ambientales para comparar el panel completo.
+    """
+    from pathlib import Path
+
+    from sart.tareas.carga import cargar_catalogo, cargar_clima, cargar_consultas, cargar_sinca
+
+    if not os.environ.get("SART_DATOS_REALES"):
+        pytest.skip("sin SART_DATOS_REALES: validación real opcional de T1")
+    raiz = Path(os.environ["SART_DATOS_REALES"])
+    crudos = raiz / "crudos"
+    registro = crudos / "establecimientos.csv"
+    if not registro.exists():
+        registro = crudos / "establecimientos_20260818.csv"
+    requeridos = [
+        registro,
+        crudos / "at_urg_respiratorio_semanal.parquet",
+        crudos / "clima_openmeteo.csv",
+        crudos / "sinca",
+        raiz / "procesados" / "panel_semanal.parquet",
+    ]
+    faltantes = [str(p) for p in requeridos if not p.exists()]
+    if faltantes:
+        pytest.fail("SART_DATOS_REALES incompleto: " + ", ".join(faltantes))
+    ruta = tmp_path_factory.mktemp("base_real") / "sart.db"
+    motor = create_engine(f"sqlite:///{ruta.as_posix()}")
+    Base.metadata.create_all(motor)
+    try:
+        with Session(motor) as sesion:
+            cargar_catalogo(sesion, registro)
+            cargar_consultas(sesion, requeridos[1])
+            cargar_sinca(sesion, crudos / "sinca")
+            cargar_clima(sesion, crudos / "clima_openmeteo.csv")
+    finally:
+        motor.dispose()
+    return ruta

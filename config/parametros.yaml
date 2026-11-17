@@ -80,11 +80,15 @@ catalogo:                    # CI-3, RB-5 · asignación manual por comuna del n
   tipos_establecimiento:     # TipoEstablecimientoGlosa del registro → tipo de §5.1 (pendientes #5); el resto no se carga
     "Hospital": hospital
     "Servicio de Atención Primaria de Urgencia (SAPU)": SAPU
+    "Servicio de Atención Primaria de Urgencia de Alta Resolutividad (SAR)": SAR
     "Servicio de Urgencia de Alta Resolución (SAR)": SAR
     "Servicio de Urgencia Rural (SUR)": SUR
 
 ingesta:                     # RF-1, RNF-M-3
   causas:                    # inicio de la glosa del DEIS → clave guardada; el resto (hospitalizaciones, totales) no se carga
+    "IRA Alta (J00-J06)": ira_alta
+    "TOTAL ATENCIONES POR COVID-19, Virus Identificado U07.1": covid_identificado
+    "TOTAL ATENCIONES POR COVID-19 Virus no Identificado U07.2": covid_no_identificado
     "Infección respiratoria aguda alta": ira_alta
     "Influenza": influenza
     "Neumonía": neumonia

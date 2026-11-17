@@ -148,3 +148,9 @@ Decisiones tomadas con el visto bueno de Mario:
 | 47 | §3.2 RF-7, RF-10 | **Nivel observado:** el gráfico de Mi centro y el calendario de calor de la red muestran las últimas 12 semanas (`consulta.semanas_historial`) con su nivel según las consultas reales contra los umbrales del centro, sin margen k (el margen es para la incertidumbre del pronóstico). Los umbrales que se muestran son los que se usaron al clasificar (#39). | Decir en RF-7 que el calendario de calor compara consultas observadas, no pronósticos (todavía no hay pronósticos pasados guardados). |
 | 48 | §3.2 RF-7 paso 3 y E2 | El detalle de un centro para el subdirector y el administrador es `/red/<código>` (el mismo bloque que Mi centro). Si una jefatura pide un centro que no tiene asignado **o que no existe**, recibe 403 (no se revela qué centros existen) y el intento queda en la auditoría (`acceso_denegado`). La jefatura llega a su pronóstico en 0 clics. | Nada nuevo; confirmar que el 403 también vale para códigos inexistentes. |
 | 49 | §4.4 RNF-S-1 | **Código MFA fijo para desarrollo:** si el `.env` define `MFA_CODIGO_DESARROLLO` (6 dígitos) **y** `COOKIE_SEGURA=false` (entorno local por http), ese código se acepta además del TOTP para los administradores con MFA activado. No salta el bloqueo tras 5 fallos y `/salud` avisa que está activo. En producción la cookie es segura (RNF-S-3) y el código fijo se ignora. Pedido por Mario para las pruebas del 14/11. | Nada en el informe mientras sea solo de desarrollo; sacarlo del `.env` antes de cualquier despliegue. |
+
+
+T1: se corrigió la clasificación de las atenciones COVID y la distribución
+de consultas entre semanas que cruzan el año, conservando el total y
+evitando cantidades decimales. La justificación y las validaciones
+se detallan en la PR de T1.

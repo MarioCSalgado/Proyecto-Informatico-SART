@@ -30,6 +30,8 @@ def tipo_centro(glosa: str | None, tipos: dict[str, str]) -> TipoCentro | None:
 def clave_causa(glosa: str, causas: dict[str, str]) -> str | None:
     """Clave de la causa si la glosa empieza como alguna de ``ingesta.causas``; si no, ``None``."""
     texto = normalizar(glosa)
+    if texto.startswith(("-", "hospitalizaciones", "total causa sistema")):
+        return None
     for inicio, clave in causas.items():
         if texto.startswith(normalizar(inicio)):
             return clave
