@@ -1,4 +1,3 @@
-import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined'
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
 import HistoryToggleOffOutlinedIcon from '@mui/icons-material/HistoryToggleOffOutlined'
 import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined'
@@ -8,6 +7,7 @@ import { useState } from 'react'
 import type { Dotacion, EstadoCentro, NivelMp25, Pronostico } from '../tipos/index.ts'
 import { decimal, entero, rangoSemana } from '../utilidades/formato.ts'
 import { AvisoPendiente } from './AvisoPendiente.tsx'
+import { BotonExportarCsv } from './BotonExportarCsv.tsx'
 import { EscalaMp25 } from './EscalaMp25.tsx'
 import { EstadoVacio } from './EstadoVacio.tsx'
 import { GraficoConsultas, TablaConsultas } from './GraficoConsultas.tsx'
@@ -182,9 +182,7 @@ export function DetalleCentro({ estado, mp25Niveles, cargandoReferencias, errorR
                 ? <><ShowChartOutlinedIcon aria-hidden="true" /> Ver como gráfico</>
                 : <><TableChartOutlinedIcon aria-hidden="true" /> Ver como tabla</>}
             </button>
-            <button type="button" className="boton-secundario" disabled title="Llega con RF-11">
-              <DownloadOutlinedIcon aria-hidden="true" /> Descargar CSV
-            </button>
+            <BotonExportarCsv codigo={estado?.centro.codigo_deis} desactivado={!estado} etiqueta="Descargar CSV" />
           </div>
         </div>
       </section>
