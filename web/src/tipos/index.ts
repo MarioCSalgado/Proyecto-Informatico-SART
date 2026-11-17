@@ -22,6 +22,32 @@ export type NivelMp25 = {
 export type Referencias = {
   mp25_niveles: NivelMp25[];
   comunas: string[];
+  finalidad_version?: string;  // texto de §5.3 que acepta el funcionario al crear su cuenta (RF-16)
+  finalidad_texto?: string;
+};
+
+/** Rol tal como lo guarda la API (el de la sesión, `Rol`, es la etiqueta para mostrar). */
+export type RolCuenta = 'jefatura' | 'subdirector' | 'administrador';
+
+/** Cuenta tal como la entrega GET /administracion/usuarios (RF-9). */
+export type Cuenta = {
+  id: number;
+  nombre: string;
+  correo: string;
+  rol: RolCuenta;
+  mfa_activo: boolean;
+  centros: { codigo_deis: number; nombre: string }[];
+};
+
+/** Datos de un alta (RF-16): sin la aceptación de la versión vigente, la API no crea nada. */
+export type AltaCuenta = {
+  nombre: string;
+  correo: string;
+  rol: RolCuenta;
+  contrasena: string;
+  acepta_finalidad: boolean;
+  version_texto: string;
+  centros: number[];
 };
 
 /** Umbrales con que se clasificó el pronóstico (no los vigentes: pendientes #39). */
@@ -94,4 +120,12 @@ export type EstadoCentro = {
   dotacion: Dotacion | null;
   mp25: Mp25Zona;
   ultimas_semanas: SemanaObservada[];
+};
+
+/** Notificación vista desde la página de acuse (RF-15), tal como la entrega GET /acuse/{token}. */
+export type Acuse = {
+  estado: 'enviada' | 'fallida' | 'confirmada' | 'reenviada' | 'escalada';
+  fecha_envio: string;
+  fecha_confirmacion: string | null;
+  alerta: { tipo: string; nivel: string; mensaje: string; fecha_emision: string; lugar: string; dia_pronosticado: string | null };
 };

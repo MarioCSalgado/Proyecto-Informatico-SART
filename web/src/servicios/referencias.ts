@@ -9,5 +9,5 @@ export async function obtenerReferencias(): Promise<Referencias> {
     if (!datos || !Array.isArray(datos.mp25_niveles) || !Array.isArray(datos.comunas)) {
         throw new Error("Respuesta de /referencias inesperada");
     }
-    return { mp25_niveles: datos.mp25_niveles, comunas: datos.comunas };
+    return { ...datos, mp25_niveles: datos.mp25_niveles, comunas: datos.comunas };
 }

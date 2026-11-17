@@ -5,6 +5,7 @@ import { DisenoApp } from './componentes/DisenoApp.tsx'
 import { RequiereSesion } from './componentes/RequiereSesion.tsx'
 import { RequierePermiso } from './componentes/RequierePermiso.tsx'
 import { useSesion } from './contexto/sesion.tsx'
+import { PantallaAcuse } from './pantallas/Acuse.tsx'
 import { PantallaAdministracion } from './pantallas/Administracion.tsx'
 import { PantallaCentro } from './pantallas/Centro.tsx'
 import { PantallaHistorialAlertas } from './pantallas/HistorialAlertas.tsx'
@@ -19,7 +20,7 @@ function InicioSegunRol() {
 }
 
 // Navegación con URL (react-router): el correo de RF-5/RF-15 necesita enlazar a una página concreta.
-// Ruta por agregar: /acuse/:id (actividad 10).
+// /acuse/:token es el enlace del correo de RF-5 (RF-15); pide sesión como las demás (pendientes #34).
 function App() {
   return (
     <Routes>
@@ -46,6 +47,7 @@ function App() {
           path="administracion"
           element={<RequierePermiso permiso="administrar_cuentas"><PantallaAdministracion /></RequierePermiso>}
         />
+        <Route path="acuse/:token" element={<PantallaAcuse />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

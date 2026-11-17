@@ -1,7 +1,7 @@
 # Avance del código
 
-Estado al **14 de noviembre de 2026**: primer avance de código funcional, la base del sistema, con la corrida
-semanal conectada a la base (parte 8). Este documento
+Estado al **17 de noviembre de 2026**: integradas las tareas T1 a T12 del equipo (ver `docs/tareas_equipo.md`)
+sobre la base del 14/11. Este documento
 resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para el asistente de código está en
 `PASOS.md`; las desviaciones de la especificación, en `docs/pendientes_informe.md`; los casos de prueba, en
 `docs/estado_tc.md`.
@@ -10,7 +10,8 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
 
 | Área | Qué hace | IDs | Dónde |
 |---|---|---|---|
-| Entorno | PostgreSQL 16 en Docker; la API lee el `.env` sola; puerto configurable (5433 si 5432 está ocupado) | RNF-P-1, RNF-P-2 | `docker-compose.yml`, `backend/sart/configuracion.py` |
+| Entorno | `docker compose up -d --build` levanta base, API, planificador y web (http://localhost:8080) dentro de 2 vCPU y 3,9 GB; `docker compose up -d db` sigue sirviendo para desarrollar; la API lee el `.env` sola | RNF-P-1, RNF-P-2, TC-13 | `docker-compose.yml`, `backend/Dockerfile`, `web/Dockerfile`, `backend/sart/configuracion.py` |
+| Planificador | Respaldo 04:30, ingesta 05:00, pronóstico lunes 06:00, alerta ambiental 07:00, boletín lunes 07:30 y seguimiento de RB-2 cada hora; cada tarea en su proceso; los horarios se leen del YAML en cada vuelta | RNF-P-1, RNF-M-4, TC-13 | `python -m sart.planificador [--mostrar]`, `sart/dominio/planificador.py` (T11, pendientes #57) |
 | Parámetros | Todos los supuestos y umbrales en el YAML; el administrador ajusta solo las claves de `administracion.parametros_editables` y las corridas leen `parametros_vigentes(sesion)` | RNF-M-4, RF-9 | `config/parametros.yaml`, `sart/db/supuestos.py` (pendientes #31) |
 | Cuentas | Alta solo con la aceptación de la finalidad, Argon2id, 3 roles, centros asignados, restablecer clave; todo queda en la auditoría | RF-16, RF-9, RNF-S-1, TC-16 | `python -m sart.cuentas …` |
 | Sesión | JWT en cookie httpOnly, cierre de sesión, MFA con códigos TOTP para administradores (bloqueo tras 5 fallos) | RNF-S-1, RNF-S-2 | `sart/api/auth.py` |
@@ -27,46 +28,50 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
 | Corrida semanal | Marca RB-4, reentrena el GLM, guarda un pronóstico vigente por centro y semana con su nivel (umbral y k usados), la alerta si no es «normal» (salvo pronóstico desactualizado) y la dotación con sus supuestos; todo en `corrida` y la auditoría | RF-2, RF-3, RF-6, RNF-M-3, RNF-S-4 | `python -m sart.tareas semanal [--fecha AAAA-MM-DD \| --prueba]`, `sart/tareas/semanal.py` |
 | Qué se notifica | Solo ALERTA, por centro y semana; repetir la corrida solo notifica si sube el nivel (#29) | RF-3, RF-5 | `sart/db/alertas.py` (`alertas_por_notificar`, para RF-5) |
 | Respaldo | Respaldo diario, poda y restauración probada en 59 s | RNF-D-2, TC-14 | `python -m sart.respaldo …` |
-| API | `GET /salud`, `POST /auth/sesion`, `GET /auth/yo`, `POST /auth/cerrar-sesion`, `GET /referencias`, `GET /centros/estado` y `GET /centros/{codigo}/estado` (la jefatura solo ve sus centros; un centro ajeno da 403 y queda en la auditoría) | RF-7, RNF-S-2, TC-09 | `sart/api/` · documentación en http://127.0.0.1:8000/docs |
+| API | `GET /salud`, `POST /auth/sesion`, `GET /auth/yo`, `POST /auth/cerrar-sesion`, `GET /referencias`, `GET /centros/estado` y `GET /centros/{codigo}/estado` (la jefatura solo ve sus centros; un centro ajeno da 403 y queda en la auditoría), `/administracion/usuarios` (solo el administrador) y `/acuse/{token}` | RF-7, RNF-S-2, TC-09 | `sart/api/` · documentación en http://127.0.0.1:8000/docs |
 | Web | Inicio de sesión (con el código MFA), encabezado por rol, permisos y rutas; Mi centro y Red de centros adaptables de 390 px a 1440 px; mapa Leaflet de la red con OpenStreetMap, nivel rotulado y estación asignada; el mapa usa las coordenadas y centros visibles que entrega RF-7, sin cantidad fija | RF-7, RF-12, TC-20, RNF-U-1, RNF-S-2 | `web/src/` |
 | Estado de los centros | Mi centro con el pronóstico, su rango, el nivel, el gráfico de 12 semanas (o tabla), la dotación guardada y el MP2,5 de la zona (RB-5); Red de centros con conteos, filtros, mapa sincronizado con los filtros, tabla ordenada por nivel y calendario de calor; detalle de un centro en `/red/<código>`; avisos de datos antiguos y de pronóstico desactualizado | RF-7, RF-6, RF-12, RB-5, TC-20, RNF-U-1 | `web/src/pantallas/`, `web/src/componentes/MapaCentros.tsx`, `DetalleCentro.tsx`, `GraficoConsultas.tsx` |
+| Administración de cuentas | Pestaña «Usuarios»: lista de cuentas, alta con el texto de la finalidad y su aceptación, centros de cada jefatura y baja; solo el administrador; todo en la auditoría sin nombre ni correo | RF-9, RF-16, TC-09, TC-16 | `sart/api/administracion.py`, `web/src/pantallas/UsuariosAdministracion.tsx` (T6, pendientes #51) |
+| Acuse | Página `/acuse/<token>` con «Confirmar lectura» (abrir no registra nada; una sola vez; exige sesión y solo el destinatario) y el seguimiento de RB-2 con el correo de RF-5: reenvío a las 24 h, aviso al Subdirector a las 48 h y aviso al administrador de las fallidas | RF-15, RB-2, TC-06 | `sart/api/acuse.py`, `sart/dominio/acuse.py`, `web/src/pantallas/Acuse.tsx`, `python -m sart.tareas seguimiento` (T5, pendientes #50, #53, #54) |
+| Boletín del LLM | Texto para el LLM solo con cifras agregadas, revisión de cifras y niveles, plantilla de respaldo; envío por correo a cada jefatura (sus centros) y al Subdirector (la red), una vez por semana; sin proveedor todavía | RF-8, TC-18 | `sart/dominio/boletin.py`, `python -m sart.tareas boletin` (T12, pendientes #52, #55) |
+| Datos reales del DEIS | `cargar_consultas` acepta el archivo real (`EstablecimientoCodigo`, `NumTotal`…) sin sumar dos veces subtotales ni totales, y reparte en enteros las semanas que cruzan el año | RF-1, TC-02, #45 | `sart/dominio/ingesta_deis.py`, `sart/tareas/carga.py` (T1, pendientes #58) |
+| Descarga diaria | DEIS, SINCA y Open-Meteo con copia cruda, reintentos, aviso tras fallas seguidas y último dato válido | RF-1, TC-02, RNF-M-3 | `python -m sart.tareas.descarga` (T2) |
+| Alerta ambiental | Promedio diario pronosticado de MP2,5 de los próximos días por zona, clasificado con RB-1; «datos insuficientes» sin pronóstico; respaldo con SINCA si TC-12 no cumple (RNF-Q-4) | RF-4, TC-12 | `python -m sart.tareas ambiental`, `sart/tareas/ambiental.py` (T3) |
+| Correo de alerta | Un correo por usuario con sus alertas y el enlace de acuse, con reintentos y sin duplicar al repetir la corrida | RF-5, TC-06 | `sart/tareas/notificaciones.py` (T4) |
+| Umbrales y parámetros desde la web | Pestañas «Umbrales», «Parámetros» e «Historial» de Administración, con motivo obligatorio y auditoría | RF-9, RB-3, TC-17 | `sart/api/configuracion_administracion.py` (T7) |
+| Historial de alertas | Alertas pasadas de los centros del usuario frente a lo observado, con filtros y estado del acuse | RF-10, TC-19 | `sart/api/alertas.py` (T8) |
+| Exportación CSV | «Descargar CSV» (Mi centro) y «Exportar red CSV» (Red de centros), con los centros que cada rol ve | RF-11, TC-15 | `GET /exportar/centros.csv` (T9, pendientes #56) |
 | Sistema de diseño | Colores, tipografía (Figtree + Noto Sans), formas y componentes de SART; tokens en `App.scss` y tema de MUI con los mismos valores; contrastes AA verificados; niveles con texto e ícono SVG | RNF-U-1 | `DESIGN.md`, `web/src/tema.ts` |
 
 ### Cifras verificadas
 
-- Backend: **329 pruebas pasan** con PostgreSQL y `datos/` (sin la base, se saltan las de integración, TC-14 y la
-  regresión); unos 4–5 minutos, porque las de la corrida semanal y de RF-7 cargan `datos/prueba` una vez por
-  sesión (~35 s). Cobertura de `sart/dominio` + `sart/tareas`: **97 %** (RNF-M-1 pide ≥ 70 %). Ruff: 0 errores.
-- Web: **49 pruebas** con Vitest, lint y build sin errores.
-- Mapa (TC-20): prueba con 33 centros verifica ubicación, nivel y estación; validación visual en 390 px con la
-  demo actual, que carga 14 centros elegibles desde `datos/prueba`.
-- TC-08 (avance, no cerrado): el 16/11 se ejecutó durante 5 minutos una carga de 70 usuarios virtuales sobre
-  `GET /centros/estado`, con una sesión local compartida: 3.209 solicitudes exitosas, 0 fallidas, 10,70
-  solicitudes/s y p95 de 1.159 ms. Cumple los umbrales de carga de RF-7 en el endpoint actual; faltan la prueba
-  sobre el boletín y Lighthouse móvil con 4G (RNF-R-1, RNF-R-2). Arnés: `herramientas/pruebas_carga_tc08.mjs`;
-  ejecutor local: `herramientas/ejecutar_prueba_carga_tc08.ps1`.
-- Regresión del backtest 2024–2026 con los datos reales: WAPE 14,9 %; k = 0 → precisión 0,85 y sensibilidad
+- 17/11, todo integrado, con PostgreSQL y `datos/`: backend **507 pruebas pasan y 4 se saltan** (Mailpit y las
+  tres opcionales de datos reales); cobertura de `sart/dominio` + `sart/tareas` **93 %** (RNF-M-1 pide ≥ 70 %);
+  ruff 0 errores. Web: **73 pruebas** con Vitest, lint y build sin errores. Unos 6 minutos.
+- Regresión del backtest 2024–2026 con el panel del notebook: WAPE 14,9 %; k = 0 → precisión 0,85 y sensibilidad
   0,48; k = 0,4 → 0,73 y 0,66; línea base «semana anterior» → 0,69 y 0,68; cobertura del intervalo 91,1 %.
+- Con el panel que arma el sistema desde el archivo real del DEIS (T1, 17/11): WAPE 14,89 %; k = 0,4 →
+  precisión 0,717 y sensibilidad 0,653; cobertura 91,0 %. Sigue cumpliendo RNF-Q-1 a Q-3, con poco margen en la
+  precisión (pendientes #58).
+- Docker: `docker compose build` desde cero en 89 s; `docker compose up` con `/api/salud` en «ok» (TC-13).
+- TC-08 (avance, no cerrado): 70 usuarios virtuales durante 5 minutos sobre `GET /centros/estado`: 3.209
+  solicitudes, 0 fallidas, 10,70 solicitudes/s y p95 de 1.159 ms (`herramientas/pruebas_carga_tc08.mjs`).
 
 ## Qué falta
 
-La corrida semanal guarda pronósticos, niveles, alertas y dotación (parte 8), y la API y la web ya los muestran
-(parte 9). Siguen con sus partes fijas la administración, el acuse (RF-15) y la exportación (RF-11).
+Las tareas T1 a T12 están integradas. Queda:
 
 | Falta | IDs |
 |---|---|
-| Cargar el archivo **real** del DEIS: `cargar_consultas` solo entiende el formato de `datos/prueba` (pendientes #45); hasta entonces la corrida semanal solo se prueba con datos sintéticos | RF-1, TC-02 |
-| Descarga automática de DEIS, SINCA y Open-Meteo, con aviso si una fuente falla | RF-1, TC-02 |
-| Alerta ambiental diaria a las 07:00 | RF-4, TC-12 |
-| Correo de alerta (sale de `alertas_por_notificar`), «Confirmar lectura», reenvío a las 24 h y escalamiento a las 48 h | RF-5, RF-15, RB-2, TC-06 |
-| Administración desde la web: cuentas, centros asignados, umbrales y parámetros | RF-9, RF-16 |
-| Historial de alertas | RF-10, TC-19 |
-| Exportación CSV | RF-11, TC-15 |
-| Boletín redactado con el LLM | RF-8, TC-18 |
-| Planificador de horarios (05:00, 06:00, 07:00, 08:00, respaldo 04:30) y Docker Compose con API y web | RNF-P-1, TC-13 |
-| Pruebas de carga y de uso: TC-08 tiene una medición preliminar del endpoint; faltan el boletín y Lighthouse. TC-10 aún requiere 3–5 participantes. | TC-08, TC-10 |
+| Confirmar con el equipo la propuesta de T14 (#18, #22, #24, #34, #38, #40, #42) y pasarla al informe | T14 |
+| Elegir el proveedor del LLM para el boletín (#12); mientras, sale la plantilla con las mismas cifras | RF-8, TC-18 |
+| Backtest del historial con el invierno 2025: la corrida semanal todavía no sabe pronosticar semanas pasadas | RF-10, TC-19 |
+| TC-08 sobre el boletín y Lighthouse móvil con 4G; TC-10 con 3 a 5 personas | TC-08, TC-10 |
+| Medir TC-12 cuando haya días de pronóstico de MP2,5 guardados; decidir qué hacer con las comunas sin pronóstico (Open-Meteo es un solo punto) | RF-4, TC-12 |
+| Cronometrar el rollback de Docker (≤ 10 min) | TC-13 |
+| Decidir si se acepta la señal viral del panel real (pendientes #58) | RF-1, RF-2 |
 
-Cada fila está detallada como tarea (T1 a T14) en `docs/tareas_equipo.md`.
+Cada fila está detallada en `docs/tareas_equipo.md` y `docs/pendientes_informe.md`.
 
 ## Decisiones ya tomadas
 
@@ -88,7 +93,9 @@ Están anotadas en `docs/pendientes_informe.md` para pasarlas al informe. Las pr
 
 ## Decisiones abiertas para el equipo
 
-- **#34:** ¿la página de acuse exige iniciar sesión (recomendado) o basta el enlace?
+Hay una propuesta para cada una en `docs/pendientes_informe.md` (T14, 17/11), por confirmar.
+
+- **#34:** ¿la página de acuse exige iniciar sesión (recomendado) o basta el enlace? El código usa la recomendada mientras se decide (#50).
 - **#18 y #24:** ¿se puede desactivar una cuenta sin borrarla (por ejemplo, durante una licencia)?
 - **#22:** la tarjeta «Virus circulando (ISP)» del diseño no tiene fuente ni requisito: ¿se agrega o se saca?
 - **#38:** dónde se copian los respaldos en producción y quién lo revisa.

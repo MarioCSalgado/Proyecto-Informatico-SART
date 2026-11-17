@@ -11,22 +11,22 @@ datos (fuentes y modelo), docs.
 
 ## Resumen
 
-| # | Tarea | IDs | Depende de | Tamaño | Perfil | Responsable | Estado    |
-|---|---|---|---|---|---|---|-----------|
-| T1 | Cargar el archivo real del DEIS | RF-1, TC-02 · #45 | — | M | datos, back | Daniel Aburto | Pendiente |
-| T2 | Descarga automática de DEIS, SINCA y Open-Meteo | RF-1, TC-02, RNF-M-3 | T1 | L | datos, back | Daniel Aburto | Pendiente |
-| T3 | Alerta ambiental diaria (07:00) | RF-4, TC-12 | — | M | back | Joaquín Sandoval | Listo     |
-| T4 | Correo de alerta | RF-5, TC-06 | — | M | back | Joaquín Sandoval | Pendiente |
-| T5 | «Confirmar lectura», reenvío y escalamiento | RF-15, RB-2, TC-06 · #34 | T4 | L | back, front | Juan Carvajal | Pendiente |
-| T6 | Administración de cuentas y centros desde la web | RF-9, RF-16, TC-09, TC-16 | — | L | back, front | Juan Carvajal | Pendiente |
-| T7 | Umbrales y parámetros desde la web | RF-9, RB-3, TC-17 | T6 | M | back, front | Jocabed López | Pendiente |
-| T8 | Historial de alertas | RF-10, TC-19 | — | M | back, front | Jocabed López | En curso: historial probado con datos controlados; falta el backtest real |
-| T9 | Exportación CSV | RF-11, TC-15 | — | S | back, front | Joaquín Sandoval | Pendiente |
-| T10 | Mapa de centros | RF-12, TC-20 | — | M | front | Benjamín Díaz | Hecha |
-| T11 | Planificador de horarios y Docker Compose completo | RNF-P-1, RNF-P-2, TC-13 | T2, T3, T4 | M | back | Daniel Aburto | Pendiente |
-| T12 | Boletín redactado con el LLM | RF-8, TC-18 | T4 | M | back | Juan Carvajal | Pendiente |
-| T13 | Pruebas de carga y de uso | TC-08, TC-10, RNF-R-1, RNF-R-2 | Cuentas de prueba por CLI | M | docs, front | Benjamín Díaz | En curso |
-| T14 | Cerrar las decisiones abiertas con el equipo | #18, #22, #24, #34, #38, #40, #42 | — | S | docs | Jocabed López | Pendiente |
+| # | Tarea | IDs | Depende de | Tamaño | Perfil | Responsable | Estado |
+|---|---|---|---|---|---|---|---|
+| T1 | Cargar el archivo real del DEIS | RF-1, TC-02 · #45 | — | M | datos, back | Daniel Aburto | Hecha (PR #18, 17/11); con datos reales la señal viral cambia (pendientes #58) |
+| T2 | Descarga automática de DEIS, SINCA y Open-Meteo | RF-1, TC-02, RNF-M-3 | T1 | L | datos, back | Daniel Aburto | Hecha (PR #20, 17/11) |
+| T3 | Alerta ambiental diaria (07:00) | RF-4, TC-12 | — | M | back | Joaquín Sandoval | Hecha (PR #19, 17/11); TC-12 se mide cuando haya pronósticos guardados |
+| T4 | Correo de alerta | RF-5, TC-06 | — | M | back | Joaquín Sandoval | Hecha (PR #19, 17/11) |
+| T5 | «Confirmar lectura», reenvío y escalamiento | RF-15, RB-2, TC-06 · #34 | T4 | L | back, front | Juan Carvajal | Hecha (17/11): acuse, reenvío y escalamiento con el correo de T4 |
+| T6 | Administración de cuentas y centros desde la web | RF-9, RF-16, TC-09, TC-16 | — | L | back, front | Juan Carvajal | Hecha (16/11) |
+| T7 | Umbrales y parámetros desde la web | RF-9, RB-3, TC-17 | T6 | M | back, front | Jocabed López | Hecha (PR #21, 17/11) |
+| T8 | Historial de alertas | RF-10, TC-19 | — | M | back, front | Jocabed López | Hecha (PR #22, 17/11) salvo el backtest real del invierno 2025 (TC-19) |
+| T9 | Exportación CSV | RF-11, TC-15 | — | S | back, front | Joaquín Sandoval | Hecha (17/11, la hizo Mario) |
+| T10 | Mapa de centros | RF-12, TC-20 | — | M | front | Benjamín Díaz | Hecha (PR #17, 17/11) |
+| T11 | Planificador de horarios y Docker Compose completo | RNF-P-1, RNF-P-2, TC-13 | T2, T3, T4 | M | back | Daniel Aburto | Hecha (17/11, la hizo Mario) |
+| T12 | Boletín redactado con el LLM | RF-8, TC-18 | T4 | M | back | Juan Carvajal | Hecha (17/11) salvo elegir el proveedor del LLM (#12): mientras, sale la plantilla |
+| T13 | Pruebas de carga y de uso | TC-08, TC-10, RNF-R-1, RNF-R-2 | Cuentas de prueba por CLI | M | docs, front | Benjamín Díaz | En curso: TC-08 medido en `GET /centros/estado`; faltan el boletín, Lighthouse y TC-10 con personas |
+| T14 | Cerrar las decisiones abiertas con el equipo | #18, #22, #24, #34, #38, #40, #42 | — | S | docs | Jocabed López | En curso: propuesta escrita (pendientes, 17/11); falta confirmarla con el equipo |
 
 ## Detalle
 
@@ -72,6 +72,12 @@ datos (fuentes y modelo), docs.
   enlace), ruta de la API que lo registra con fecha, y tarea que reenvía a las 24 h sin acuse y escala al
   Subdirector a las 48 h (`notificaciones.reenvio_horas` y `escalamiento_horas`). Todo en la auditoría.
 - **Depende de:** T4 y de decidir #34 (¿exige iniciar sesión?). **Terminado cuando:** TC-06 pasa completo.
+- **Avance (16/11):** hechos `GET /acuse/<token>`, `POST /acuse/<token>/confirmar` y la página (`web/src/pantallas/Acuse.tsx`),
+  con sesión obligatoria (#34, opción recomendada, provisoria: pendientes #50), y la regla `paso_rb2` en
+  `sart/dominio/acuse.py`. Falta la tarea que reenvía y escala usando `paso_rb2` y el envío de T4.
+- **Avance (17/11):** `python -m sart.tareas seguimiento` (`sart/tareas/seguimiento.py`) aplica `paso_rb2` con el
+  correo de T4: reenvía a la jefatura a las 24 h, escala al Subdirector a las 48 h y avisa al administrador de
+  las fallidas (RF-15 E2). TC-06 completo (`test_tc06_reenvio_escalamiento.py`). Decisiones en pendientes #53 y #54.
 
 ### T6 · Administración de cuentas y centros desde la web (RF-9, RF-16, TC-09, TC-16)
 - **Qué hacer:** API para listar, crear (con la aceptación de la finalidad), dar de baja y asignar centros, solo
@@ -79,6 +85,8 @@ datos (fuentes y modelo), docs.
   `sart/db/cuentas.py` (hoy se usa desde `python -m sart.cuentas`).
 - **Archivos:** nuevo `backend/sart/api/administracion.py`, `web/src/pantallas/Administracion.tsx`, servicio nuevo.
 - **Terminado cuando:** TC-16 pasa también en la pantalla y TC-09 cubre las rutas de RF-9 (0 accesos indebidos).
+- **Hecha (16/11):** `sart/api/administracion.py` (`/administracion/usuarios`: listar, crear, centros, baja) y la
+  pestaña «Usuarios» (`web/src/pantallas/UsuariosAdministracion.tsx`). Decisiones en pendientes #51.
 
 ### T7 · Umbrales y parámetros desde la web (RF-9, RB-3, TC-17)
 - **Qué hacer:** conectar las pestañas «Umbrales» e «Historial»: `fijar_umbral_manual` y `ajustar_parametro` ya
@@ -101,6 +109,9 @@ datos (fuentes y modelo), docs.
 - **Terminado cuando:** pasa TC-19.
 
 ### T9 · Exportación CSV (RF-11, TC-15)
+- **Hecha (17/11, Mario):** `GET /exportar/centros.csv[?codigo_deis=]` y los botones «Descargar CSV» (Mi centro) y
+  «Exportar red CSV» (Red de centros). TC-15 en `backend/tests/test_tc15_exportacion_csv.py`. Decisiones en
+  pendientes #56.
 - **Qué hacer:** activar «Descargar CSV» (Mi centro) y «Exportar red CSV» (Red de centros) con los mismos datos de
   `GET /centros/estado`, respetando lo que cada rol puede ver. Sin datos de pacientes; citar la fuente (CC BY-NC).
 - **Terminado cuando:** pasa TC-15.
@@ -111,6 +122,9 @@ datos (fuentes y modelo), docs.
 - **Terminado cuando:** pasa TC-20 y se ve bien a 390 px.
 
 ### T11 · Planificador y Docker Compose completo (RNF-P-1, RNF-P-2, TC-13)
+- **Hecha (17/11, Mario):** `python -m sart.planificador` (horarios de `config/parametros.yaml`, cada tarea en su
+  proceso) y `docker compose up -d --build` con base, API, planificador y web (nginx con `/api`), dentro de
+  2 vCPU y 3,9 GB. Construcción desde cero: 89 s. Decisiones en pendientes #57.
 - **Qué hacer:** correr a su hora el respaldo (04:30), la ingesta (05:00), el pronóstico (lunes 06:00), la alerta
   ambiental (07:00) y el boletín (antes de 08:00), con los horarios de `config/parametros.yaml`; agregar la API y
   la web a `docker-compose.yml`, dentro de 2 vCPU y 4 GB.
@@ -120,6 +134,12 @@ datos (fuentes y modelo), docs.
 - **Qué hacer:** resumen del lunes redactado por el LLM **solo con cifras agregadas**, sin nombres ni correos, y
   sin poder cambiar un nivel (se comprueba que las cifras del texto coinciden con las de la base).
 - **Depende de:** T4. **Terminado cuando:** pasa TC-18. Es posterior al MVP.
+- **Avance (16/11):** `sart/dominio/boletin.py` arma las filas desde `estado_de_centros`, el texto para el LLM y la
+  revisión de cifras y niveles, con plantilla de respaldo (pendientes #52). TC-18 pasa con un LLM de prueba. Falta
+  elegir el proveedor (#12) y mandar el boletín con el correo de T4.
+- **Avance (17/11):** `python -m sart.tareas boletin` (`sart/tareas/boletin.py`) lo manda por correo: cada jefatura
+  con sus centros y el Subdirector con la red, una vez por semana (`test_tc18_boletin_envio.py`, pendientes #55).
+  Sigue faltando elegir el proveedor (#12): mientras tanto sale la plantilla.
 
 ### T13 · Pruebas de carga y de uso (TC-08, TC-10)
 - **Qué hacer:** TC-08 (70 usuarios en 5 minutos, p95 ≤ 2 s; Lighthouse móvil con 4G) y TC-10 (3 a 5 personas,

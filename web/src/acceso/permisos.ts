@@ -18,8 +18,8 @@ export const PERMISOS = {
   // RF-15: acuse con el botón «Confirmar lectura»
   confirmar_lectura:      ['Jefatura'],
 
-  // RF-11: exportación CSV de sus centros
-  exportar_csv:           ['Jefatura'],
+  // RF-11: exportación CSV de los centros que cada uno ve (la Jefatura, solo los suyos; lo filtra la API)
+  exportar_csv:           ['Jefatura', 'Subdirector', 'Administrador'],
 
   // RF-9 y RF-16: cuentas, centros asignados, umbrales y supuestos (con MFA, RNF-S-1)
   administrar_cuentas:    ['Administrador'],

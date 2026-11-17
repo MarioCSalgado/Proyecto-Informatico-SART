@@ -159,7 +159,7 @@ describe('Administración', () => {
     const pestanas = await screen.findAllByRole('tab')
     expect(pestanas.map((p) => p.textContent)).toEqual(['Usuarios', 'Umbrales', 'Historial'])
 
-    const usuarios = screen.getByRole('table', { name: /Usuarios y permisos/ })
+    const usuarios = await screen.findByRole('table', { name: /Usuarios y permisos/ })
     expect(within(usuarios).getAllByRole('columnheader').map((c) => c.textContent)).toEqual([
       'Usuario / correo', 'Rol', 'Centro o alcance', 'Acción',
     ])

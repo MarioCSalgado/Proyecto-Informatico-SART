@@ -101,6 +101,7 @@ Requisitos: Docker Desktop, Python 3.12 (con `uv` o `venv`), Node 22+. La API le
 cp .env.example .env                          # una vez; cambiar clave y JWT_SECRET
 docker compose up -d db                       # PostgreSQL 16 en 127.0.0.1:${POSTGRES_PORT:-5432}
 docker compose exec db pg_isready             # comprobar que responde
+docker compose up -d --build                  # todo (base, API, planificador y web) → http://localhost:8080
 
 # backend (una vez: crear el venv e instalar)
 cd backend && uv venv --python 3.12 .venv && uv pip install -e ".[dev]"
@@ -120,6 +121,7 @@ cd backend && .venv/Scripts/python -m sart.cuentas confirmar-mfa --correo … --
 cd backend && .venv/Scripts/python -m pytest --cov=sart     # pruebas (en Linux/macOS: .venv/bin/python)
                                               # las marcadas «integracion» usan PostgreSQL y se saltan sin él
 cd backend && .venv/Scripts/python -m ruff check .          # estilo
+cd backend && .venv/Scripts/python -m sart.planificador [--mostrar]   # corridas a su hora (T11, RNF-P-1)
 cd backend && .venv/Scripts/python -m uvicorn sart.api.app:app --port 8000   # API → http://127.0.0.1:8000/salud
 
 # web

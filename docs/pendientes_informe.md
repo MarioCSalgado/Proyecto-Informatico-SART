@@ -149,8 +149,59 @@ Decisiones tomadas con el visto bueno de Mario:
 | 48 | §3.2 RF-7 paso 3 y E2 | El detalle de un centro para el subdirector y el administrador es `/red/<código>` (el mismo bloque que Mi centro). Si una jefatura pide un centro que no tiene asignado **o que no existe**, recibe 403 (no se revela qué centros existen) y el intento queda en la auditoría (`acceso_denegado`). La jefatura llega a su pronóstico en 0 clics. | Nada nuevo; confirmar que el 403 también vale para códigos inexistentes. |
 | 49 | §4.4 RNF-S-1 | **Código MFA fijo para desarrollo:** si el `.env` define `MFA_CODIGO_DESARROLLO` (6 dígitos) **y** `COOKIE_SEGURA=false` (entorno local por http), ese código se acepta además del TOTP para los administradores con MFA activado. No salta el bloqueo tras 5 fallos y `/salud` avisa que está activo. En producción la cookie es segura (RNF-S-3) y el código fijo se ignora. Pedido por Mario para las pruebas del 14/11. | Nada en el informe mientras sea solo de desarrollo; sacarlo del `.env` antes de cualquier despliegue. |
 
+## Tareas T5, T6 y T12 de Juan Carvajal (16/11)
+
+Administración de cuentas desde la web (T6), la parte de RF-15 que no necesita el correo (T5) y el boletín del
+LLM sin proveedor (T12). Avisado en el PR; falta el visto bueno del equipo:
+
+| # | Sección (dueño) | Qué hace el código | Qué falta en el informe |
+|---|---|---|---|
+| 50 | §3.2 RF-15 (#34) | **El acuse exige iniciar sesión** (opción recomendada de #34, tomada de forma provisoria): `/acuse/<token>` pide sesión y solo el destinatario ve su notificación; un token ajeno o inventado da 404 (no revela cuáles existen). Abrir la página no registra nada; «Confirmar lectura» registra la fecha una vez (E1) y queda en la auditoría. Una notificación «fallida» no se puede confirmar (409). La regla de RB-2 (`paso_rb2`: reenvío a las 24 h, escalamiento a las 48 h desde el envío original, una vez cada uno; nada si está confirmada, fallida o ya escalada) está lista, pero el reenvío y el aviso al Subdirector esperan el correo de RF-5 (T4). | Confirmar #34 con el equipo y escribirlo en RF-15. |
+| 51 | §3.2 RF-16 paso 1, §5.3 | **El texto de la finalidad lo muestra el administrador:** al crear la cuenta en la web, el diálogo muestra el texto de §5.3 (`cuentas.texto_finalidad`, con su versión) y el administrador marca «El funcionario leyó y aceptó este texto»; no hay una pantalla donde el funcionario acepte por sí mismo. El alta, el cambio de centros y la baja quedan en la auditoría solo con el id, el rol, los códigos de los centros y la versión aceptada, sin nombre ni correo (RNF-S-4). El administrador no puede darse de baja a sí mismo (409). La baja sigue borrando la cuenta (#18 y #24). | RF-16 paso 1 dice «el sistema muestra al funcionario»: ajustarlo a lo que se hace o pedir la pantalla para el funcionario. |
+| 52 | §3.2 RF-8, §5.2 (#12) | **Boletín con respaldo de plantilla:** el LLM recibe solo nivel, pronóstico, límite superior y dotación por centro (las cifras guardadas de RF-7, #39); si el texto a enviar nombra a un usuario, no se envía. Su respuesta se acepta solo si cada cifra está en los datos y ningún centro aparece con otro nivel; si no, o si no hay proveedor configurado (#12), sale un boletín de plantilla con las mismas cifras. La revisión de niveles es una heurística por tramo de texto: un falso positivo solo hace salir la plantilla. | Describir en RF-8 la plantilla de respaldo y la revisión de cifras y niveles; elegir el proveedor (#12). |
 
 T1: se corrigió la clasificación de las atenciones COVID y la distribución
 de consultas entre semanas que cruzan el año, conservando el total y
 evitando cantidades decimales. La justificación y las validaciones
 se detallan en la PR de T1.
+## Respaldo de T5 y T12 con el correo de T4 (17/11)
+
+Reenvío, escalamiento y envío del boletín, armados sobre el correo de RF-5 (T4). Falta el visto bueno del
+equipo:
+
+| # | Sección (dueño) | Qué hace el código | Qué falta en el informe |
+|---|---|---|---|
+| 53 | §3.2 RF-15, §6 RB-2 | **Solo se reenvía y escala lo enviado a una jefatura** (RB-2 dice «cada alerta enviada a una jefatura»): la copia que recibe el Subdirector no se reenvía ni se escala. Los plazos se cuentan desde el envío original (`fecha_envio` no cambia al reenviar). El reenvío lleva el mismo enlace de acuse. El aviso al Subdirector es un correo por corrida con todas las alertas que cumplieron 48 h, con el centro o la zona, el nivel, la hora de emisión y el nombre de la jefatura. Si no hay ninguna cuenta de Subdirector, la notificación no se marca «escalada» y se vuelve a intentar en la corrida siguiente. Si la tarea no corrió a las 24 h, a las 48 h se escala sin reenviar antes. `python -m sart.tareas seguimiento` está pensada para correr cada hora (T11). | Confirmar en RF-15 que el Subdirector no se escala a sí mismo y que el aviso agrupa las alertas. |
+| 54 | §3.2 RF-15 E2 | **Aviso al administrador de las fallidas:** una notificación «fallida» que agotó `notificaciones.reintentos_envio` no se reenvía ni se escala; se manda un correo a los administradores con el centro o la zona, el nivel y la cuenta (nombre y correo, para que revise la dirección), una sola vez por notificación (queda en la auditoría como `avisar_fallida_administrador`). | Nada nuevo; decir que el aviso es por correo. |
+| 55 | §3.2 RF-8 | **A quién llega el boletín:** cada jefatura recibe el de sus centros y el Subdirector el de toda la red, los mismos que ve en RF-7; el administrador no lo recibe. No entran los centros con el pronóstico desactualizado (RF-3 E2). Un boletín por usuario y semana (la auditoría guarda solo el id, la semana y el origen del texto). El saludo con el nombre se agrega después de redactar: el nombre no va al LLM. Si dos usuarios tienen los mismos centros, se llama una sola vez al LLM. `python -m sart.tareas boletin` corre antes de las 08:00 (T11). | Escribir en RF-8 los destinatarios y que la jefatura solo ve sus centros. |
+## T9 · Exportación CSV (17/11)
+
+| # | Sección (dueño) | Qué hace el código | Qué falta en el informe |
+|---|---|---|---|
+| 56 | §3.2 RF-11, §5.2 | **Formato del CSV:** UTF-8 con BOM (Excel abre bien las tildes), separador «;» y coma decimal (Excel en español de Chile); una fila por centro con las cifras guardadas de RF-7 (pronóstico, intervalo de 90 %, nivel, umbrales y k usados, dotación, MP2,5 de la zona) y una columna `fuente` que cita DEIS (CC BY-NC), SINCA y Open-Meteo. **Quién exporta:** la jefatura sus centros (un centro ajeno da 403 y queda en la auditoría), el Subdirector y el administrador toda la red. Cada exportación queda en la auditoría (`exportar_csv`, sin nombre ni correo). No incluye el historial de alertas (eso es RF-10). | Escribir en RF-11 el formato, las columnas y que el Subdirector también exporta la red. |
+
+## T11 · Planificador y Docker Compose (17/11)
+
+| # | Sección (dueño) | Qué hace el código | Qué falta en el informe |
+|---|---|---|---|
+| 57 | §2.6, §4 RNF-P-1, RNF-P-2, §9.3 | **Supuestos nuevos en `horarios`:** `dia_semanal: lunes`, `boletin: "07:30"` (después del pronóstico de las 06:00 y antes de `boletin_limite`) y `seguimiento_cada_minutos: 60` (RB-2). El planificador es un proceso propio (`python -m sart.planificador`) que cada minuto corre lo que toca, cada tarea con `python -m …`; si estuvo detenido no pone al día lo perdido. **Reparto de recursos** (suma 2,0 vCPU y 3,9 GB): base 0,75 vCPU y 1 GB, API 0,5 y 768 MB, planificador 0,6 y 2 GB (la corrida semanal es lo más pesado), web 0,15 y 128 MB. La web es estática con nginx, que reenvía `/api` a la API (mismo origen para la cookie). El respaldo corre desde el planificador con el `pg_dump` 17 de la imagen (respalda la base 16). | Agregar al despliegue (§9) el planificador como contenedor, los horarios nuevos y el reparto de recursos; confirmar la hora del boletín. |
+
+## T14 · Propuesta para cerrar las decisiones abiertas (17/11), por confirmar con el equipo
+
+Cada fila dice qué hace hoy el código y la opción que se propone. **No están decididas:** se confirman en una
+reunión corta del equipo y, al confirmarlas, se pasa cada una a su sección del informe y se marca T14 «Hecha».
+
+| # | Pregunta | Qué hace hoy el código | Propuesta | Por qué |
+|---|---|---|---|---|
+| 34 | ¿La página de acuse exige iniciar sesión? | Sí (#50): solo el destinatario confirma; abrir no registra nada | **Exigir sesión** (como está) | Un filtro de correo o un reenvío no puede confirmar por la jefatura; el acuse identifica a quien leyó (RB-2) |
+| 18 y 24 | ¿Desactivar una cuenta sin borrarla? | La baja borra la cuenta; sus notificaciones quedan sin usuario (RF-16 E2) | **No agregar «desactivada»**: en una licencia se asigna el centro al reemplazante y la cuenta se da de baja o se mantiene | Menos datos personales guardados (§5.3, Ley 19.628 y 21.719) y una regla menos que probar |
+| 22 | ¿Tarjeta «Virus circulando (ISP)»? | No está en la web (prueba en `pantallas.test.tsx`) | **Sacarla del diseño** | No hay fuente del ISP ni un RF que la use; la señal viral ya entra al modelo desde el DEIS (#26) |
+| 38 | ¿Dónde se copian los respaldos y quién lo revisa? | Respaldo diario a las 04:30 en `respaldos/` (14 copias), desde el planificador (T11) | **Copia diaria a un almacenamiento del Servicio fuera del servidor, cifrada; el administrador revisa cada lunes que la última copia exista** y se hace un simulacro de restauración al mes (TC-14) | RNF-D-2 pide RPO 24 h: si se pierde el servidor, la copia local se pierde con él |
+| 40 | ¿Horas de funcionamiento de un SUR? | `dotacion.horas_funcionamiento_semana.SUR: null`: el SUR queda sin dotación sugerida | **Dejarlo así hasta confirmarlo en la entrevista** (Anexo A, pregunta 7) y mostrar «sin horario definido» | Inventar un horario daría una dotación sin respaldo; el valor se carga desde la web cuando se sepa (RF-9) |
+| 42 | ¿RF-2 E2 («último valor medido») cubre MP2,5 y clima? | La corrida usa `solo_rezagos` (opción C); con `con_pronostico` falla con un mensaje claro | **Sí, cubre los dos**, y se implementa junto con `con_pronostico` cuando se valide | Es la lectura directa de RB-4 y RF-2 E2; con `solo_rezagos` no se necesita todavía |
+
+## Integración del 17/11
+
+| # | Sección (dueño) | Qué hace el código | Qué falta en el informe |
+|---|---|---|---|
+| 58 | §2.7 CI-1, §3.2 RF-1, RF-2 | **El panel real del sistema no es idéntico al del notebook** (`test_rf2_panel_real_equivalente_al_notebook`, opcional con `SART_DATOS_REALES`): las consultas difieren solo en las semanas que cruzan el año, por el reparto en enteros (máximo 5,75 consultas, mismo total); la **señal viral** suma 641.004 en el sistema y 120.408 en el notebook, por la nueva clasificación de COVID de T1. Con el panel del sistema el backtest 2024–2026 da WAPE 14,89 %, precisión 0,717 y sensibilidad 0,653 con k = 0,4, y cobertura 91,0 %: sigue cumpliendo RNF-Q-1 a Q-3, pero la precisión queda a 0,017 del mínimo. | Decidir con Daniel cuál clasificación de COVID es la correcta; si se acepta la del sistema, regenerar `panel_semanal.parquet` con ella y actualizar las cifras del backtest en el informe (§2.7) y en la prueba de regresión. |
