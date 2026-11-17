@@ -1,4 +1,4 @@
-"""Alertas de demanda que se entregan a RF-5 (RF-3 paso 4, RF-5 E2, pendientes #29).
+"""Consultas de alertas de demanda para el envío (RF-5) y el historial (RF-10).
 
 La regla está en ``sart.dominio.alerta_demanda.debe_notificarse``; aquí se busca, por centro y semana, el
 nivel más alto ya notificado. Una notificación «fallida» no cuenta como notificada (RF-5 E1): la ALERTA
@@ -7,10 +7,20 @@ vuelve a quedar pendiente en la corrida siguiente.
 
 from __future__ import annotations
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from collections.abc import Sequence
 
-from sart.db.modelos import Alerta, Notificacion, Pronostico
+from sqlalchemy import Row, func, select, tuple_
+from sqlalchemy.orm import Session, joinedload
+
+from sart.db.modelos import (
+    Alerta,
+    CentroSalud,
+    ConsultaSemanal,
+    Notificacion,
+    Pronostico,
+    SemanaCarga,
+    UmbralCentro,
+)
 from sart.dominio.alerta_demanda import ORDEN_NIVELES, debe_notificarse
 from sart.dominio.valores import EstadoNotificacion, TipoAlerta
 
@@ -50,3 +60,55 @@ def alertas_por_notificar(sesion: Session, anio: int, semana: int) -> list[Alert
         .order_by(Alerta.centro_id)
     ).all()
     return [a for a in vigentes if debe_notificarse(a.nivel, notificados.get(a.centro_id))]
+
+
+def historial_de_alertas(
+    sesion: Session,
+    centros: list[CentroSalud],
+    causas: list[str],
+    *,
+    desde: tuple[int, int] | None = None,
+    hasta: tuple[int, int] | None = None,
+    nivel: str | None = None,
+) -> Sequence[Row[tuple[Alerta, CentroSalud, Pronostico, float | None, int | None]]]:
+    """RF-10: una fila por alerta emitida, con el pronóstico original y el total observado válido."""
+    if not centros:
+        return []
+
+    # RB-4: SUM devuelve NULL si no hay una observación válida, y conserva un total real de cero.
+    consultas = (
+        select(func.sum(ConsultaSemanal.cantidad))
+        .join(
+            SemanaCarga,
+            (SemanaCarga.anio == ConsultaSemanal.anio) & (SemanaCarga.semana == ConsultaSemanal.semana),
+        )
+        .where(
+            ConsultaSemanal.centro_id == Alerta.centro_id,
+            ConsultaSemanal.anio == Pronostico.anio,
+            ConsultaSemanal.semana == Pronostico.semana,
+            ConsultaSemanal.causa.in_(causas),
+            SemanaCarga.completa.is_(True),
+        )
+        .correlate(Alerta, Pronostico)
+        .scalar_subquery()
+    )
+    consulta = (
+        select(Alerta, CentroSalud, Pronostico, UmbralCentro.umbral_alerta, consultas)
+        .select_from(Alerta)
+        .join(CentroSalud, Alerta.centro_id == CentroSalud.id)
+        .join(Pronostico, Alerta.pronostico_id == Pronostico.id)
+        .outerjoin(UmbralCentro, Pronostico.umbral_id == UmbralCentro.id)
+        .options(joinedload(Pronostico.dotacion))
+        .where(Alerta.tipo == TipoAlerta.DEMANDA, Alerta.centro_id.in_([centro.id for centro in centros]))
+        .order_by(
+            Pronostico.anio.desc(), Pronostico.semana.desc(), Alerta.fecha_emision.desc(), Alerta.id.desc()
+        )
+    )
+    semana_objetivo = tuple_(Pronostico.anio, Pronostico.semana)
+    if desde is not None:
+        consulta = consulta.where(semana_objetivo >= tuple_(*desde))
+    if hasta is not None:
+        consulta = consulta.where(semana_objetivo <= tuple_(*hasta))
+    if nivel is not None:
+        consulta = consulta.where(Alerta.nivel == nivel)
+    return sesion.execute(consulta).all()
