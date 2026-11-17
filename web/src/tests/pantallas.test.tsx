@@ -20,23 +20,26 @@ const REFERENCIAS = {
   comunas: ['Concepción', 'Talcahuano', 'Hualpén'],
 }
 
-function abrir(ruta: string, rol: Rol, { referenciasFallan = false } = {}) {
-  vi.spyOn(clienteApi, 'get').mockImplementation(async (url: string) => {
+function abrir(ruta: string, rol: Rol, {
+  referenciasFallan = false, configuracion = {} as Record<string, unknown>,
+} = {}) {
+  const peticiones = vi.spyOn(clienteApi, 'get').mockImplementation(async (url: string) => {
     if (url.includes('referencias')) {
       if (referenciasFallan) throw new Error('sin conexión')
       return { data: REFERENCIAS }
     }
     if (url === 'centros/estado') return { data: [] }  // sin pronósticos todavía: estados vacíos
-    if (url === 'administracion/usuarios') return { data: [] }
+    if (url.startsWith('administracion/')) return { data: configuracion[url] ?? [] }
     return { data: { usuario: { id: 1, nombre: `${rol} Demo`, rol } } }
   })
-  return render(
+  render(
     <MemoryRouter initialEntries={[ruta]}>
       <ProveedorSesion>
         <App />
       </ProveedorSesion>
     </MemoryRouter>,
   )
+  return peticiones
 }
 
 describe('Mi centro (jefatura)', () => {
@@ -131,9 +134,27 @@ describe('Administración', () => {
     vi.restoreAllMocks()
   })
 
-  it('tiene tres pestañas y cada una muestra su sección', async () => {
+  it('RF-9 conserva Usuarios, permite actualizar k y consulta la auditoría al abrir Historial', async () => {
     const usuario = userEvent.setup()
-    abrir('/administracion', 'Administrador')
+    const clave = 'regla_alerta.k_margen'
+    const configuracion: Record<string, unknown> = {
+      'administracion/umbrales': [{
+        centro: { codigo_deis: 100001, nombre: 'SAR de prueba' },
+        umbral: { umbral_atencion: 650, umbral_alerta: 713, origen: 'calculado', anios_usados: null },
+      }],
+      'administracion/parametros': [{ clave, valor: 0.4 }],
+    }
+    const peticiones = abrir('/administracion', 'Administrador', { configuracion })
+    const guardar = vi.spyOn(clienteApi, 'put').mockImplementation(async (_ruta, datos) => {
+      const { valor, motivo } = datos as { valor: number; motivo: string }
+      const parametro = { clave, valor }
+      configuracion['administracion/parametros'] = [parametro]
+      configuracion['administracion/historial'] = [{
+        fecha: '2025-07-07T09:00:00Z', autor_id: 1, autor_rol: 'administrador', accion: 'cambio_parametro',
+        entidad_id: clave, valor_anterior: 0.4, valor_nuevo: valor, motivo, centro: null,
+      }]
+      return { data: parametro }
+    })
 
     const pestanas = await screen.findAllByRole('tab')
     expect(pestanas.map((p) => p.textContent)).toEqual(['Usuarios', 'Umbrales', 'Historial'])
@@ -145,12 +166,37 @@ describe('Administración', () => {
 
     await usuario.click(screen.getByRole('tab', { name: 'Umbrales' }))
     expect(screen.getByRole('heading', { name: 'Umbrales por centro' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Motivo del cambio')).toBeDisabled()
+    expect(screen.getByRole('heading', { name: 'Parámetros editables' })).toBeInTheDocument()
+    await screen.findByRole('option', { name: 'SAR de prueba' })
+    await usuario.selectOptions(screen.getByLabelText('Centro a configurar'), '100001')
+    expect(screen.getByLabelText('Alerta desde')).toHaveValue(713)
+    await screen.findByRole('option', { name: 'Margen de alerta (k)' })
+    await usuario.selectOptions(screen.getByLabelText('Parámetro a configurar'), clave)
+    const valor = screen.getByLabelText('Valor del parámetro')
+    expect(valor).toHaveValue(0.4)
+    await usuario.clear(valor)
+    await usuario.type(valor, '0')
+    await usuario.type(screen.getByLabelText('Motivo del ajuste'), 'Cambio para TC-17')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar parámetro' }))
+    expect(await screen.findByText('Parámetro guardado.')).toBeInTheDocument()
+    expect(guardar).toHaveBeenCalledWith(`administracion/parametros/${clave}`, { valor: 0, motivo: 'Cambio para TC-17' })
 
     await usuario.click(screen.getByRole('tab', { name: 'Historial' }))
-    const historial = screen.getByRole('table', { name: /Historial de cambios/ })
-    expect(within(historial).getAllByRole('columnheader').map((c) => c.textContent)).toEqual([
-      'Fecha', 'Autor', 'Centro', 'Anterior → nuevo', 'Motivo',
-    ])
+    const historial = await screen.findByRole('table', { name: /Historial de cambios/ })
+    expect(peticiones).toHaveBeenCalledWith('administracion/historial', expect.objectContaining({ signal: expect.anything() }))
+    expect(within(historial).getByRole('row', { name: /Margen de alerta.*Cambio para TC-17/ }))
+      .toHaveTextContent('0,4')
+
+    await usuario.click(screen.getByRole('tab', { name: 'Umbrales' }))
+    await screen.findByRole('option', { name: 'Margen de alerta (k)' })
+    await usuario.selectOptions(screen.getByLabelText('Parámetro a configurar'), clave)
+    expect(screen.getByLabelText('Valor del parámetro')).toHaveValue(0)
+  })
+
+  it.each(['Jefatura', 'Subdirector'] as const)('RNF-S-2 impide que %s abra la configuración', async (rol) => {
+    const peticiones = abrir('/administracion', rol)
+    expect(await screen.findByText('Acceso restringido')).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: 'Umbrales' })).not.toBeInTheDocument()
+    expect(peticiones.mock.calls.some(([ruta]) => ruta.startsWith('administracion/'))).toBe(false)
   })
 })
