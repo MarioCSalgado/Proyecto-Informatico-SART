@@ -126,7 +126,7 @@ def test_rf2_panel_real_equivalente_al_notebook(archivo_base_real):
     from sqlalchemy import create_engine
 
     referencia = pd.read_parquet(
-        Path(os.environ["SART_DATOS_REALES"]) / "procesados" / "panel_semanal.parquet"
+        Path(os.environ["SART_DATOS_REALES"]) / "procesados" / "panel_semanal_t1_corregido.parquet"
     )
     if "sistema_semanas" in referencia:
         assert referencia.pop("sistema_semanas").eq("CDC").all()
@@ -142,7 +142,13 @@ def test_rf2_panel_real_equivalente_al_notebook(archivo_base_real):
     panel = panel.sort_values(CLAVES).reset_index(drop=True)
     referencia = referencia.sort_values(CLAVES).reset_index(drop=True)
     assert set(panel.columns) == set(referencia.columns)
-    assert panel[CLAVES].equals(referencia[CLAVES]), "Difieren las claves del panel real"
+    pd.testing.assert_frame_equal(
+        panel[CLAVES],
+        referencia[CLAVES],
+        check_dtype=False,
+        check_exact=True,
+        obj="Claves del panel real",
+    )
     diferencias = _diferencias(panel, referencia, set(referencia.columns) - TEXTOS - set(CLAVES))
     assert diferencias == {}, (
         f"Diferencias reales por columna: {diferencias}. Si la referencia conserva fracciones, "

@@ -80,6 +80,7 @@ catalogo:                    # CI-3, RB-5 · asignación manual por comuna del n
   tipos_establecimiento:     # TipoEstablecimientoGlosa del registro → tipo de §5.1 (pendientes #5); el resto no se carga
     "Hospital": hospital
     "Servicio de Atención Primaria de Urgencia (SAPU)": SAPU
+    "Servicio de Atención Primaria de Urgencia de Alta Resolutividad (SAR)": SAR
     "Servicio de Urgencia de Alta Resolución (SAR)": SAR
     "Servicio de Urgencia Rural (SUR)": SUR
 
