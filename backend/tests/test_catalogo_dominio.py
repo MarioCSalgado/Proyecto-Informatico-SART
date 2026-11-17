@@ -44,3 +44,23 @@ def test_estacion_por_comuna_sin_importar_tildes():
 def test_comuna_sin_asignacion_usa_la_estacion_de_respaldo():
     """RB-5."""
     assert estacion_de_comuna("Florida", MAPA, "Kingston College") == "Kingston College"
+
+
+def test_rf1_glosas_reales_y_subtotales():
+    reales = {
+        "IRA Alta (J00-J06)": "ira_alta",
+        (
+            "Otra causa respiratoria no contenidas en las categorías anteriores (J22; J30-J39, J47, J60-J98)"
+        ): "otra_respiratoria",
+        "TOTAL ATENCIONES POR COVID-19  Virus no Identificado U07.2": "covid_no_identificado",
+        "TOTAL ATENCIONES POR COVID-19, Virus Identificado U07.1": "covid_identificado",
+    }
+    for glosa, clave in reales.items():
+        assert clave_causa(glosa, CAUSAS) == clave
+    for glosa in [
+        "- Por covid-19, virus identificado U07.1",
+        "- Por covid-19, virus no identificado U07.2",
+        "- Causas sistema respiratorio (J00-J98)",
+        "TOTAL CAUSA SISTEMA RESPIRATORIO (J00-J98)",
+    ]:
+        assert clave_causa(glosa, CAUSAS) is None

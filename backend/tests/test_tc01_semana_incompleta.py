@@ -86,3 +86,11 @@ def test_sin_semanas():
 def test_cobertura_invalida_es_un_error():
     with pytest.raises(ValueError, match="cobertura"):
         evaluar_semanas(_historia(), **{**CRITERIO, "cobertura_minima": 1.5})
+
+
+def test_tc01_bordes_exactos_de_cobertura_y_caida():
+    reportes = _historia(centros=10, por_centro=30)
+    reportes[date(2026, 10, 4)] = {c: 20 for c in range(9)}  # 90 %, total 180 = 0,6 × 300
+    assert evaluar_semanas(reportes, **CRITERIO)[date(2026, 10, 4)] is True
+    reportes[date(2026, 10, 4)][0] = 19
+    assert evaluar_semanas(reportes, **CRITERIO)[date(2026, 10, 4)] is False

@@ -20,6 +20,6 @@
 | TC-16 | RF-16 | ☑ | ☑ | `backend/tests/test_tc16_alta_sin_aceptacion.py` (backend y comando; falta la pantalla de RF-16) |
 | TC-17 | RF-3, RF-9 | ☑ | ☑ | `backend/tests/test_tc17_regla_alerta.py`; de punta a punta en la corrida semanal, con el ajuste de k por el administrador (`test_rf2_rf3_corrida_semanal.py::test_rf3_alerta_solo_por_el_margen_y_cambio_de_k`) |
 | TC-18 | RF-8 | ☐ | ☐ | |
-| TC-19 | RF-10 | ☐ | ☐ | |
+| TC-19 | RF-10 | Parcial | ☐ | `backend/tests/test_tc19_rf10_historial.py` prueba la comparación con lo observado y los permisos, incluido el 403 auditado, con datos controlados en SQLite y PostgreSQL. `web/src/tests/historialAlertas.test.tsx` cubre la pantalla. Falta el backtest con datos reales del invierno de 2025. |
 | TC-20 | RF-12 | ☑ | ☑ | `web/src/tests/estadoCentros.test.tsx` (33 centros, coordenadas, nivel, estación y filtros); contrato RF-7 en `backend/tests/test_tc09_rf7_estado_centros.py`; validación visual a 390 px |
 

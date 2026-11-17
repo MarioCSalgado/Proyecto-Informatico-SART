@@ -72,9 +72,9 @@ describe('encabezado', () => {
   })
 
   it.each([
-    ['Jefatura', ['Mi centro']],
-    ['Subdirector', ['Red de centros']],
-    ['Administrador', ['Red de centros', 'Administración']],
+    ['Jefatura', ['Mi centro', 'Historial de alertas']],
+    ['Subdirector', ['Red de centros', 'Historial de alertas']],
+    ['Administrador', ['Red de centros', 'Historial de alertas', 'Administración']],
   ] as const)('%s ve solo sus secciones en la navegación', async (rol, secciones) => {
     abrir(rutaInicio(rol), rol)
     const navegacion = await screen.findByRole('navigation', { name: 'Secciones' })
