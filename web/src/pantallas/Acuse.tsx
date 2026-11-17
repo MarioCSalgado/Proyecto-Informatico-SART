@@ -9,7 +9,7 @@ import { confirmarLectura, obtenerAcuse } from '../servicios/acuse.ts'
 import type { Acuse } from '../tipos/index.ts'
 
 const NIVEL: Record<string, string> = { atencion: 'Atención', alerta: 'ALERTA', sobre_la_norma: 'Sobre la norma' }
-const fecha = (iso: string) => new Date(iso).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })
+const fecha = (iso: string) => new Date(iso).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short', hourCycle: 'h23' })
 
 // Página de acuse (RF-15): abrirla no registra nada; la lectura se confirma solo con el botón (RF-15 paso 2).
 export function PantallaAcuse() {
