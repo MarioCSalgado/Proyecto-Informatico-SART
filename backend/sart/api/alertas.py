@@ -6,12 +6,14 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 
 from sart.api.centros import CentroPublico, DotacionPublica
 from sart.api.dependencias import SesionDB, UsuarioActual
 from sart.db.alertas import acuses_propios, historial_de_alertas, resumen_notificaciones
 from sart.db.auditoria import registrar_auditoria
 from sart.db.estado_centros import centros_visibles
+from sart.db.modelos import Estacion
 from sart.dominio.alerta_demanda import NIVEL_QUE_NOTIFICA
 from sart.dominio.roles import Rol
 from sart.dominio.semanas import inicio_semana, semana_epidemiologica
@@ -144,6 +146,10 @@ def historial(
     es_jefatura = usuario.rol is Rol.JEFATURA
     propios = acuses_propios(sesion, notificables, usuario.id) if es_jefatura else {}
     resumen = resumen_notificaciones(sesion, notificables) if not es_jefatura else {}
+    ids_estaciones = {centro.estacion_id for _, centro, *_ in filas}
+    estaciones = dict(
+        sesion.execute(select(Estacion.id, Estacion.nombre).where(Estacion.id.in_(ids_estaciones))).all()
+    )
     salida = []
     for alerta, centro, pronostico, umbral_alerta, consultas in filas:
         dotacion = pronostico.dotacion
@@ -165,7 +171,15 @@ def historial(
         salida.append(
             {
                 "id": alerta.id,
-                "centro": CentroPublico.model_validate(centro, from_attributes=True),
+                "centro": CentroPublico(
+                    codigo_deis=centro.codigo_deis,
+                    nombre=centro.nombre,
+                    tipo=centro.tipo.value,
+                    comuna=centro.comuna,
+                    latitud=centro.latitud,
+                    longitud=centro.longitud,
+                    estacion_asignada=estaciones[centro.estacion_id],  # RF-12 (T10) la agregó a CentroPublico
+                ),
                 "fecha_emision": _en_utc(alerta.fecha_emision),
                 "nivel": alerta.nivel,
                 "pronostico": {
