@@ -155,7 +155,7 @@ respaldo:                    # RNF-D-2, TC-14 (RPO 24 h, RTO 2 h)
     - medicion
 
 descarga:
-  timeout_segundos: 90
+  timeout_segundos: 300
   maximo_bytes: 268435456
   espera_reintento_segundos: 1
   deis_url: "https://datos.gob.cl/dataset/606ef5bb-11d1-475b-b69f-b980da5757f4/resource/ae6c9887-106d-4e98-8875-40bf2b836041/download/at_urg_respiratorio_semanal.parquet"
@@ -165,6 +165,11 @@ descarga:
     # El atraso real de publicación no está medido; este valor es configurable.
     estaciones:
       "Kingston College": "https://sinca.mma.gob.cl/cgi-bin/APUB-MMA/apub.tsindico2.cgi?outtype=xcl&macro=./RVIII/827/Cal/PM25//PM25.diario.diario.ic&from=090812&to=261115&path=/usr/airviro/data/CONAMA/&lang=esp&rsrc=&macropath="
+      "Cerro Merquín": "https://sinca.mma.gob.cl/cgi-bin/APUB-MMA/apub.tsindico2.cgi?outtype=xcl&macro=./RVIII/831/Cal/PM25//PM25.diario.diario.ic&from=091007&to=260905&path=/usr/airviro/data/CONAMA/&lang=esp&rsrc=&macropath="
+      "Coronel Norte": "https://sinca.mma.gob.cl/cgi-bin/APUB-MMA/apub.tsindico2.cgi?outtype=xcl&macro=./RVIII/878/Cal/PM25//PM25.diario.diario.ic&from=191130&to=251130&path=/usr/airviro/data/CONAMA/&lang=esp&rsrc=&macropath="
+      "Hualqui": "https://sinca.mma.gob.cl/cgi-bin/APUB-MMA/apub.tsindico2.cgi?outtype=xcl&macro=./RVIII/841/Cal/PM25//PM25.diario.diario.ic&from=161126&to=261115&path=/usr/airviro/data/CONAMA/&lang=esp&rsrc=&macropath="
+      "JUNJI": "https://sinca.mma.gob.cl/cgi-bin/APUB-MMA/apub.tsindico2.cgi?outtype=xcl&macro=./RVIII/804/Cal/PM25//PM25.diario.diario.ic&from=111229&to=260629&path=/usr/airviro/data/CONAMA/&lang=esp&rsrc=&macropath="
+      "Punteras": "https://sinca.mma.gob.cl/cgi-bin/APUB-MMA/apub.tsindico2.cgi?outtype=xcl&macro=./RVIII/854/Cal/PM25//PM25.diario.diario.ic&from=091006&to=260927&path=/usr/airviro/data/CONAMA/&lang=esp&rsrc=&macropath="
   open_meteo:
     latitud: -36.83
     longitud: -73.05

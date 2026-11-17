@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
@@ -79,21 +79,33 @@ def descargar_http(
 
 
 def url_sinca(url: str, *, desde: date, hasta: date) -> str:
-    """Conserva los parámetros de la exportación verificada y actualiza solo sus fechas."""
+    """Actualiza las fechas sin modificar los demás parámetros."""
     partes = urlsplit(url)
-    parametros = dict(parse_qsl(partes.query, keep_blank_values=True))
-    parametros.update(
-        {"from": desde.strftime("%y%m%d"), "to": hasta.strftime("%y%m%d")}
-    )
-    return urlunsplit(
-        (
-            partes.scheme,
-            partes.netloc,
-            partes.path,
-            urlencode(parametros),
-            partes.fragment,
-        )
-    )
+    for parametro in partes.query.split("&"):
+        clave, _, valor = parametro.partition("=")
+        if clave == "from":
+            desde = max(desde, datetime.strptime(valor, "%y%m%d").date())
+    fechas = {
+        "from": desde.strftime("%y%m%d"),
+        "to": hasta.strftime("%y%m%d"),
+    }
+    parametros = []
+
+    for parametro in partes.query.split("&"):
+        clave = parametro.partition("=")[0]
+        if clave in fechas:
+            parametro = f"{clave}={fechas.pop(clave)}"
+        parametros.append(parametro)
+
+    parametros.extend(f"{clave}={valor}" for clave, valor in fechas.items())
+
+    return urlunsplit((
+        partes.scheme,
+        partes.netloc,
+        partes.path,
+        "&".join(parametros),
+        partes.fragment,
+    ))
 
 
 def _url_api(base: str, parametros: dict) -> str:
