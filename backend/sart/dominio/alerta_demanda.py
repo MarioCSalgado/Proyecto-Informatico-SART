@@ -9,6 +9,7 @@ k de ``regla_alerta.k_margen`` (RNF-M-4; ajustable por el administrador, RF-9).
 
 from __future__ import annotations
 
+import math
 from typing import Literal
 
 from scipy.stats import norm
@@ -31,13 +32,21 @@ def margen_de_seguridad(
     if k < 0:
         raise ValueError("k no puede ser negativo.")
     desviacion = (limite_superior - pronostico) / z_del_intervalo(nivel_intervalo)
-    return k * desviacion
+    margen = k * desviacion
+    if not math.isfinite(margen):
+        raise ValueError("El margen de seguridad debe ser finito.")
+    return margen
 
 
 def pronostico_con_margen(
     pronostico: float, limite_superior: float, *, k: float, nivel_intervalo: float
 ) -> float:
-    return pronostico + margen_de_seguridad(pronostico, limite_superior, k=k, nivel_intervalo=nivel_intervalo)
+    total = pronostico + margen_de_seguridad(
+        pronostico, limite_superior, k=k, nivel_intervalo=nivel_intervalo
+    )
+    if not math.isfinite(total):
+        raise ValueError("El pronóstico con margen debe ser finito.")
+    return total
 
 
 def clasificar_demanda(

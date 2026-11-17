@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from sqlalchemy import create_engine, text
 
 from sart import __version__
-from sart.api import auth, centros, referencias
+from sart.api import auth, centros, configuracion_administracion, referencias
 from sart.configuracion import codigo_mfa_desarrollo, obtener_configuracion
 from sart.parametros import ErrorParametros, cargar_parametros
 
@@ -19,6 +19,7 @@ app = FastAPI(title="SART", version=__version__)
 app.include_router(auth.router)
 app.include_router(referencias.router)
 app.include_router(centros.router)
+app.include_router(configuracion_administracion.router)
 
 
 def _revisar_parametros() -> str:
