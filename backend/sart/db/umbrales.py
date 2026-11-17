@@ -6,11 +6,13 @@ administrador se respeta en los recálculos hasta que él mismo lo cambie (pendi
 
 from __future__ import annotations
 
+import math
+
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from sart.db.auditoria import registrar_auditoria
-from sart.db.modelos import UmbralCentro, Usuario
+from sart.db.modelos import CentroSalud, UmbralCentro, Usuario
 from sart.dominio.valores import OrigenUmbral
 
 
@@ -22,6 +24,15 @@ def umbral_vigente(sesion: Session, centro_id: int) -> UmbralCentro | None:
     return sesion.scalar(
         select(UmbralCentro).where(UmbralCentro.centro_id == centro_id, UmbralCentro.vigente.is_(True))
     )
+
+
+def _bloquear_centro(sesion: Session, centro_id: int) -> None:
+    # La fila del centro existe aun si todavía no hay un umbral vigente que bloquear.
+    centro = sesion.scalar(
+        select(CentroSalud.id).where(CentroSalud.id == centro_id).with_for_update(key_share=True)
+    )
+    if centro is None:
+        raise ErrorUmbral("No existe el centro que se quiere configurar.")
 
 
 def _resumen(umbral: UmbralCentro | None) -> dict | None:
@@ -47,7 +58,9 @@ def guardar_umbrales_calculados(
 ) -> dict[str, int]:
     """Guarda los umbrales calculados por RB-3 ({centro_id: (atención, alerta)}). No pisa los manuales."""
     resumen = {"guardados": 0, "manuales_respetados": 0}
-    for centro_id, (atencion, alerta) in umbrales.items():
+    # Adquirir los bloqueos en el mismo orden si coinciden dos recálculos.
+    for centro_id, (atencion, alerta) in sorted(umbrales.items()):
+        _bloquear_centro(sesion, centro_id)
         anterior = umbral_vigente(sesion, centro_id)
         if anterior is not None and anterior.origen is OrigenUmbral.MANUAL:
             resumen["manuales_respetados"] += 1
@@ -83,13 +96,15 @@ def fijar_umbral_manual(
     motivo = (motivo or "").strip()
     if not motivo:
         raise ErrorUmbral("El motivo del cambio es obligatorio.")
+    if not math.isfinite(atencion) or not math.isfinite(alerta):
+        raise ErrorUmbral("Los umbrales deben ser números finitos.")
     if atencion < 0 or alerta < 0:
         raise ErrorUmbral("Un umbral no puede ser negativo.")
     if atencion > alerta:
         raise ErrorUmbral("El umbral de atención debe ser menor o igual que el de alerta.")
 
-    anterior = umbral_vigente(sesion, centro_id)
-    resumen_anterior = _resumen(anterior)
+    _bloquear_centro(sesion, centro_id)
+    resumen_anterior = _resumen(umbral_vigente(sesion, centro_id))
     _retirar_vigente(sesion, centro_id)
     nuevo = UmbralCentro(
         centro_id=centro_id,
