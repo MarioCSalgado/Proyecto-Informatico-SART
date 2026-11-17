@@ -68,8 +68,8 @@ La corrida semanal guarda pronósticos, niveles, alertas y dotación (parte 8), 
 | Alerta ambiental diaria a las 07:00 | RF-4, TC-12 |
 | Administración desde la web: umbrales y parámetros (las cuentas y sus centros ya están) | RF-9 |
 | Historial de alertas | RF-10, TC-19 |
-| Exportación CSV | RF-11, TC-15 |
-| Boletín: elegir el proveedor de LLM (#12) y enviarlo con el correo | RF-8, TC-18 |
+| Mapa de centros | RF-12, TC-20 |
+| Boletín redactado con el LLM | RF-8, TC-18 |
 | Planificador de horarios (05:00, 06:00, 07:00, 08:00, respaldo 04:30) y Docker Compose con API y web | RNF-P-1, TC-13 |
 | Pruebas de carga y de uso: TC-08 tiene una medición preliminar del endpoint; faltan el boletín y Lighthouse. TC-10 aún requiere 3–5 participantes. | TC-08, TC-10 |
 

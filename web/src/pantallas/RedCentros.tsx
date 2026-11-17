@@ -1,10 +1,10 @@
 import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined'
-import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { AvisoPendiente } from '../componentes/AvisoPendiente.tsx'
 import { BloqueCarga } from '../componentes/BloqueCarga.tsx'
+import { BotonExportarCsv } from '../componentes/BotonExportarCsv.tsx'
 import { CabeceraPagina } from '../componentes/CabeceraPagina.tsx'
 import { EstadoVacio } from '../componentes/EstadoVacio.tsx'
 import { IconoNivel, NivelAlerta, NivelCorto } from '../componentes/NivelAlerta.tsx'
@@ -59,7 +59,7 @@ function FilaCentro({ estado }: { estado: EstadoCentro }) {
 
 // Vista de red del subdirector (diseño «Vista de red»; RF-7 con todos los centros). La API entrega los centros ya
 // ordenados Alerta → Atención → Normal y, dentro de cada nivel, por pronóstico (RF-7 paso 2); los filtros se
-// aplican aquí. Cada centro abre su detalle (paso 3). La confirmación llega con RF-15 y la exportación con RF-11.
+// aplican aquí. Cada centro abre su detalle (paso 3). La confirmación llega con RF-15; la exportación es RF-11.
 export function PantallaRedCentros() {
   const { referencias } = useReferencias()
   const { centros, cargando, error } = useEstadoCentros()
@@ -87,9 +87,7 @@ export function PantallaRedCentros() {
           ? `Gran Concepción · pronóstico de la SE ${corte.semana} (${rangoSemana(corte.inicio_semana)})`
           : 'Gran Concepción · centros de urgencia'}
         acciones={
-          <button type="button" className="boton-secundario" disabled title="Llega con RF-11">
-            <DownloadOutlinedIcon aria-hidden="true" /> Exportar red CSV
-          </button>
+          <BotonExportarCsv etiqueta="Exportar red CSV" />
         }
       />
 
@@ -197,7 +195,7 @@ export function PantallaRedCentros() {
             )}
           </>
         )}
-        <AvisoPendiente>La confirmación de lectura llega con RF-15 y la exportación CSV con RF-11.</AvisoPendiente>
+        <AvisoPendiente>La confirmación de lectura llega con RF-15.</AvisoPendiente>
       </section>
     </div>
   )
