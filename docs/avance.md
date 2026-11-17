@@ -27,9 +27,12 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
 | Corrida semanal | Marca RB-4, reentrena el GLM, guarda un pronóstico vigente por centro y semana con su nivel (umbral y k usados), la alerta si no es «normal» (salvo pronóstico desactualizado) y la dotación con sus supuestos; todo en `corrida` y la auditoría | RF-2, RF-3, RF-6, RNF-M-3, RNF-S-4 | `python -m sart.tareas semanal [--fecha AAAA-MM-DD \| --prueba]`, `sart/tareas/semanal.py` |
 | Qué se notifica | Solo ALERTA, por centro y semana; repetir la corrida solo notifica si sube el nivel (#29) | RF-3, RF-5 | `sart/db/alertas.py` (`alertas_por_notificar`, para RF-5) |
 | Respaldo | Respaldo diario, poda y restauración probada en 59 s | RNF-D-2, TC-14 | `python -m sart.respaldo …` |
-| API | `GET /salud`, `POST /auth/sesion`, `GET /auth/yo`, `POST /auth/cerrar-sesion`, `GET /referencias`, `GET /centros/estado` y `GET /centros/{codigo}/estado` (la jefatura solo ve sus centros; un centro ajeno da 403 y queda en la auditoría) | RF-7, RNF-S-2, TC-09 | `sart/api/` · documentación en http://127.0.0.1:8000/docs |
+| API | `GET /salud`, `POST /auth/sesion`, `GET /auth/yo`, `POST /auth/cerrar-sesion`, `GET /referencias`, `GET /centros/estado` y `GET /centros/{codigo}/estado` (la jefatura solo ve sus centros; un centro ajeno da 403 y queda en la auditoría), `/administracion/usuarios` (solo el administrador) y `/acuse/{token}` | RF-7, RNF-S-2, TC-09 | `sart/api/` · documentación en http://127.0.0.1:8000/docs |
 | Web | Inicio de sesión (con el código MFA), encabezado por rol, permisos, rutas con URL; partes fijas de los diseños de Figma para Mi centro, Red de centros y Administración, de 390 px a 1440 px; la escala de MP2,5 viene de la API | RF-7, RNF-U-1, RNF-S-2 | `web/src/` |
 | Estado de los centros | Mi centro con el pronóstico, su rango, el nivel, el gráfico de 12 semanas (o tabla), la dotación guardada y el MP2,5 de la zona (RB-5); Red de centros con conteos, filtros, tabla ordenada por nivel y calendario de calor; detalle de un centro en `/red/<código>`; avisos de datos antiguos y de pronóstico desactualizado | RF-7, RF-6, RB-5, RNF-U-1 | `web/src/pantallas/`, `web/src/componentes/DetalleCentro.tsx`, `GraficoConsultas.tsx` |
+| Administración de cuentas | Pestaña «Usuarios»: lista de cuentas, alta con el texto de la finalidad y su aceptación, centros de cada jefatura y baja; solo el administrador; todo en la auditoría sin nombre ni correo | RF-9, RF-16, TC-09, TC-16 | `sart/api/administracion.py`, `web/src/pantallas/UsuariosAdministracion.tsx` (T6, pendientes #51) |
+| Acuse | Página `/acuse/<token>` con «Confirmar lectura» (abrir no registra nada; una sola vez; exige sesión y solo el destinatario) y la regla de reenvío a las 24 h y escalamiento a las 48 h; el envío espera el correo (T4) | RF-15, RB-2, TC-06 | `sart/api/acuse.py`, `sart/dominio/acuse.py`, `web/src/pantallas/Acuse.tsx` (T5, pendientes #50) |
+| Boletín del LLM | Texto para el LLM solo con cifras agregadas, revisión de cifras y niveles, plantilla de respaldo; sin proveedor todavía | RF-8, TC-18 | `sart/dominio/boletin.py` (T12, pendientes #52) |
 | Sistema de diseño | Colores, tipografía (Figtree + Noto Sans), formas y componentes de SART; tokens en `App.scss` y tema de MUI con los mismos valores; contrastes AA verificados; niveles con texto e ícono SVG | RNF-U-1 | `DESIGN.md`, `web/src/tema.ts` |
 
 ### Cifras verificadas
@@ -44,19 +47,19 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
 ## Qué falta
 
 La corrida semanal guarda pronósticos, niveles, alertas y dotación (parte 8), y la API y la web ya los muestran
-(parte 9). Siguen con sus partes fijas la administración, el acuse (RF-15) y la exportación (RF-11).
+(parte 9). Siguen con sus partes fijas los umbrales e historial de Administración y la exportación (RF-11).
 
 | Falta | IDs |
 |---|---|
 | Cargar el archivo **real** del DEIS: `cargar_consultas` solo entiende el formato de `datos/prueba` (pendientes #45); hasta entonces la corrida semanal solo se prueba con datos sintéticos | RF-1, TC-02 |
 | Descarga automática de DEIS, SINCA y Open-Meteo, con aviso si una fuente falla | RF-1, TC-02 |
 | Alerta ambiental diaria a las 07:00 | RF-4, TC-12 |
-| Correo de alerta (sale de `alertas_por_notificar`), «Confirmar lectura», reenvío a las 24 h y escalamiento a las 48 h | RF-5, RF-15, RB-2, TC-06 |
-| Administración desde la web: cuentas, centros asignados, umbrales y parámetros | RF-9, RF-16 |
+| Correo de alerta (sale de `alertas_por_notificar`); con él, el reenvío a las 24 h y el escalamiento a las 48 h (la regla `paso_rb2` y «Confirmar lectura» ya están) | RF-5, RF-15, RB-2, TC-06 |
+| Administración desde la web: umbrales y parámetros (las cuentas y sus centros ya están) | RF-9 |
 | Historial de alertas | RF-10, TC-19 |
 | Exportación CSV | RF-11, TC-15 |
 | Mapa de centros | RF-12, TC-20 |
-| Boletín redactado con el LLM | RF-8, TC-18 |
+| Boletín: elegir el proveedor de LLM (#12) y enviarlo con el correo | RF-8, TC-18 |
 | Planificador de horarios (05:00, 06:00, 07:00, 08:00, respaldo 04:30) y Docker Compose con API y web | RNF-P-1, TC-13 |
 | Pruebas de carga y de uso | TC-08, TC-10 |
 
@@ -82,7 +85,7 @@ Están anotadas en `docs/pendientes_informe.md` para pasarlas al informe. Las pr
 
 ## Decisiones abiertas para el equipo
 
-- **#34:** ¿la página de acuse exige iniciar sesión (recomendado) o basta el enlace?
+- **#34:** ¿la página de acuse exige iniciar sesión (recomendado) o basta el enlace? El código usa la recomendada mientras se decide (#50).
 - **#18 y #24:** ¿se puede desactivar una cuenta sin borrarla (por ejemplo, durante una licencia)?
 - **#22:** la tarjeta «Virus circulando (ISP)» del diseño no tiene fuente ni requisito: ¿se agrega o se saca?
 - **#38:** dónde se copian los respaldos en producción y quién lo revisa.

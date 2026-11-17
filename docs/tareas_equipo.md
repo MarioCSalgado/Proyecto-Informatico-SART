@@ -17,14 +17,14 @@ datos (fuentes y modelo), docs.
 | T2 | Descarga automática de DEIS, SINCA y Open-Meteo | RF-1, TC-02, RNF-M-3 | T1 | L | datos, back | Daniel Aburto | Pendiente |
 | T3 | Alerta ambiental diaria (07:00) | RF-4, TC-12 | — | M | back | Joaquín Sandoval | Pendiente |
 | T4 | Correo de alerta | RF-5, TC-06 | — | M | back | Joaquín Sandoval | Pendiente |
-| T5 | «Confirmar lectura», reenvío y escalamiento | RF-15, RB-2, TC-06 · #34 | T4 | L | back, front | Juan Carvajal | Pendiente |
-| T6 | Administración de cuentas y centros desde la web | RF-9, RF-16, TC-09, TC-16 | — | L | back, front | Juan Carvajal | Pendiente |
+| T5 | «Confirmar lectura», reenvío y escalamiento | RF-15, RB-2, TC-06 · #34 | T4 | L | back, front | Juan Carvajal | En curso: acuse listo; falta reenvío y escalamiento (espera T4) |
+| T6 | Administración de cuentas y centros desde la web | RF-9, RF-16, TC-09, TC-16 | — | L | back, front | Juan Carvajal | Hecha (16/11) |
 | T7 | Umbrales y parámetros desde la web | RF-9, RB-3, TC-17 | T6 | M | back, front | Jocabed López | Pendiente |
 | T8 | Historial de alertas | RF-10, TC-19 | — | M | back, front | Jocabed López | Pendiente |
 | T9 | Exportación CSV | RF-11, TC-15 | — | S | back, front | Joaquín Sandoval | Pendiente |
 | T10 | Mapa de centros | RF-12, TC-20 | — | M | front | Benjamín Díaz | Pendiente |
 | T11 | Planificador de horarios y Docker Compose completo | RNF-P-1, RNF-P-2, TC-13 | T2, T3, T4 | M | back | Daniel Aburto | Pendiente |
-| T12 | Boletín redactado con el LLM | RF-8, TC-18 | T4 | M | back | Juan Carvajal | Pendiente |
+| T12 | Boletín redactado con el LLM | RF-8, TC-18 | T4 | M | back | Juan Carvajal | En curso: redacción y TC-18 listos; falta proveedor (#12) y envío (T4) |
 | T13 | Pruebas de carga y de uso | TC-08, TC-10, RNF-R-1, RNF-R-2 | T6 | M | docs, front | Benjamín Díaz | Pendiente |
 | T14 | Cerrar las decisiones abiertas con el equipo | #18, #22, #24, #34, #38, #40, #42 | — | S | docs | Jocabed López | Pendiente |
 
@@ -72,6 +72,9 @@ datos (fuentes y modelo), docs.
   enlace), ruta de la API que lo registra con fecha, y tarea que reenvía a las 24 h sin acuse y escala al
   Subdirector a las 48 h (`notificaciones.reenvio_horas` y `escalamiento_horas`). Todo en la auditoría.
 - **Depende de:** T4 y de decidir #34 (¿exige iniciar sesión?). **Terminado cuando:** TC-06 pasa completo.
+- **Avance (16/11):** hechos `GET /acuse/<token>`, `POST /acuse/<token>/confirmar` y la página (`web/src/pantallas/Acuse.tsx`),
+  con sesión obligatoria (#34, opción recomendada, provisoria: pendientes #50), y la regla `paso_rb2` en
+  `sart/dominio/acuse.py`. Falta la tarea que reenvía y escala usando `paso_rb2` y el envío de T4.
 
 ### T6 · Administración de cuentas y centros desde la web (RF-9, RF-16, TC-09, TC-16)
 - **Qué hacer:** API para listar, crear (con la aceptación de la finalidad), dar de baja y asignar centros, solo
@@ -79,6 +82,8 @@ datos (fuentes y modelo), docs.
   `sart/db/cuentas.py` (hoy se usa desde `python -m sart.cuentas`).
 - **Archivos:** nuevo `backend/sart/api/administracion.py`, `web/src/pantallas/Administracion.tsx`, servicio nuevo.
 - **Terminado cuando:** TC-16 pasa también en la pantalla y TC-09 cubre las rutas de RF-9 (0 accesos indebidos).
+- **Hecha (16/11):** `sart/api/administracion.py` (`/administracion/usuarios`: listar, crear, centros, baja) y la
+  pestaña «Usuarios» (`web/src/pantallas/UsuariosAdministracion.tsx`). Decisiones en pendientes #51.
 
 ### T7 · Umbrales y parámetros desde la web (RF-9, RB-3, TC-17)
 - **Qué hacer:** conectar las pestañas «Umbrales» e «Historial»: `fijar_umbral_manual` y `ajustar_parametro` ya
@@ -112,6 +117,9 @@ datos (fuentes y modelo), docs.
 - **Qué hacer:** resumen del lunes redactado por el LLM **solo con cifras agregadas**, sin nombres ni correos, y
   sin poder cambiar un nivel (se comprueba que las cifras del texto coinciden con las de la base).
 - **Depende de:** T4. **Terminado cuando:** pasa TC-18. Es posterior al MVP.
+- **Avance (16/11):** `sart/dominio/boletin.py` arma las filas desde `estado_de_centros`, el texto para el LLM y la
+  revisión de cifras y niveles, con plantilla de respaldo (pendientes #52). TC-18 pasa con un LLM de prueba. Falta
+  elegir el proveedor (#12) y mandar el boletín con el correo de T4.
 
 ### T13 · Pruebas de carga y de uso (TC-08, TC-10)
 - **Qué hacer:** TC-08 (70 usuarios en 5 minutos, p95 ≤ 2 s; Lighthouse móvil con 4G) y TC-10 (3 a 5 personas,
