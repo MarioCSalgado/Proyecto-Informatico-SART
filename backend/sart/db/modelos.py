@@ -450,6 +450,12 @@ class Notificacion(Base):
     usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuario.id", ondelete="SET NULL"), index=True)
     estado: Mapped[EstadoNotificacion] = mapped_column(_enum(EstadoNotificacion, "estado_notificacion", 12))
     fecha_envio: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    intentos: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default=text("0"),
+    )
     fecha_confirmacion: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # RB-2: reenvío a las 24 h sin acuse y escalamiento al Subdirector a las 48 h (plazos en parametros.yaml)
     fecha_reenvio: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
