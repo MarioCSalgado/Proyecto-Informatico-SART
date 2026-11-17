@@ -135,6 +135,10 @@ def test_tc09_subdirector_y_administrador_ven_todos(api, motor, rol):
 def test_rf7_estado_con_pronostico_intervalo_umbrales_dotacion_y_mp25(api, motor):
     estado = _como(api, motor, Rol.JEFATURA).get(f"/centros/{PROPIO}/estado").json()
 
+    assert estado["centro"]["latitud"] == pytest.approx(-36.8)
+    assert estado["centro"]["longitud"] == pytest.approx(-73.0)
+    assert estado["centro"]["estacion_asignada"] == "Kingston College"
+
     p = estado["pronostico"]
     assert (p["anio"], p["semana"], p["fecha_corte"], p["inicio_semana"]) == (
         2026,

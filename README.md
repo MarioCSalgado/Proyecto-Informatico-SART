@@ -8,13 +8,12 @@ Mario Salgado Orellana, Jocabed López Flores.
 
 ## Estado
 
-Base del sistema terminada (14/11/2026): cuentas con MFA, base de datos, carga de datos, modelo y reglas de
-alerta probados, la corrida semanal que guarda pronósticos, niveles y dotación, y la web con «Mi centro» y la
-«Red de centros» mostrando esos datos. Falta, entre otras cosas, la descarga automática, los correos y la
-administración desde la web: el detalle está en [`docs/avance.md`](docs/avance.md) y las tareas del equipo en
-[`docs/tareas_equipo.md`](docs/tareas_equipo.md). Para colaborar, ver [`CONTRIBUTING.md`](CONTRIBUTING.md); al abrir
-un pull request, GitHub carga la plantilla [`.github/pull_request_template.md`](.github/pull_request_template.md):
-hay que completarla (qué hace, IDs, cómo se probó, capturas y la lista de revisión).
+Base del sistema terminada (15/11/2026): cuentas con MFA, base de datos, carga de datos, modelo y reglas de
+alerta probados, la corrida semanal que guarda pronósticos, niveles y dotación, y la web con «Mi centro»,
+«Red de centros» y el mapa de centros (RF-12, TC-20). Falta, entre otras cosas, la descarga automática, los
+correos y la administración desde la web: el detalle está en [`docs/avance.md`](docs/avance.md) y las tareas
+del equipo en [`docs/tareas_equipo.md`](docs/tareas_equipo.md). Para colaborar, ver
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Cómo levantarlo en local
 
@@ -100,7 +99,6 @@ Requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/), P
 
 - **Para colaborar:** `CONTRIBUTING.md` (ramas, PR, pruebas y reglas) y `docs/tareas_equipo.md` (tareas y
   responsables)
-- **Plantilla de pull request:** `.github/pull_request_template.md` (GitHub la carga sola al abrir un PR)
 - **Diseño de la web:** `DESIGN.md` (colores, tipografía y componentes; leer antes de tocar pantallas)
 - Especificación: `docs/especificacion/`
 - Qué está hecho y qué sigue: `docs/avance.md`; casos de prueba: `docs/estado_tc.md`

@@ -107,7 +107,15 @@ export type SemanaObservada = {
 
 /** Estado de un centro (RF-7): solo cifras agregadas, sin datos de pacientes (RNF-S-5). */
 export type EstadoCentro = {
-  centro: { codigo_deis: number; nombre: string; tipo: string; comuna: string };
+  centro: {
+    codigo_deis: number;
+    nombre: string;
+    tipo: string;
+    comuna: string;
+    latitud: number | null;
+    longitud: number | null;
+    estacion_asignada: string;
+  };
   pronostico: Pronostico | null;
   dotacion: Dotacion | null;
   mp25: Mp25Zona;

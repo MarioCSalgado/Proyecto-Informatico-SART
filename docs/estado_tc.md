@@ -9,7 +9,7 @@
 | TC-05 | RF-4 | ☑ | ☑ | `backend/tests/test_tc05_mp25.py` |
 | TC-06 | RF-5, RF-15 | ◐ | ☑ | `backend/tests/test_tc06_acuse.py` y `web/src/tests/acuse.test.tsx` (parte sin correo: abrir no confirma, «Confirmar lectura» una sola vez, solo el destinatario, plazos de RB-2 con `paso_rb2`). Falta el envío, el reenvío y el aviso al Subdirector con el correo de RF-5 (T4) |
 | TC-07 | RF-6 | ☑ | ☑ | `backend/tests/test_tc07_erlang.py`; en la corrida semanal, la dotación se guarda con sus supuestos (`test_rf2_rf3_corrida_semanal.py`, parte 8) |
-| TC-08 | RF-7 | ☐ | ☐ | |
+| TC-08 | RF-7 | ☐ (arnés parcial) | ☐ | Medición local de 5 min en `GET /centros/estado`: 70 usuarios virtuales, sesión compartida, 10,70 solicitudes/s, p95 1.159 ms y 0 fallidas. Falta boletín y Lighthouse móvil/4G. Arnés: `herramientas/pruebas_carga_tc08.mjs` |
 | TC-09 | RF-7, RF-9 | ☑ | ☑ | `backend/tests/test_tc09_rf7_estado_centros.py` (RF-7: jefatura solo sus centros, centro ajeno 403 y auditado, subdirector y administrador todos, sin sesión 401). Parte RF-9: `backend/tests/test_tc09_rf9_administracion.py` (las 4 rutas de administración: sin sesión 401, jefatura y subdirector 403) |
 | TC-10 | RF-7 | ☐ | ☐ | (con usuarios) |
 | TC-11 | RF-2 | ☑ | ☑ | `backend/tests/test_regresion_backtest.py`: el intervalo de 90 % cubre 91,1 % de las semanas (RNF-Q-3; con los datos reales, en CI se salta) |
@@ -20,6 +20,6 @@
 | TC-16 | RF-16 | ☑ | ☑ | `backend/tests/test_tc16_alta_sin_aceptacion.py` (backend y comando), `test_tc09_rf9_administracion.py` (API: 422 sin aceptación o con versión antigua, nada guardado) y `web/src/tests/administracionUsuarios.test.tsx` (pantalla: sin la casilla no se puede crear) |
 | TC-17 | RF-3, RF-9 | ☑ | ☑ | `backend/tests/test_tc17_regla_alerta.py`; de punta a punta en la corrida semanal, con el ajuste de k por el administrador (`test_rf2_rf3_corrida_semanal.py::test_rf3_alerta_solo_por_el_margen_y_cambio_de_k`) |
 | TC-18 | RF-8 | ☑ | ☑ | `backend/tests/test_tc18_boletin_llm.py` (con un LLM de prueba: 0 nombres o correos enviados, cifra inventada o nivel cambiado → plantilla). Falta el proveedor real (#12) |
-| TC-19 | RF-10 | ☐ | ☐ | |
-| TC-20 | RF-12 | ☐ | ☐ | |
+| TC-19 | RF-10 | Parcial | ☐ | `backend/tests/test_tc19_rf10_historial.py` prueba la comparación con lo observado y los permisos, incluido el 403 auditado, con datos controlados en SQLite y PostgreSQL. `web/src/tests/historialAlertas.test.tsx` cubre la pantalla. Falta el backtest con datos reales del invierno de 2025. |
+| TC-20 | RF-12 | ☑ | ☑ | `web/src/tests/estadoCentros.test.tsx` (33 centros, coordenadas, nivel, estación y filtros); contrato RF-7 en `backend/tests/test_tc09_rf7_estado_centros.py`; validación visual a 390 px |
 

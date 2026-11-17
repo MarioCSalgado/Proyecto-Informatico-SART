@@ -28,8 +28,8 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
 | Qué se notifica | Solo ALERTA, por centro y semana; repetir la corrida solo notifica si sube el nivel (#29) | RF-3, RF-5 | `sart/db/alertas.py` (`alertas_por_notificar`, para RF-5) |
 | Respaldo | Respaldo diario, poda y restauración probada en 59 s | RNF-D-2, TC-14 | `python -m sart.respaldo …` |
 | API | `GET /salud`, `POST /auth/sesion`, `GET /auth/yo`, `POST /auth/cerrar-sesion`, `GET /referencias`, `GET /centros/estado` y `GET /centros/{codigo}/estado` (la jefatura solo ve sus centros; un centro ajeno da 403 y queda en la auditoría), `/administracion/usuarios` (solo el administrador) y `/acuse/{token}` | RF-7, RNF-S-2, TC-09 | `sart/api/` · documentación en http://127.0.0.1:8000/docs |
-| Web | Inicio de sesión (con el código MFA), encabezado por rol, permisos, rutas con URL; partes fijas de los diseños de Figma para Mi centro, Red de centros y Administración, de 390 px a 1440 px; la escala de MP2,5 viene de la API | RF-7, RNF-U-1, RNF-S-2 | `web/src/` |
-| Estado de los centros | Mi centro con el pronóstico, su rango, el nivel, el gráfico de 12 semanas (o tabla), la dotación guardada y el MP2,5 de la zona (RB-5); Red de centros con conteos, filtros, tabla ordenada por nivel y calendario de calor; detalle de un centro en `/red/<código>`; avisos de datos antiguos y de pronóstico desactualizado | RF-7, RF-6, RB-5, RNF-U-1 | `web/src/pantallas/`, `web/src/componentes/DetalleCentro.tsx`, `GraficoConsultas.tsx` |
+| Web | Inicio de sesión (con el código MFA), encabezado por rol, permisos y rutas; Mi centro y Red de centros adaptables de 390 px a 1440 px; mapa Leaflet de la red con OpenStreetMap, nivel rotulado y estación asignada; el mapa usa las coordenadas y centros visibles que entrega RF-7, sin cantidad fija | RF-7, RF-12, TC-20, RNF-U-1, RNF-S-2 | `web/src/` |
+| Estado de los centros | Mi centro con el pronóstico, su rango, el nivel, el gráfico de 12 semanas (o tabla), la dotación guardada y el MP2,5 de la zona (RB-5); Red de centros con conteos, filtros, mapa sincronizado con los filtros, tabla ordenada por nivel y calendario de calor; detalle de un centro en `/red/<código>`; avisos de datos antiguos y de pronóstico desactualizado | RF-7, RF-6, RF-12, RB-5, TC-20, RNF-U-1 | `web/src/pantallas/`, `web/src/componentes/MapaCentros.tsx`, `DetalleCentro.tsx`, `GraficoConsultas.tsx` |
 | Administración de cuentas | Pestaña «Usuarios»: lista de cuentas, alta con el texto de la finalidad y su aceptación, centros de cada jefatura y baja; solo el administrador; todo en la auditoría sin nombre ni correo | RF-9, RF-16, TC-09, TC-16 | `sart/api/administracion.py`, `web/src/pantallas/UsuariosAdministracion.tsx` (T6, pendientes #51) |
 | Acuse | Página `/acuse/<token>` con «Confirmar lectura» (abrir no registra nada; una sola vez; exige sesión y solo el destinatario) y la regla de reenvío a las 24 h y escalamiento a las 48 h; el envío espera el correo (T4) | RF-15, RB-2, TC-06 | `sart/api/acuse.py`, `sart/dominio/acuse.py`, `web/src/pantallas/Acuse.tsx` (T5, pendientes #50) |
 | Boletín del LLM | Texto para el LLM solo con cifras agregadas, revisión de cifras y niveles, plantilla de respaldo; sin proveedor todavía | RF-8, TC-18 | `sart/dominio/boletin.py` (T12, pendientes #52) |
@@ -43,6 +43,14 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
 - 16/11 (T5, T6, T12), sin PostgreSQL: **374 pasan y 12 se saltan** (las de integración); cobertura de
   `sart/dominio` + `sart/tareas` **95 %**. Falta correrlas con PostgreSQL.
 - Web: **51 pruebas** con Vitest, lint y build sin errores (16/11).
+- Web: **49 pruebas** con Vitest, lint y build sin errores.
+- Mapa (TC-20): prueba con 33 centros verifica ubicación, nivel y estación; validación visual en 390 px con la
+  demo actual, que carga 14 centros elegibles desde `datos/prueba`.
+- TC-08 (avance, no cerrado): el 16/11 se ejecutó durante 5 minutos una carga de 70 usuarios virtuales sobre
+  `GET /centros/estado`, con una sesión local compartida: 3.209 solicitudes exitosas, 0 fallidas, 10,70
+  solicitudes/s y p95 de 1.159 ms. Cumple los umbrales de carga de RF-7 en el endpoint actual; faltan la prueba
+  sobre el boletín y Lighthouse móvil con 4G (RNF-R-1, RNF-R-2). Arnés: `herramientas/pruebas_carga_tc08.mjs`;
+  ejecutor local: `herramientas/ejecutar_prueba_carga_tc08.ps1`.
 - Regresión del backtest 2024–2026 con los datos reales: WAPE 14,9 %; k = 0 → precisión 0,85 y sensibilidad
   0,48; k = 0,4 → 0,73 y 0,66; línea base «semana anterior» → 0,69 y 0,68; cobertura del intervalo 91,1 %.
 
@@ -60,10 +68,9 @@ La corrida semanal guarda pronósticos, niveles, alertas y dotación (parte 8), 
 | Administración desde la web: umbrales y parámetros (las cuentas y sus centros ya están) | RF-9 |
 | Historial de alertas | RF-10, TC-19 |
 | Exportación CSV | RF-11, TC-15 |
-| Mapa de centros | RF-12, TC-20 |
 | Boletín: elegir el proveedor de LLM (#12) y enviarlo con el correo | RF-8, TC-18 |
 | Planificador de horarios (05:00, 06:00, 07:00, 08:00, respaldo 04:30) y Docker Compose con API y web | RNF-P-1, TC-13 |
-| Pruebas de carga y de uso | TC-08, TC-10 |
+| Pruebas de carga y de uso: TC-08 tiene una medición preliminar del endpoint; faltan el boletín y Lighthouse. TC-10 aún requiere 3–5 participantes. | TC-08, TC-10 |
 
 Cada fila está detallada como tarea (T1 a T14) en `docs/tareas_equipo.md`.
 

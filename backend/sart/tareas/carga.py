@@ -8,22 +8,28 @@ las 05:00 (RF-1) usará ``cargar_consultas`` después de descargar el archivo; l
 
 from __future__ import annotations
 
-from collections import Counter
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.orm import Session
 
-from sart.db.modelos import CentroSalud, ConsultaSemanal, Estacion, Medicion, Zona
-from sart.dominio.catalogo import clave_causa, estacion_de_comuna, normalizar, tipo_centro
+from sart.db.modelos import (
+    CentroSalud,
+    ConsultaSemanal,
+    Estacion,
+    Medicion,
+    PronosticoAmbiental,
+    Zona,
+)
+from sart.dominio.catalogo import estacion_de_comuna, normalizar, tipo_centro
+from sart.dominio.ingesta_deis import CLAVE, codigo_deis, normalizar_consultas
 from sart.dominio.mediciones import valor_sinca
 from sart.dominio.valores import (
-    GRUPOS_EDAD_DEIS,
     UNIDAD_POR_TIPO,
     FuenteEstacion,
     OrigenMedicion,
@@ -82,6 +88,8 @@ class ResumenConsultas:
     establecimientos_sin_catalogo: int = 0
     causas_omitidas: dict[str, int] = field(default_factory=dict)
     ultima_semana_completa: date | None = None
+    filas_sin_codigo: int = 0
+    duplicados_omitidos: int = 0
 
 
 def _leer_csv(ruta: Path) -> pd.DataFrame:
@@ -159,9 +167,9 @@ def cargar_catalogo(
         if tipo is None:
             resumen.omitidos_por_tipo += 1
             continue
-        codigo = _entero(fila[col["codigo"]])
+        codigo = codigo_deis(fila[col["codigo"]])
         centro = centros.get(codigo) or CentroSalud(codigo_deis=codigo)
-        centro.codigo_antiguo = _entero(fila.get(col["codigo_antiguo"]))
+        centro.codigo_antiguo = codigo_deis(fila.get(col["codigo_antiguo"]))
         centro.nombre = fila[col["nombre"]].strip()
         centro.tipo = tipo
         centro.comuna = fila[col["comuna"]].strip()
@@ -206,59 +214,42 @@ def cargar_consultas(
     """Pasa el archivo semanal de urgencias del DEIS a ``consulta_semanal`` (un registro por centro, semana,
     causa y grupo de edad) y registra cada semana en ``semana_carga``."""
     parametros = parametros or cargar_parametros()
-    centros = {c.codigo_antiguo: c.id for c in sesion.scalars(select(CentroSalud)) if c.codigo_antiguo}
-    if not centros:
+    catalogo = list(sesion.scalars(select(CentroSalud)))
+    if not catalogo:
         raise ValueError("No hay centros en el catálogo: primero cargue el catálogo de establecimientos.")
 
     datos = pd.read_parquet(ruta_urgencias)
-    _exigir_columnas(datos, {**COLUMNAS_URGENCIAS, **{c: c for c in GRUPOS_EDAD_DEIS}}, ruta_urgencias)
-    col = COLUMNAS_URGENCIAS
-    resumen = ResumenConsultas()
-
-    en_catalogo = datos[col["establecimiento"]].isin(centros)
-    resumen.establecimientos_sin_catalogo = int(datos.loc[~en_catalogo, col["establecimiento"]].nunique())
-    datos = datos[en_catalogo].copy()
-
-    claves = {g: clave_causa(g, parametros["ingesta"]["causas"]) for g in datos[col["causa"]].unique()}
-    datos["causa_clave"] = datos[col["causa"]].map(claves)
-    omitidas = Counter(datos.loc[datos["causa_clave"].isna(), col["causa"]])
-    resumen.causas_omitidas = dict(omitidas)
-    datos = datos[datos["causa_clave"].notna()]
-
-    largo = datos.melt(
-        id_vars=[col["establecimiento"], col["anio"], col["semana"], "causa_clave"],
-        value_vars=list(GRUPOS_EDAD_DEIS),
-        var_name="grupo",
-        value_name="cantidad",
-    )
-    filas = [
-        {
-            "centro_id": centros[int(f[col["establecimiento"]])],
-            "anio": int(f[col["anio"]]),
-            "semana": int(f[col["semana"]]),
-            "causa": f["causa_clave"],
-            "grupo_edad": GRUPOS_EDAD_DEIS[f["grupo"]],
-            "cantidad": int(f["cantidad"]),
-        }
-        for f in largo.to_dict("records")
-    ]
-    _insertar_o_actualizar(
-        sesion,
-        ConsultaSemanal,
-        filas,
-        claves=["centro_id", "anio", "semana", "causa", "grupo_edad"],
-        actualizar=["cantidad"],
-    )
-
-    sesion.commit()
-    # RB-4 y RF-1 paso 4: con las consultas nuevas, se vuelve a marcar qué semanas están completas
+    real = "EstablecimientoCodigo" in datos
+    centros = {
+        (c.codigo_deis if real else c.codigo_antiguo): c.id
+        for c in catalogo
+        if (c.codigo_deis if real else c.codigo_antiguo) is not None
+    }
+    normalizadas, metricas = normalizar_consultas(datos, centros, parametros["ingesta"]["causas"])
+    anios = metricas.pop("anios_origen", None)
+    resumen = ResumenConsultas(**metricas)
+    if normalizadas.empty:
+        raise ValueError("El archivo no contiene consultas admitidas de centros del catálogo.")
+    if real and anios:
+        # Sin una tabla de procedencia no es seguro corregir solo un año de una copia histórica.
+        menor, mayor = sesion.execute(
+            select(func.min(ConsultaSemanal.anio), func.max(ConsultaSemanal.anio))
+        ).one()
+        if menor is not None and (anios[0] > menor or anios[1] < mayor):
+            raise ValueError("La recarga real requiere la copia histórica completa, no un recorte anual.")
+    filas = normalizadas.to_dict("records")
     from sart.tareas.semanas_y_umbrales import marcar_semanas  # evita la importación circular
 
-    resumen.ultima_semana_completa = marcar_semanas(sesion)
-
+    try:
+        _insertar_o_actualizar(sesion, ConsultaSemanal, filas, claves=CLAVE, actualizar=["cantidad"])
+        resumen.ultima_semana_completa = marcar_semanas(sesion, confirmar=False)
+        sesion.commit()
+    except Exception:
+        sesion.rollback()
+        raise
     resumen.filas = len(filas)
-    resumen.centros = int(datos[col["establecimiento"]].nunique())
-    resumen.semanas = int(datos.groupby([col["anio"], col["semana"]]).ngroups)
+    resumen.centros = int(normalizadas.centro_id.nunique())
+    resumen.semanas = len(normalizadas[["anio", "semana"]].drop_duplicates())
     return resumen
 
 
@@ -353,6 +344,7 @@ def cargar_sinca(
     return resumen
 
 
+
 def _cargar_open_meteo(
     sesion: Session,
     ruta: Path,
@@ -360,6 +352,7 @@ def _cargar_open_meteo(
     columnas: dict[TipoMedicion, str],
     origen: OrigenMedicion,
     parametros: dict[str, Any] | None,
+    emitido_en: datetime | None = None,
 ) -> ResumenMediciones:
     parametros = parametros or cargar_parametros()
     estacion = _estacion_open_meteo(sesion)
@@ -367,29 +360,77 @@ def _cargar_open_meteo(
     _exigir_columnas(datos, {"fecha": columna_fecha}, Path(ruta))
     momentos = _a_utc(datos[columna_fecha], parametros["zona_horaria"])
     resumen = ResumenMediciones(estaciones=1)
+
     filas = []
+    filas_historico = []
+
+    # Una única fecha de emisión para todos los registros de esta carga.
+    if origen == OrigenMedicion.PRONOSTICO:
+        momento_emision = emitido_en or datetime.now(UTC)
+        if momento_emision.tzinfo is None:
+            raise ValueError("La fecha de emisión del pronóstico debe incluir zona horaria.")
+    else:
+        momento_emision = None
+
     for tipo, columna in columnas.items():
-        if columna not in datos.columns:  # p. ej., Open-Meteo a veces no entrega humedad
+        if columna not in datos.columns:
             continue
+
         for valor, momento in zip(datos[columna], momentos, strict=True):
             if pd.isna(valor) or pd.isna(momento):
                 resumen.sin_dato += 1
                 continue
+
+            fecha_hora = momento.to_pydatetime()
+            valor_float = float(valor)
+            unidad = UNIDAD_POR_TIPO[tipo]
+
             filas.append(
                 {
                     "estacion_id": estacion.id,
-                    "fecha_hora": momento.to_pydatetime(),
+                    "fecha_hora": fecha_hora,
                     "tipo": tipo,
-                    "valor": float(valor),
-                    "unidad": UNIDAD_POR_TIPO[tipo],
+                    "valor": valor_float,
+                    "unidad": unidad,
                     "origen": origen,
                     "calidad": None,
                 }
             )
+
+            if momento_emision is not None:
+                filas_historico.append(
+                    {
+                        "estacion_id": estacion.id,
+                        "fecha_hora": fecha_hora,
+                        "emitido_en": momento_emision,
+                        "tipo": tipo,
+                        "valor": valor_float,
+                        "unidad": unidad,
+                    }
+                )
+
+    # Mantiene el comportamiento anterior: estado actual de las mediciones.
     _guardar_mediciones(sesion, filas)
+
+    # Conserva cada emisión del pronóstico por separado.
+    if filas_historico:
+        _insertar_o_actualizar(
+            sesion,
+            PronosticoAmbiental,
+            filas_historico,
+            claves=[
+                "estacion_id",
+                "tipo",
+                "fecha_hora",
+                "emitido_en",
+            ],
+            actualizar=["valor", "unidad"],
+        )
+
     sesion.commit()
     resumen.filas = len(filas)
     return resumen
+
 
 
 def cargar_clima(sesion: Session, ruta: Path, parametros: dict[str, Any] | None = None) -> ResumenMediciones:
@@ -397,10 +438,20 @@ def cargar_clima(sesion: Session, ruta: Path, parametros: dict[str, Any] | None 
     return _cargar_open_meteo(sesion, ruta, "fecha", COLUMNAS_CLIMA, OrigenMedicion.OBSERVADO, parametros)
 
 
+
 def cargar_pronostico_mp25(
-    sesion: Session, ruta: Path, parametros: dict[str, Any] | None = None
+    sesion: Session,
+    ruta: Path,
+    parametros: dict[str, Any] | None = None,
+    emitido_en: datetime | None = None,
 ) -> ResumenMediciones:
-    """Pronóstico horario de MP2,5 y MP10 de Open-Meteo para los próximos días (RF-4)."""
+    """Carga pronósticos horarios y conserva el histórico de sus emisiones."""
     return _cargar_open_meteo(
-        sesion, ruta, "fecha_hora", COLUMNAS_PRONOSTICO_MP, OrigenMedicion.PRONOSTICO, parametros
+        sesion,
+        ruta,
+        "fecha_hora",
+        COLUMNAS_PRONOSTICO_MP,
+        OrigenMedicion.PRONOSTICO,
+        parametros,
+        emitido_en,
     )

@@ -38,6 +38,9 @@ class CentroPublico(BaseModel):
     nombre: str
     tipo: str
     comuna: str
+    latitud: float | None
+    longitud: float | None
+    estacion_asignada: str
 
 
 class UmbralesUsados(BaseModel):

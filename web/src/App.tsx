@@ -8,6 +8,7 @@ import { useSesion } from './contexto/sesion.tsx'
 import { PantallaAcuse } from './pantallas/Acuse.tsx'
 import { PantallaAdministracion } from './pantallas/Administracion.tsx'
 import { PantallaCentro } from './pantallas/Centro.tsx'
+import { PantallaHistorialAlertas } from './pantallas/HistorialAlertas.tsx'
 import { PantallaInicioSesion } from './pantallas/InicioSesion.tsx'
 import { PantallaMiCentro } from './pantallas/MiCentro.tsx'
 import { PantallaRedCentros } from './pantallas/RedCentros.tsx'
@@ -37,6 +38,10 @@ function App() {
         <Route
           path="red/:codigo"
           element={<RequierePermiso permiso="ver_todos_los_centros"><PantallaCentro /></RequierePermiso>}
+        />
+        <Route
+          path="historial-alertas"
+          element={<RequierePermiso permiso="ver_historial_alertas"><PantallaHistorialAlertas /></RequierePermiso>}
         />
         <Route
           path="administracion"
