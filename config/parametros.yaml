@@ -153,3 +153,27 @@ respaldo:                    # RNF-D-2, TC-14 (RPO 24 h, RTO 2 h)
   tablas_sin_datos:          # fuentes públicas: se vuelven a descargar (RNF-D-2); se respalda solo su estructura
     - consulta_semanal
     - medicion
+
+descarga:
+  timeout_segundos: 300
+  maximo_bytes: 268435456
+  espera_reintento_segundos: 1
+  deis_url: "https://datos.gob.cl/dataset/606ef5bb-11d1-475b-b69f-b980da5757f4/resource/ae6c9887-106d-4e98-8875-40bf2b836041/download/at_urg_respiratorio_semanal.parquet"
+  sinca:
+    desde: "2009-08-12"
+    retraso_dias: 2  # Margen inicial: reproduce el rango hasta 15/11 de la exportación que funcionó el 17/11.
+    # El atraso real de publicación no está medido; este valor es configurable.
+    estaciones:
+      "Kingston College": "https://sinca.mma.gob.cl/cgi-bin/APUB-MMA/apub.tsindico2.cgi?outtype=xcl&macro=./RVIII/827/Cal/PM25//PM25.diario.diario.ic&from=090812&to=261115&path=/usr/airviro/data/CONAMA/&lang=esp&rsrc=&macropath="
+      "Cerro Merquín": "https://sinca.mma.gob.cl/cgi-bin/APUB-MMA/apub.tsindico2.cgi?outtype=xcl&macro=./RVIII/831/Cal/PM25//PM25.diario.diario.ic&from=091007&to=260905&path=/usr/airviro/data/CONAMA/&lang=esp&rsrc=&macropath="
+      "Coronel Norte": "https://sinca.mma.gob.cl/cgi-bin/APUB-MMA/apub.tsindico2.cgi?outtype=xcl&macro=./RVIII/878/Cal/PM25//PM25.diario.diario.ic&from=191130&to=251130&path=/usr/airviro/data/CONAMA/&lang=esp&rsrc=&macropath="
+      "Hualqui": "https://sinca.mma.gob.cl/cgi-bin/APUB-MMA/apub.tsindico2.cgi?outtype=xcl&macro=./RVIII/841/Cal/PM25//PM25.diario.diario.ic&from=161126&to=261115&path=/usr/airviro/data/CONAMA/&lang=esp&rsrc=&macropath="
+      "JUNJI": "https://sinca.mma.gob.cl/cgi-bin/APUB-MMA/apub.tsindico2.cgi?outtype=xcl&macro=./RVIII/804/Cal/PM25//PM25.diario.diario.ic&from=111229&to=260629&path=/usr/airviro/data/CONAMA/&lang=esp&rsrc=&macropath="
+      "Punteras": "https://sinca.mma.gob.cl/cgi-bin/APUB-MMA/apub.tsindico2.cgi?outtype=xcl&macro=./RVIII/854/Cal/PM25//PM25.diario.diario.ic&from=091006&to=260927&path=/usr/airviro/data/CONAMA/&lang=esp&rsrc=&macropath="
+  open_meteo:
+    latitud: -36.83
+    longitud: -73.05
+    retraso_clima_dias: 7
+    dias_pronostico: 5
+    clima_url: "https://archive-api.open-meteo.com/v1/archive"
+    pronostico_url: "https://air-quality-api.open-meteo.com/v1/air-quality"
