@@ -126,7 +126,7 @@ def test_rf2_panel_real_equivalente_al_notebook(archivo_base_real):
     from sqlalchemy import create_engine
 
     referencia = pd.read_parquet(
-        Path(os.environ["SART_DATOS_REALES"]) / "procesados" / "panel_semanal_t1_corregido.parquet"
+        Path(os.environ["SART_DATOS_REALES"]) / "procesados" / "panel_semanal.parquet"
     )
     if "sistema_semanas" in referencia:
         assert referencia.pop("sistema_semanas").eq("CDC").all()
