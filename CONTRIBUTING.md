@@ -46,7 +46,9 @@ Si el puerto 5432 está ocupado, en `.env` usar `POSTGRES_PORT=5433` y `:5433` e
 6. **Pull request a `main`**, con qué hace, qué IDs cubre, cómo se probó y capturas si toca pantallas (GitHub abre
    la plantilla `.github/pull_request_template.md` con esos campos). **Lo revisa
    un compañero** antes de unirlo, y la CI (GitHub Actions) tiene que estar en verde: ruff, pytest con PostgreSQL,
-   cobertura ≥ 70 % en `sart/dominio` y `sart/tareas`, y lint, build y Vitest de la web.
+   cobertura ≥ 70 % en `sart/dominio` y `sart/tareas`, y lint, build y Vitest de la web. `main` está protegida en
+   GitHub: nadie (tampoco el administrador) puede subir directo, el PR necesita la aprobación de otra persona, los
+   commits nuevos piden revisarlo otra vez y la rama tiene que estar al día con `main` antes de unirla.
 7. Al terminar: marcar la tarea en `docs/tareas_equipo.md` y, si implementaste un TC, su estado en
    `docs/estado_tc.md`.
 
