@@ -1,11 +1,20 @@
 """RF-10, TC-19: historial de demanda con datos de prueba del invierno de 2025."""
 
+import re
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from conftest import SECRETO_DE_PRUEBA
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
+from sart.api.app import app
+from sart.api.dependencias import obtener_sesion_db
 from sart.api.tokens import NOMBRE_COOKIE, emitir_token
 from sart.db.modelos import (
     Alerta,
@@ -66,9 +75,8 @@ def _emitir(sesion, centro, umbral, semana, *, nivel="alerta", vigente=True):
     )
 
 
-@pytest.fixture
-def historial(cliente, motor_memoria):
-    with Session(motor_memoria) as sesion:
+def _preparar_historial(motor):
+    with Session(motor) as sesion:
         zona = Zona(nombre="Concepción")
         estacion = Estacion(
             nombre="Estación de prueba", comuna="Concepción", zona=zona, fuente=FuenteEstacion.SINCA
@@ -157,12 +165,17 @@ def historial(cliente, motor_memoria):
                 )
             )
         sesion.commit()
-        tokens = {
+        return {
             nombre: emitir_token(
                 usuario_id=cuenta.id, rol=cuenta.rol, secreto=SECRETO_DE_PRUEBA, duracion=timedelta(minutes=5)
             )
             for nombre, cuenta in cuentas.items()
         }
+
+
+@pytest.fixture
+def historial(cliente, motor_memoria):
+    tokens = _preparar_historial(motor_memoria)
 
     def entrar(nombre):
         cliente.cookies.set(NOMBRE_COOKIE, tokens[nombre])
@@ -249,3 +262,70 @@ def test_rf10_roles_de_red_ven_todos_los_centros(historial, rol):
 )
 def test_rf10_rechaza_filtros_invalidos(historial, filtros):
     assert historial("subdirector").get(RUTA, params=filtros).status_code == 422
+
+
+@pytest.mark.integracion
+def test_tc19_historial_en_postgresql(crear_base_temporal, monkeypatch):
+    """RF-10, TC-19: ejecuta la consulta histórica sobre el esquema migrado de PostgreSQL."""
+    url = crear_base_temporal()
+    destino = make_url(url)
+    nombre = destino.database or ""
+    assert destino.get_backend_name() == "postgresql"
+    assert re.fullmatch(r"sart_prueba_[0-9a-f]{8}", nombre), "Se requiere una base temporal de pytest"
+
+    motor = create_engine(url)
+    try:
+        # Verificar el destino efectivo antes de aplicar migraciones o cargar datos.
+        with motor.connect() as conexion:
+            assert conexion.scalar(text("SELECT current_database()")) == nombre
+
+        config = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
+        config.attributes["url"] = url
+        command.upgrade(config, "head")
+        tokens = _preparar_historial(motor)
+
+        def sesion_de_prueba():
+            with Session(motor) as sesion:
+                yield sesion
+
+        monkeypatch.setenv("DATABASE_URL", url)
+        monkeypatch.setenv("JWT_SECRET", SECRETO_DE_PRUEBA)
+        monkeypatch.setitem(app.dependency_overrides, obtener_sesion_db, sesion_de_prueba)
+
+        with TestClient(app) as api:
+            api.cookies.set(NOMBRE_COOKIE, tokens["subdirector"])
+            respuesta = api.get(
+                RUTA,
+                params={
+                    "codigo_deis": 100001,
+                    "desde": "2025-07-07",  # Dentro de la SE 28: el rango se aplica a semanas objetivo.
+                    "hasta": "2025-07-20",
+                },
+            )
+            assert respuesta.status_code == 200
+            filas = respuesta.json()
+            assert [fila["pronostico"]["semana"] for fila in filas] == [30, 29, 28, 28]
+            assert {fila["centro"]["codigo_deis"] for fila in filas} == {100001}
+            sin_observacion, igualdad, vigente, reemplazada = filas
+            assert sin_observacion["observacion"] == {"consultas": None, "semana_alta": None}
+            assert igualdad["observacion"] == {"consultas": 100, "semana_alta": False}
+            assert vigente["pronostico"]["vigente"] is True
+            assert vigente["pronostico"]["umbral_alerta"] == 200
+            assert vigente["observacion"] == {"consultas": 110, "semana_alta": False}
+            assert reemplazada["pronostico"]["vigente"] is False
+            assert reemplazada["pronostico"]["valor"] == 95
+            assert reemplazada["pronostico"]["umbral_alerta"] == 100
+            assert reemplazada["observacion"] == {"consultas": 110, "semana_alta": True}
+
+            respuesta = api.get(RUTA, params={"codigo_deis": 100002})
+            assert respuesta.status_code == 200
+            (cero,) = respuesta.json()
+            assert cero["observacion"] == {"consultas": 0, "semana_alta": False}
+
+            api.cookies.set(NOMBRE_COOKIE, tokens["jefatura"])
+            respuesta = api.get(RUTA)
+            assert respuesta.status_code == 200
+            assert {fila["centro"]["codigo_deis"] for fila in respuesta.json()} == {100001}
+            assert api.get(RUTA, params={"codigo_deis": 100002}).status_code == 403
+    finally:
+        motor.dispose()
