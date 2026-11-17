@@ -24,6 +24,7 @@ from sart.db.alertas import alertas_por_notificar
 from sart.db.sesion import SinBaseDeDatos, crear_motor
 from sart.parametros import ErrorParametros
 from sart.tareas.semanal import ErrorCorridaSemanal, correr_semanal
+from sart.tareas.notificaciones import notificar_alertas
 from sart.tareas.semanas_y_umbrales import marcar_semanas
 from sart.tareas.ambiental import ErrorCorridaAmbiental, correr_ambiental
 from sart.tareas.precision_pronostico import evaluar_tc12_desde_bd
@@ -62,7 +63,7 @@ def _semanal(fecha: date | None, prueba: bool) -> int:
     try:
         motor = crear_motor()
     except SinBaseDeDatos as error:
-        print(f"No se hizo la corrida semanal: {error}", file=sys.stderr)
+        print(f"No se pudo completar la corrida semanal o el envío RF-5: {error}", file=sys.stderr)
         return 1
     try:
         with Session(motor) as sesion:
@@ -74,13 +75,24 @@ def _semanal(fecha: date | None, prueba: bool) -> int:
                     fecha = corte + timedelta(weeks=1, days=1)  # lunes de la semana pronosticada
                 resumen = correr_semanal(sesion, fecha=fecha)
                 pendientes = alertas_por_notificar(sesion, resumen.anio, resumen.semana)
+                envio = (
+                    notificar_alertas(sesion, pendientes)
+                    if pendientes
+                    else {"correos_enviados": 0, "correos_fallidos": 0, "notificaciones": 0}
+                )
+                sesion.commit()
             except (ErrorCorridaSemanal, ValueError, KeyError, ErrorParametros) as error:
-                print(f"No se hizo la corrida semanal: {error}", file=sys.stderr)
+                print(f"No se pudo completar la corrida semanal o el envío RF-5: {error}", file=sys.stderr)
                 return 1
     finally:
         motor.dispose()
     print(resumen.texto())
     print(f"ALERTA por notificar (RF-5): {len(pendientes)}.")
+    print(
+        f"RF-5: {envio['correos_enviados']} correo(s) enviado(s), "
+        f"{envio['correos_fallidos']} fallido(s), "
+        f"{envio['notificaciones']} notificación(es) registrada(s)."
+    )
     return 0
 
 def _ambiental(fecha: date | None) -> int:

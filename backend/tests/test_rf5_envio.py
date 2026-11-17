@@ -1,7 +1,8 @@
 from datetime import UTC, date, datetime
 
-from sqlalchemy.orm import Session
+import pytest
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from sart.db.destinatarios import destinatarios_de_alerta
 from sart.db.modelos import (
@@ -281,3 +282,193 @@ def test_envio_fallido_realiza_tres_intentos(motor_memoria):
         assert intentos.count("subdirector@test.cl") == 3
         assert resultado["correos_fallidos"] == 2
         assert notificacion.estado == EstadoNotificacion.FALLIDA
+
+
+
+def test_repetir_envio_no_duplica_correo_ni_incluye_datos_de_pacientes(motor_memoria):
+    from sart.db.modelos import Notificacion
+    from sart.tareas.notificaciones import notificar_alertas
+
+    correos = []
+
+    def transporte(destinatario, asunto, cuerpo):
+        correos.append((destinatario, asunto, cuerpo))
+
+    with Session(motor_memoria) as sesion:
+        _, _, centro_a, _, _, _, _ = _crear_estructura(sesion)
+        pronostico = _crear_pronostico(sesion, centro_a)
+        alerta = Alerta(
+            tipo=TipoAlerta.DEMANDA,
+            nivel="alerta",
+            fecha_emision=datetime.now(UTC),
+            mensaje="Paciente: PACIENTE-PRUEBA; RUT: 11.111.111-1",
+            centro_id=centro_a.id,
+            pronostico_id=pronostico.id,
+        )
+        sesion.add(alerta)
+        sesion.flush()
+
+        primer_envio = notificar_alertas(
+            sesion, [alerta], url_base="http://localhost:8000", transportador=transporte
+        )
+        sesion.commit()
+
+        segundo_envio = notificar_alertas(
+            sesion, [alerta], url_base="http://localhost:8000", transportador=transporte
+        )
+        sesion.commit()
+
+        assert primer_envio["correos_enviados"] == 2
+        assert segundo_envio["correos_enviados"] == 0
+        assert len(correos) == 2
+        assert sesion.query(Notificacion).count() == 2
+        for _, _, cuerpo in correos:
+            assert "PACIENTE-PRUEBA" not in cuerpo
+            assert "RUT:" not in cuerpo
+            assert "Ficha clínica" not in cuerpo
+
+
+def test_reintentos_usan_parametro_yaml(motor_memoria, monkeypatch):
+    import sart.tareas.notificaciones as modulo
+
+    monkeypatch.setattr(
+        modulo,
+        "cargar_parametros",
+        lambda: {"notificaciones": {"reintentos_envio": 2}},
+    )
+    intentos = []
+
+    def transporte(destinatario, asunto, cuerpo):
+        intentos.append(destinatario)
+        raise RuntimeError("SMTP no disponible")
+
+    with Session(motor_memoria) as sesion:
+        _, _, centro_a, _, _, _, _ = _crear_estructura(sesion)
+        pronostico = _crear_pronostico(sesion, centro_a)
+        alerta = Alerta(
+            tipo=TipoAlerta.DEMANDA,
+            nivel="alerta",
+            fecha_emision=datetime.now(UTC),
+            mensaje="Paciente: PACIENTE-PRUEBA; RUT: 11.111.111-1",
+            centro_id=centro_a.id,
+            pronostico_id=pronostico.id,
+        )
+        sesion.add(alerta)
+        sesion.flush()
+
+        resultado = modulo.notificar_alertas(
+            sesion, [alerta], url_base="http://localhost:8000", transportador=transporte
+        )
+
+        assert len(intentos) == 4
+        assert intentos.count("jefatura.a@test.cl") == 2
+        assert intentos.count("subdirector@test.cl") == 2
+        assert resultado["correos_fallidos"] == 2
+
+
+def test_transporte_smtp_lee_credenciales_desde_entorno(monkeypatch):
+    import sart.tareas.notificaciones as modulo
+
+    enviados = {}
+
+    class SMTPFalso:
+        def __init__(self, host, puerto, timeout):
+            enviados["conexion"] = (host, puerto, timeout)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def starttls(self):
+            enviados["tls"] = True
+
+        def login(self, usuario, contrasena):
+            enviados["login"] = (usuario, contrasena)
+
+        def send_message(self, mensaje):
+            enviados["mensaje"] = mensaje
+
+    monkeypatch.setenv("SMTP_HOST", "smtp.test.local")
+    monkeypatch.setenv("SMTP_PORT", "2525")
+    monkeypatch.setenv("SMTP_FROM", "sart@test.local")
+    monkeypatch.setenv("SMTP_USER", "usuario-test")
+    monkeypatch.setenv("SMTP_PASSWORD", "clave-test")
+    monkeypatch.setenv("SMTP_STARTTLS", "true")
+    monkeypatch.setattr(modulo.smtplib, "SMTP", SMTPFalso)
+
+    modulo.enviar_correo_smtp("destino@test.local", "Asunto de prueba", "Cuerpo de prueba")
+
+    assert enviados["conexion"] == ("smtp.test.local", 2525, 30)
+    assert enviados["tls"] is True
+    assert enviados["login"] == ("usuario-test", "clave-test")
+    assert enviados["mensaje"]["To"] == "destino@test.local"
+    assert enviados["mensaje"]["From"] == "sart@test.local"
+
+
+
+@pytest.mark.integracion
+def test_smtp_mailpit_de_prueba(monkeypatch):
+    import os
+    import uuid
+
+    host = os.getenv("SMTP_TEST_HOST")
+    if not host:
+        pytest.skip("Configure SMTP_TEST_HOST para probar contra Mailpit")
+    from sart.tareas.notificaciones import enviar_correo_smtp
+
+    monkeypatch.setenv("SMTP_HOST", host)
+    monkeypatch.setenv("SMTP_PORT", os.getenv("SMTP_TEST_PORT", "1025"))
+    monkeypatch.setenv("SMTP_FROM", "sart@localhost")
+    monkeypatch.setenv("SMTP_USER", "")
+    monkeypatch.setenv("SMTP_PASSWORD", "")
+    monkeypatch.setenv("SMTP_STARTTLS", "false")
+    destinatario = os.getenv("SMTP_TEST_TO", "test@localhost")
+    asunto = f"SART prueba SMTP {uuid.uuid4()}"
+    enviar_correo_smtp(destinatario, asunto, "Correo de prueba RF-5, sin datos de pacientes.")
+
+
+
+def test_un_correo_por_usuario_solo_con_sus_centros(motor_memoria):
+    from sart.tareas.notificaciones import notificar_alertas
+
+    correos = []
+
+    def transporte(destinatario, asunto, cuerpo):
+        correos.append((destinatario, cuerpo))
+
+    with Session(motor_memoria) as sesion:
+        _, _, centro_a, centro_b, _, _, _ = _crear_estructura(sesion)
+        pronostico_a = _crear_pronostico(sesion, centro_a)
+        pronostico_b = _crear_pronostico(sesion, centro_b)
+        alertas = [
+            Alerta(
+                tipo=TipoAlerta.DEMANDA,
+                nivel="alerta",
+                fecha_emision=datetime.now(UTC),
+                mensaje="No enviar texto libre",
+                centro_id=centro.id,
+                pronostico_id=pronostico.id,
+            )
+            for centro, pronostico in (
+                (centro_a, pronostico_a),
+                (centro_b, pronostico_b),
+            )
+        ]
+        sesion.add_all(alertas)
+        sesion.flush()
+
+        resultado = notificar_alertas(
+            sesion, alertas, url_base="http://localhost:8000", transportador=transporte
+        )
+
+        por_destinatario = {destinatario: cuerpo for destinatario, cuerpo in correos}
+        assert resultado["correos_enviados"] == 3
+        assert len(correos) == 3
+        assert "Centro: Centro A" in por_destinatario["jefatura.a@test.cl"]
+        assert "Centro: Centro B" not in por_destinatario["jefatura.a@test.cl"]
+        assert "Centro: Centro B" in por_destinatario["jefatura.b@test.cl"]
+        assert "Centro: Centro A" not in por_destinatario["jefatura.b@test.cl"]
+        assert "Centro: Centro A" in por_destinatario["subdirector@test.cl"]
+        assert "Centro: Centro B" in por_destinatario["subdirector@test.cl"]

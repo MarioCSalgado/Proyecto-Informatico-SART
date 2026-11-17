@@ -3,9 +3,7 @@
 
 from __future__ import annotations
 
-import os
 import smtplib
-from collections import defaultdict
 from datetime import UTC, datetime
 from email.message import EmailMessage
 from typing import Callable
@@ -23,7 +21,9 @@ from sart.db.modelos import (
     Usuario,
     Zona,
 )
+from sart.configuracion import obtener_configuracion
 from sart.dominio.valores import EstadoNotificacion, TipoAlerta
+from sart.parametros import cargar_parametros
 
 
 Transportador = Callable[[str, str, str], None]
@@ -31,11 +31,14 @@ Transportador = Callable[[str, str, str], None]
 
 def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo: str) -> None:
     """Envía un correo mediante SMTP. Configuración mediante variables de entorno."""
-    host = os.environ["SMTP_HOST"]
-    puerto = int(os.getenv("SMTP_PORT", "587"))
-    remitente = os.environ["SMTP_FROM"]
-    usuario = os.getenv("SMTP_USER")
-    contrasena = os.getenv("SMTP_PASSWORD")
+    configuracion = obtener_configuracion()
+    host = configuracion.smtp_host
+    remitente = configuracion.smtp_from
+    if not host or not remitente:
+        raise ValueError("Deben configurarse SMTP_HOST y SMTP_FROM en .env")
+    puerto = configuracion.smtp_port
+    usuario = configuracion.smtp_user
+    contrasena = configuracion.smtp_password
 
     mensaje = EmailMessage()
     mensaje["Subject"] = asunto
@@ -44,7 +47,8 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo: str) -> None:
     mensaje.set_content(cuerpo)
 
     with smtplib.SMTP(host, puerto, timeout=30) as servidor:
-        servidor.starttls()
+        if configuracion.smtp_starttls:
+            servidor.starttls()
         if usuario and contrasena:
             servidor.login(usuario, contrasena)
         servidor.send_message(mensaje)
@@ -56,7 +60,6 @@ def _detalle_alerta(sesion: Session, alerta: Alerta) -> list[str]:
         f"Tipo: {alerta.tipo.value}",
         f"Nivel: {alerta.nivel}",
         f"Emitida: {alerta.fecha_emision.isoformat()}",
-        alerta.mensaje,
     ]
 
     if alerta.tipo == TipoAlerta.DEMANDA:
@@ -120,7 +123,7 @@ def notificar_alertas(
     *,
     url_base: str | None = None,
     transportador: Transportador = enviar_correo_smtp,
-    max_intentos: int = 3,
+    max_intentos: int | None = None,
 ) -> dict[str, int]:
     """Agrupa alertas por usuario, envía un correo por usuario y registra cada aviso.
 
@@ -128,10 +131,13 @@ def notificar_alertas(
     Las que ya fueron enviadas o confirmadas no se duplican.
     El llamador es responsable de confirmar la transacción con commit().
     """
+    if max_intentos is None:
+        max_intentos = int(cargar_parametros()["notificaciones"]["reintentos_envio"])
     if max_intentos < 1:
-        raise ValueError("max_intentos debe ser al menos 1")
+        raise ValueError("notificaciones.reintentos_envio debe ser al menos 1")
 
-    base = (url_base or os.getenv("SART_URL_PUBLICA", "")).rstrip("/")
+    configuracion = obtener_configuracion()
+    base = (url_base or configuracion.sart_url_publica or "").rstrip("/")
     if not base:
         raise ValueError("Debe configurarse url_base o SART_URL_PUBLICA")
 
@@ -144,7 +150,7 @@ def notificar_alertas(
             if notificacion is not None:
                 if (
                         notificacion.estado != EstadoNotificacion.FALLIDA
-                        or notificacion.intentos >= 3
+                        or notificacion.intentos >= max_intentos
                 ):
                     continue
             else:
@@ -187,9 +193,9 @@ def notificar_alertas(
         cuerpo = "\n".join(lineas)
 
         exito = False
-        intentos_restantes = min(
-            max(0, max_intentos),
-            max(0, 3 - max(n.intentos for _, n in avisos)),
+        intentos_restantes = max(
+            0,
+            max_intentos - max(n.intentos for _, n in avisos),
         )
 
         for _ in range(intentos_restantes):
