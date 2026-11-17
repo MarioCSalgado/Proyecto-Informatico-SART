@@ -17,7 +17,7 @@ datos (fuentes y modelo), docs.
 | T2 | Descarga automática de DEIS, SINCA y Open-Meteo | RF-1, TC-02, RNF-M-3 | T1 | L | datos, back | Daniel Aburto | Pendiente |
 | T3 | Alerta ambiental diaria (07:00) | RF-4, TC-12 | — | M | back | Joaquín Sandoval | Listo     |
 | T4 | Correo de alerta | RF-5, TC-06 | — | M | back | Joaquín Sandoval | Pendiente |
-| T5 | «Confirmar lectura», reenvío y escalamiento | RF-15, RB-2, TC-06 · #34 | T4 | L | back, front | Juan Carvajal | En curso: acuse listo; falta reenvío y escalamiento (espera T4) |
+| T5 | «Confirmar lectura», reenvío y escalamiento | RF-15, RB-2, TC-06 · #34 | T4 | L | back, front | Juan Carvajal | Hecha (17/11): acuse, reenvío y escalamiento con el correo de T4 |
 | T6 | Administración de cuentas y centros desde la web | RF-9, RF-16, TC-09, TC-16 | — | L | back, front | Juan Carvajal | Hecha (16/11) |
 | T7 | Umbrales y parámetros desde la web | RF-9, RB-3, TC-17 | T6 | M | back, front | Jocabed López | Pendiente |
 | T8 | Historial de alertas | RF-10, TC-19 | — | M | back, front | Jocabed López | En curso: historial probado con datos controlados; falta el backtest real |
@@ -75,6 +75,9 @@ datos (fuentes y modelo), docs.
 - **Avance (16/11):** hechos `GET /acuse/<token>`, `POST /acuse/<token>/confirmar` y la página (`web/src/pantallas/Acuse.tsx`),
   con sesión obligatoria (#34, opción recomendada, provisoria: pendientes #50), y la regla `paso_rb2` en
   `sart/dominio/acuse.py`. Falta la tarea que reenvía y escala usando `paso_rb2` y el envío de T4.
+- **Avance (17/11):** `python -m sart.tareas seguimiento` (`sart/tareas/seguimiento.py`) aplica `paso_rb2` con el
+  correo de T4: reenvía a la jefatura a las 24 h, escala al Subdirector a las 48 h y avisa al administrador de
+  las fallidas (RF-15 E2). TC-06 completo (`test_tc06_reenvio_escalamiento.py`). Decisiones en pendientes #53 y #54.
 
 ### T6 · Administración de cuentas y centros desde la web (RF-9, RF-16, TC-09, TC-16)
 - **Qué hacer:** API para listar, crear (con la aceptación de la finalidad), dar de baja y asignar centros, solo
@@ -128,6 +131,9 @@ datos (fuentes y modelo), docs.
 - **Avance (16/11):** `sart/dominio/boletin.py` arma las filas desde `estado_de_centros`, el texto para el LLM y la
   revisión de cifras y niveles, con plantilla de respaldo (pendientes #52). TC-18 pasa con un LLM de prueba. Falta
   elegir el proveedor (#12) y mandar el boletín con el correo de T4.
+- **Avance (17/11):** `python -m sart.tareas boletin` (`sart/tareas/boletin.py`) lo manda por correo: cada jefatura
+  con sus centros y el Subdirector con la red, una vez por semana (`test_tc18_boletin_envio.py`, pendientes #55).
+  Sigue faltando elegir el proveedor (#12): mientras tanto sale la plantilla.
 
 ### T13 · Pruebas de carga y de uso (TC-08, TC-10)
 - **Qué hacer:** TC-08 (70 usuarios en 5 minutos, p95 ≤ 2 s; Lighthouse móvil con 4G) y TC-10 (3 a 5 personas,

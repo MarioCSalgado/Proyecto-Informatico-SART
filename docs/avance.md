@@ -31,8 +31,8 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
 | Web | Inicio de sesión (con el código MFA), encabezado por rol, permisos y rutas; Mi centro y Red de centros adaptables de 390 px a 1440 px; mapa Leaflet de la red con OpenStreetMap, nivel rotulado y estación asignada; el mapa usa las coordenadas y centros visibles que entrega RF-7, sin cantidad fija | RF-7, RF-12, TC-20, RNF-U-1, RNF-S-2 | `web/src/` |
 | Estado de los centros | Mi centro con el pronóstico, su rango, el nivel, el gráfico de 12 semanas (o tabla), la dotación guardada y el MP2,5 de la zona (RB-5); Red de centros con conteos, filtros, mapa sincronizado con los filtros, tabla ordenada por nivel y calendario de calor; detalle de un centro en `/red/<código>`; avisos de datos antiguos y de pronóstico desactualizado | RF-7, RF-6, RF-12, RB-5, TC-20, RNF-U-1 | `web/src/pantallas/`, `web/src/componentes/MapaCentros.tsx`, `DetalleCentro.tsx`, `GraficoConsultas.tsx` |
 | Administración de cuentas | Pestaña «Usuarios»: lista de cuentas, alta con el texto de la finalidad y su aceptación, centros de cada jefatura y baja; solo el administrador; todo en la auditoría sin nombre ni correo | RF-9, RF-16, TC-09, TC-16 | `sart/api/administracion.py`, `web/src/pantallas/UsuariosAdministracion.tsx` (T6, pendientes #51) |
-| Acuse | Página `/acuse/<token>` con «Confirmar lectura» (abrir no registra nada; una sola vez; exige sesión y solo el destinatario) y la regla de reenvío a las 24 h y escalamiento a las 48 h; el envío espera el correo (T4) | RF-15, RB-2, TC-06 | `sart/api/acuse.py`, `sart/dominio/acuse.py`, `web/src/pantallas/Acuse.tsx` (T5, pendientes #50) |
-| Boletín del LLM | Texto para el LLM solo con cifras agregadas, revisión de cifras y niveles, plantilla de respaldo; sin proveedor todavía | RF-8, TC-18 | `sart/dominio/boletin.py` (T12, pendientes #52) |
+| Acuse | Página `/acuse/<token>` con «Confirmar lectura» (abrir no registra nada; una sola vez; exige sesión y solo el destinatario) y el seguimiento de RB-2 con el correo de RF-5: reenvío a las 24 h, aviso al Subdirector a las 48 h y aviso al administrador de las fallidas | RF-15, RB-2, TC-06 | `sart/api/acuse.py`, `sart/dominio/acuse.py`, `web/src/pantallas/Acuse.tsx`, `python -m sart.tareas seguimiento` (T5, pendientes #50, #53, #54) |
+| Boletín del LLM | Texto para el LLM solo con cifras agregadas, revisión de cifras y niveles, plantilla de respaldo; envío por correo a cada jefatura (sus centros) y al Subdirector (la red), una vez por semana; sin proveedor todavía | RF-8, TC-18 | `sart/dominio/boletin.py`, `python -m sart.tareas boletin` (T12, pendientes #52, #55) |
 | Sistema de diseño | Colores, tipografía (Figtree + Noto Sans), formas y componentes de SART; tokens en `App.scss` y tema de MUI con los mismos valores; contrastes AA verificados; niveles con texto e ícono SVG | RNF-U-1 | `DESIGN.md`, `web/src/tema.ts` |
 
 ### Cifras verificadas
@@ -42,6 +42,8 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
   sesión (~35 s). Cobertura de `sart/dominio` + `sart/tareas`: **97 %** (RNF-M-1 pide ≥ 70 %). Ruff: 0 errores.
 - 16/11 (T5, T6, T12), sin PostgreSQL: **374 pasan y 12 se saltan** (las de integración); cobertura de
   `sart/dominio` + `sart/tareas` **95 %**. Falta correrlas con PostgreSQL.
+- 17/11 (T3, T4, T5, T6, T7 y T12 juntos), con PostgreSQL y `datos/`: **449 pasan y 1 se salta** (la de Mailpit);
+  cobertura de `sart/dominio` + `sart/tareas` **93 %**; ruff 0 errores. Web: **59 pruebas**, lint y build sin errores.
 - Web: **51 pruebas** con Vitest, lint y build sin errores (16/11).
 - Web: **49 pruebas** con Vitest, lint y build sin errores.
 - Mapa (TC-20): prueba con 33 centros verifica ubicación, nivel y estación; validación visual en 390 px con la
@@ -64,7 +66,6 @@ La corrida semanal guarda pronósticos, niveles, alertas y dotación (parte 8), 
 | Cargar el archivo **real** del DEIS: `cargar_consultas` solo entiende el formato de `datos/prueba` (pendientes #45); hasta entonces la corrida semanal solo se prueba con datos sintéticos | RF-1, TC-02 |
 | Descarga automática de DEIS, SINCA y Open-Meteo, con aviso si una fuente falla | RF-1, TC-02 |
 | Alerta ambiental diaria a las 07:00 | RF-4, TC-12 |
-| Correo de alerta (sale de `alertas_por_notificar`); con él, el reenvío a las 24 h y el escalamiento a las 48 h (la regla `paso_rb2` y «Confirmar lectura» ya están) | RF-5, RF-15, RB-2, TC-06 |
 | Administración desde la web: umbrales y parámetros (las cuentas y sus centros ya están) | RF-9 |
 | Historial de alertas | RF-10, TC-19 |
 | Exportación CSV | RF-11, TC-15 |

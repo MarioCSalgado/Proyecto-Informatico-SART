@@ -164,3 +164,13 @@ T1: se corrigió la clasificación de las atenciones COVID y la distribución
 de consultas entre semanas que cruzan el año, conservando el total y
 evitando cantidades decimales. La justificación y las validaciones
 se detallan en la PR de T1.
+## Respaldo de T5 y T12 con el correo de T4 (17/11)
+
+Reenvío, escalamiento y envío del boletín, armados sobre el correo de RF-5 (T4). Falta el visto bueno del
+equipo:
+
+| # | Sección (dueño) | Qué hace el código | Qué falta en el informe |
+|---|---|---|---|
+| 53 | §3.2 RF-15, §6 RB-2 | **Solo se reenvía y escala lo enviado a una jefatura** (RB-2 dice «cada alerta enviada a una jefatura»): la copia que recibe el Subdirector no se reenvía ni se escala. Los plazos se cuentan desde el envío original (`fecha_envio` no cambia al reenviar). El reenvío lleva el mismo enlace de acuse. El aviso al Subdirector es un correo por corrida con todas las alertas que cumplieron 48 h, con el centro o la zona, el nivel, la hora de emisión y el nombre de la jefatura. Si no hay ninguna cuenta de Subdirector, la notificación no se marca «escalada» y se vuelve a intentar en la corrida siguiente. Si la tarea no corrió a las 24 h, a las 48 h se escala sin reenviar antes. `python -m sart.tareas seguimiento` está pensada para correr cada hora (T11). | Confirmar en RF-15 que el Subdirector no se escala a sí mismo y que el aviso agrupa las alertas. |
+| 54 | §3.2 RF-15 E2 | **Aviso al administrador de las fallidas:** una notificación «fallida» que agotó `notificaciones.reintentos_envio` no se reenvía ni se escala; se manda un correo a los administradores con el centro o la zona, el nivel y la cuenta (nombre y correo, para que revise la dirección), una sola vez por notificación (queda en la auditoría como `avisar_fallida_administrador`). | Nada nuevo; decir que el aviso es por correo. |
+| 55 | §3.2 RF-8 | **A quién llega el boletín:** cada jefatura recibe el de sus centros y el Subdirector el de toda la red, los mismos que ve en RF-7; el administrador no lo recibe. No entran los centros con el pronóstico desactualizado (RF-3 E2). Un boletín por usuario y semana (la auditoría guarda solo el id, la semana y el origen del texto). El saludo con el nombre se agrega después de redactar: el nombre no va al LLM. Si dos usuarios tienen los mismos centros, se llama una sola vez al LLM. `python -m sart.tareas boletin` corre antes de las 08:00 (T11). | Escribir en RF-8 los destinatarios y que la jefatura solo ve sus centros. |
