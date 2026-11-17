@@ -39,6 +39,11 @@ def semanas_de_la_ventana(anios_umbral: int) -> int:
     return SEMANAS_POR_ANIO * int(anios_umbral)
 
 
+def validar_cuantiles(cuantil_atencion: float, cuantil_alerta: float) -> None:
+    if not 0 < cuantil_atencion <= cuantil_alerta < 1:
+        raise ValueError("Los cuantiles deben cumplir 0 < atención ≤ alerta < 1.")
+
+
 def calcular_umbrales(
     series: dict[int, dict[date, float]],
     *,
@@ -51,8 +56,7 @@ def calcular_umbrales(
     semanas_invalidas: Collection[date] = (),
 ) -> dict[int, UmbralCalculado]:
     """{centro: umbral} a partir de ``series`` = {centro: {inicio de semana: consultas respiratorias}}."""
-    if not 0 < cuantil_atencion <= cuantil_alerta < 1:
-        raise ValueError("Los cuantiles deben cumplir 0 < atención ≤ alerta < 1.")
+    validar_cuantiles(cuantil_atencion, cuantil_alerta)
     excluidos, invalidas = set(anios_excluidos), set(semanas_invalidas)
     resultado: dict[int, UmbralCalculado] = {}
     for centro, serie in series.items():

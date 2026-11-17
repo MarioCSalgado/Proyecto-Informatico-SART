@@ -10,6 +10,12 @@ import copy
 import math
 from typing import Any
 
+from sart.dominio.alerta_demanda import pronostico_con_margen
+from sart.dominio.umbrales import validar_cuantiles
+
+# PostgreSQL devuelve un bigint al sumar las cantidades enteras de consulta_semanal.
+MAX_CONTEO_SEMANAL = 2**63 - 1
+
 
 class ErrorAjuste(ValueError):
     """El ajuste no se puede guardar. El mensaje se puede mostrar al administrador."""
@@ -41,6 +47,37 @@ def _es_numero(valor: Any) -> bool:
     return isinstance(valor, int | float) and not isinstance(valor, bool)
 
 
+def _validar_numero(vigentes: dict[str, Any], clave: str, valor: int | float) -> int | float:
+    if clave == "regla_alerta.k_margen":
+        try:
+            pronostico_con_margen(
+                0, MAX_CONTEO_SEMANAL, k=valor, nivel_intervalo=vigentes["modelo"]["nivel_intervalo"]
+            )
+        except ValueError as error:
+            raise ErrorAjuste("k debe permitir calcular un pronóstico con margen finito.") from error
+
+    if clave == "umbrales.anios_umbral":
+        if valor < 1 or valor != int(valor):
+            raise ErrorAjuste("La ventana de umbrales debe ser un número entero de años mayor que cero.")
+        return int(valor)
+
+    if clave.startswith("umbrales.cuantil_"):
+        umbrales = {**vigentes["umbrales"], clave.rsplit(".", 1)[-1]: valor}
+        try:
+            validar_cuantiles(umbrales["cuantil_atencion"], umbrales["cuantil_alerta"])
+        except ValueError as error:
+            raise ErrorAjuste(str(error)) from None
+
+    if clave.startswith("dotacion.") and valor == 0:
+        raise ErrorAjuste(f"«{clave}» debe ser mayor que cero.")
+
+    if clave in {"notificaciones.reenvio_horas", "notificaciones.escalamiento_horas"}:
+        plazos = {**vigentes["notificaciones"], clave.rsplit(".", 1)[-1]: valor}
+        if not 0 < plazos["reenvio_horas"] < plazos["escalamiento_horas"]:
+            raise ErrorAjuste("El reenvío debe ser posterior al envío y anterior al escalamiento.")
+    return valor
+
+
 def validar_ajuste(base: dict[str, Any], clave: str, valor: Any, editables: list[str]) -> Any:
     """Devuelve el valor si se puede guardar; si no, lanza ``ErrorAjuste`` con el motivo."""
     if clave not in editables:
@@ -55,7 +92,7 @@ def validar_ajuste(base: dict[str, Any], clave: str, valor: Any, editables: list
             raise ErrorAjuste(f"«{clave}» debe ser un número.")
         if valor < 0:
             raise ErrorAjuste(f"«{clave}» no puede ser negativo.")
-        return valor
+        return _validar_numero(base, clave, valor)
     if type(valor) is not type(actual):
         raise ErrorAjuste(f"«{clave}» debe ser del mismo tipo que en config/parametros.yaml.")
     return valor
