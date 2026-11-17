@@ -257,6 +257,48 @@ class Medicion(Base):
     )
     calidad: Mapped[CalidadDato | None] = mapped_column(_enum(CalidadDato, "calidad_dato", 12))
 
+class PronosticoAmbiental(Base):
+    __tablename__ = "pronostico_ambiental"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "estacion_id",
+            "tipo",
+            "fecha_hora",
+            "emitido_en",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    estacion_id: Mapped[int] = mapped_column(
+        ForeignKey("estacion.id"),
+        nullable = False,
+    )
+
+    # Fecha/hora a la que corresponde el valor pronosticado.
+    fecha_hora: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    # Momento en que este pronóstico fue cargado/emitido.
+    emitido_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    tipo: Mapped[TipoMedicion] = mapped_column(
+        _enum(TipoMedicion, "tipo_medicion", 20),
+        nullable=False,
+    )
+
+    valor: Mapped[float] = mapped_column(Float, nullable=False)
+
+    unidad: Mapped[str] = mapped_column(String(10), nullable=False)
+
+    estacion: Mapped[Estacion] = relationship()
+
 
 # ---------------------------------------------------------------------------
 # Salidas: pronósticos, alertas y notificaciones (RF-2 a RF-5, RF-15)
@@ -352,11 +394,19 @@ class Alerta(Base):
     __tablename__ = "alerta"
     __table_args__ = (
         CheckConstraint(
-            f"(tipo = 'demanda' AND centro_id IS NOT NULL AND pronostico_id IS NOT NULL AND zona_id IS NULL"
-            f" AND nivel IN ({_en(NIVELES_DEMANDA)}))"
-            f" OR (tipo = 'ambiental' AND zona_id IS NOT NULL AND centro_id IS NULL"
-            f" AND dia_pronosticado IS NOT NULL AND valor_mp25 IS NOT NULL AND valor_mp25 >= 0"
-            f" AND nivel IN ({_en(NIVELES_AMBIENTALES)}))",
+            f"(tipo = 'demanda' AND centro_id IS NOT NULL "
+            f"AND pronostico_id IS NOT NULL AND zona_id IS NULL "
+            f"AND fuente_ambiental IS NULL AND dia_pronosticado IS NULL "
+            f"AND dia_observado IS NULL AND nivel IN ({_en(NIVELES_DEMANDA)}))"
+            f" OR "
+            f"(tipo = 'ambiental' AND zona_id IS NOT NULL "
+            f"AND centro_id IS NULL AND pronostico_id IS NULL "
+            f"AND valor_mp25 IS NOT NULL AND valor_mp25 >= 0 "
+            f"AND nivel IN ({_en(NIVELES_AMBIENTALES)}) "
+            f"AND ((fuente_ambiental = 'pronostico' "
+            f"AND dia_pronosticado IS NOT NULL AND dia_observado IS NULL) "
+            f"OR (fuente_ambiental = 'sinca' "
+            f"AND dia_observado IS NOT NULL AND dia_pronosticado IS NULL)))",
             name="segun_tipo",
         ),
     )
@@ -373,6 +423,8 @@ class Alerta(Base):
     zona_id: Mapped[int | None] = mapped_column(ForeignKey("zona.id"), index=True)
     dia_pronosticado: Mapped[date | None] = mapped_column(Date)
     valor_mp25: Mapped[float | None] = mapped_column(Float)
+    fuente_ambiental: Mapped[str | None] = mapped_column(String(12))
+    dia_observado: Mapped[date | None] = mapped_column(Date)
 
 
 class Notificacion(Base):
@@ -398,6 +450,12 @@ class Notificacion(Base):
     usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuario.id", ondelete="SET NULL"), index=True)
     estado: Mapped[EstadoNotificacion] = mapped_column(_enum(EstadoNotificacion, "estado_notificacion", 12))
     fecha_envio: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    intentos: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default=text("0"),
+    )
     fecha_confirmacion: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # RB-2: reenvío a las 24 h sin acuse y escalamiento al Subdirector a las 48 h (plazos en parametros.yaml)
     fecha_reenvio: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
