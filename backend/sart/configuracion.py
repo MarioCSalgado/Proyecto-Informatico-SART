@@ -24,6 +24,14 @@ class Configuracion(BaseSettings):
     database_url: str | None = None
     jwt_secret: str | None = None
     sart_parametros: Path | None = None
+    # Correo transaccional RF-5; se carga desde el entorno o el archivo .env.
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_from: str | None = None
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_starttls: bool = True
+    sart_url_publica: str | None = None
     # Cookie de sesión solo por HTTPS (RNF-S-3). Poner COOKIE_SEGURA=false solo en desarrollo local.
     cookie_segura: bool = True
     # Código MFA fijo para probar en local (pendientes #49). Solo vale con COOKIE_SEGURA=false: ver

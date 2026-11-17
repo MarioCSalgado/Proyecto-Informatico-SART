@@ -112,6 +112,8 @@ def test_restricciones_de_notificacion_escritas_a_mano(url_base_temporal):
                 zona_id=zona.id,
                 dia_pronosticado=datetime.now(UTC).date(),
                 valor_mp25=85.0,
+                fuente_ambiental="pronostico",
+                dia_observado=None,
             )
             sesion.add(alerta)
             sesion.commit()

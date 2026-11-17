@@ -23,6 +23,9 @@ from sqlalchemy.orm import Session
 from sart.db.alertas import alertas_por_notificar
 from sart.db.sesion import SinBaseDeDatos, crear_motor
 from sart.parametros import ErrorParametros
+from sart.tareas.ambiental import ErrorCorridaAmbiental, correr_ambiental
+from sart.tareas.notificaciones import notificar_alertas
+from sart.tareas.precision_pronostico import evaluar_tc12_desde_bd
 from sart.tareas.semanal import ErrorCorridaSemanal, correr_semanal
 from sart.tareas.semanas_y_umbrales import marcar_semanas
 
@@ -31,6 +34,21 @@ def _argumentos(argv: list[str] | None) -> argparse.Namespace:
     analizador = argparse.ArgumentParser(prog="python -m sart.tareas", description="Corridas programadas.")
     tareas = analizador.add_subparsers(dest="tarea", required=True)
     semanal = tareas.add_parser("semanal", help="pronóstico, nivel y dotación (RF-2, RF-3, RF-6)")
+    ambiental = tareas.add_parser(
+        "ambiental",
+        help = "alerta ambiental diaria de MP2,5 (RF-4)"
+    )
+    ambiental.add_argument(
+        "--fecha",
+        type = date.fromisoformat,
+        help = "primer día que se evaluará (AAAA-MM-DD); por defecto, mañana",
+    )
+
+    tareas.add_parser(
+        "tc12",
+        help="evalúa la sensibilidad del pronóstico ambiental (TC-12)",
+    )
+
     cuando = semanal.add_mutually_exclusive_group()
     cuando.add_argument("--fecha", type=date.fromisoformat, help="día de la corrida AAAA-MM-DD (o: hoy)")
     cuando.add_argument(
@@ -45,7 +63,7 @@ def _semanal(fecha: date | None, prueba: bool) -> int:
     try:
         motor = crear_motor()
     except SinBaseDeDatos as error:
-        print(f"No se hizo la corrida semanal: {error}", file=sys.stderr)
+        print(f"No se pudo completar la corrida semanal o el envío RF-5: {error}", file=sys.stderr)
         return 1
     try:
         with Session(motor) as sesion:
@@ -57,20 +75,103 @@ def _semanal(fecha: date | None, prueba: bool) -> int:
                     fecha = corte + timedelta(weeks=1, days=1)  # lunes de la semana pronosticada
                 resumen = correr_semanal(sesion, fecha=fecha)
                 pendientes = alertas_por_notificar(sesion, resumen.anio, resumen.semana)
+                envio = (
+                    notificar_alertas(sesion, pendientes)
+                    if pendientes
+                    else {"correos_enviados": 0, "correos_fallidos": 0, "notificaciones": 0}
+                )
+                sesion.commit()
             except (ErrorCorridaSemanal, ValueError, KeyError, ErrorParametros) as error:
-                print(f"No se hizo la corrida semanal: {error}", file=sys.stderr)
+                print(f"No se pudo completar la corrida semanal o el envío RF-5: {error}", file=sys.stderr)
                 return 1
     finally:
         motor.dispose()
     print(resumen.texto())
     print(f"ALERTA por notificar (RF-5): {len(pendientes)}.")
+    print(
+        f"RF-5: {envio['correos_enviados']} correo(s) enviado(s), "
+        f"{envio['correos_fallidos']} fallido(s), "
+        f"{envio['notificaciones']} notificación(es) registrada(s)."
+    )
     return 0
 
+def _ambiental(fecha: date | None) -> int:
+    try:
+        motor = crear_motor()
+    except SinBaseDeDatos as error:
+        print(f"No se hizo la corrida ambiental: {error}", file = sys.stderr)
+        return 1
+
+    try:
+        with Session(motor) as session:
+            try:
+                resumen = correr_ambiental(session, fecha = fecha)
+            except (
+                ErrorCorridaAmbiental,
+                ValueError,
+                KeyError,
+                ErrorParametros,
+            ) as error:
+                print(f"No se hizo la corrida ambiental: {error}", file = sys.stderr)
+                return 1
+    finally:
+        motor.dispose()
+
+    print(resumen.texto())
+    return 0
+
+def _tc12() -> int:
+    try:
+        motor = crear_motor()
+    except SinBaseDeDatos as error:
+        print(f"No se pudo evaluar TC-12: {error}", file=sys.stderr)
+        return 1
+
+    try:
+        with Session(motor) as sesion:
+            resultado = evaluar_tc12_desde_bd(
+                sesion,
+                zona_horaria="America/Santiago",
+            )
+    except (ValueError, KeyError) as error:
+        print(f"No se pudo evaluar TC-12: {error}", file=sys.stderr)
+        return 1
+    finally:
+        motor.dispose()
+
+    print("Evaluación TC-12: sensibilidad del pronóstico ambiental")
+    print(f"Días observados: {resultado.dias_evaluados}")
+    print(
+        "Días observados sobre 50 µg/m³: "
+        f"{resultado.dias_observados_sobre_umbral}"
+    )
+    print(f"Días sin pronóstico válido: {resultado.dias_sin_pronostico}")
+    print(f"Verdaderos positivos: {resultado.verdaderos_positivos}")
+    print(f"Falsos negativos: {resultado.falsos_negativos}")
+
+    sensibilidad = resultado.sensibilidad
+    if sensibilidad is None:
+        print("Sensibilidad: no calculable")
+    else:
+        print(f"Sensibilidad: {sensibilidad:.3f}")
+
+    print(
+        "Cumple sensibilidad ≥ 0,50: "
+        f"{'SÍ' if resultado.cumple else 'NO'}"
+    )
+
+    return 0
 
 def main(argv: list[str] | None = None) -> int:
     args = _argumentos(argv)
+
     if args.tarea == "semanal":
         return _semanal(args.fecha, args.prueba)
+    if args.tarea == "ambiental":
+        return _ambiental(args.fecha)
+    if args.tarea == "tc12":
+        return _tc12()
+
     return 1  # pragma: no cover (argparse exige una tarea)
 
 

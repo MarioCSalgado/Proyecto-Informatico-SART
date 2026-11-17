@@ -1,4 +1,5 @@
 import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined'
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined'
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined'
 import type { ReactNode } from 'react'
@@ -11,6 +12,7 @@ import { IconoPulso, Logo } from './Logo.tsx'
 const ICONOS: Record<Seccion['icono'], ReactNode> = {
   pulso: <IconoPulso className="encabezado__icono" />,
   red: <ApartmentOutlinedIcon className="encabezado__icono" aria-hidden="true" />,
+  historial: <HistoryOutlinedIcon className="encabezado__icono" aria-hidden="true" />,
   ajustes: <TuneOutlinedIcon className="encabezado__icono" aria-hidden="true" />,
 }
 
