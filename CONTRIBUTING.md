@@ -43,7 +43,8 @@ Si el puerto 5432 está ocupado, en `.env` usar `POSTGRES_PORT=5433` y `:5433` e
    cd backend && .venv/Scripts/python -m ruff check . && .venv/Scripts/python -m pytest
    cd web && npm run lint && npm run build && npx vitest run
    ```
-6. **Pull request a `main`**, con qué hace, qué IDs cubre, cómo se probó y capturas si toca pantallas. **Lo revisa
+6. **Pull request a `main`**, con qué hace, qué IDs cubre, cómo se probó y capturas si toca pantallas (GitHub abre
+   la plantilla `.github/pull_request_template.md` con esos campos). **Lo revisa
    un compañero** antes de unirlo, y la CI (GitHub Actions) tiene que estar en verde: ruff, pytest con PostgreSQL,
    cobertura ≥ 70 % en `sart/dominio` y `sart/tareas`, y lint, build y Vitest de la web.
 7. Al terminar: marcar la tarea en `docs/tareas_equipo.md` y, si implementaste un TC, su estado en
