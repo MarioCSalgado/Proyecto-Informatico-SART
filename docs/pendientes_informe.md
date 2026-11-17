@@ -185,3 +185,23 @@ equipo:
 | # | Sección (dueño) | Qué hace el código | Qué falta en el informe |
 |---|---|---|---|
 | 57 | §2.6, §4 RNF-P-1, RNF-P-2, §9.3 | **Supuestos nuevos en `horarios`:** `dia_semanal: lunes`, `boletin: "07:30"` (después del pronóstico de las 06:00 y antes de `boletin_limite`) y `seguimiento_cada_minutos: 60` (RB-2). El planificador es un proceso propio (`python -m sart.planificador`) que cada minuto corre lo que toca, cada tarea con `python -m …`; si estuvo detenido no pone al día lo perdido. **Reparto de recursos** (suma 2,0 vCPU y 3,9 GB): base 0,75 vCPU y 1 GB, API 0,5 y 768 MB, planificador 0,6 y 2 GB (la corrida semanal es lo más pesado), web 0,15 y 128 MB. La web es estática con nginx, que reenvía `/api` a la API (mismo origen para la cookie). El respaldo corre desde el planificador con el `pg_dump` 17 de la imagen (respalda la base 16). | Agregar al despliegue (§9) el planificador como contenedor, los horarios nuevos y el reparto de recursos; confirmar la hora del boletín. |
+
+## T14 · Propuesta para cerrar las decisiones abiertas (17/11), por confirmar con el equipo
+
+Cada fila dice qué hace hoy el código y la opción que se propone. **No están decididas:** se confirman en una
+reunión corta del equipo y, al confirmarlas, se pasa cada una a su sección del informe y se marca T14 «Hecha».
+
+| # | Pregunta | Qué hace hoy el código | Propuesta | Por qué |
+|---|---|---|---|---|
+| 34 | ¿La página de acuse exige iniciar sesión? | Sí (#50): solo el destinatario confirma; abrir no registra nada | **Exigir sesión** (como está) | Un filtro de correo o un reenvío no puede confirmar por la jefatura; el acuse identifica a quien leyó (RB-2) |
+| 18 y 24 | ¿Desactivar una cuenta sin borrarla? | La baja borra la cuenta; sus notificaciones quedan sin usuario (RF-16 E2) | **No agregar «desactivada»**: en una licencia se asigna el centro al reemplazante y la cuenta se da de baja o se mantiene | Menos datos personales guardados (§5.3, Ley 19.628 y 21.719) y una regla menos que probar |
+| 22 | ¿Tarjeta «Virus circulando (ISP)»? | No está en la web (prueba en `pantallas.test.tsx`) | **Sacarla del diseño** | No hay fuente del ISP ni un RF que la use; la señal viral ya entra al modelo desde el DEIS (#26) |
+| 38 | ¿Dónde se copian los respaldos y quién lo revisa? | Respaldo diario a las 04:30 en `respaldos/` (14 copias), desde el planificador (T11) | **Copia diaria a un almacenamiento del Servicio fuera del servidor, cifrada; el administrador revisa cada lunes que la última copia exista** y se hace un simulacro de restauración al mes (TC-14) | RNF-D-2 pide RPO 24 h: si se pierde el servidor, la copia local se pierde con él |
+| 40 | ¿Horas de funcionamiento de un SUR? | `dotacion.horas_funcionamiento_semana.SUR: null`: el SUR queda sin dotación sugerida | **Dejarlo así hasta confirmarlo en la entrevista** (Anexo A, pregunta 7) y mostrar «sin horario definido» | Inventar un horario daría una dotación sin respaldo; el valor se carga desde la web cuando se sepa (RF-9) |
+| 42 | ¿RF-2 E2 («último valor medido») cubre MP2,5 y clima? | La corrida usa `solo_rezagos` (opción C); con `con_pronostico` falla con un mensaje claro | **Sí, cubre los dos**, y se implementa junto con `con_pronostico` cuando se valide | Es la lectura directa de RB-4 y RF-2 E2; con `solo_rezagos` no se necesita todavía |
+
+## Integración del 17/11
+
+| # | Sección (dueño) | Qué hace el código | Qué falta en el informe |
+|---|---|---|---|
+| 58 | §2.7 CI-1, §3.2 RF-1, RF-2 | **El panel real del sistema no es idéntico al del notebook** (`test_rf2_panel_real_equivalente_al_notebook`, opcional con `SART_DATOS_REALES`): las consultas difieren solo en las semanas que cruzan el año, por el reparto en enteros (máximo 5,75 consultas, mismo total); la **señal viral** suma 641.004 en el sistema y 120.408 en el notebook, por la nueva clasificación de COVID de T1. Con el panel del sistema el backtest 2024–2026 da WAPE 14,89 %, precisión 0,717 y sensibilidad 0,653 con k = 0,4, y cobertura 91,0 %: sigue cumpliendo RNF-Q-1 a Q-3, pero la precisión queda a 0,017 del mínimo. | Decidir con Daniel cuál clasificación de COVID es la correcta; si se acepta la del sistema, regenerar `panel_semanal.parquet` con ella y actualizar las cifras del backtest en el informe (§2.7) y en la prueba de regresión. |
