@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
 from sqlalchemy.orm import Session
 
 from sart.db.auditoria import registrar_auditoria
@@ -34,8 +34,12 @@ def ajustar_parametro(
     if not motivo:
         raise ErrorAjuste("El motivo del cambio es obligatorio.")
     base = cargar_parametros()
-    valor = validar_ajuste(base, clave, valor, base["administracion"]["parametros_editables"])
-    anterior = valor_en(parametros_vigentes(sesion, base), clave)
+    # Serializar escrituras para validar cuantiles y plazos con el último ajuste confirmado.
+    if sesion.get_bind().dialect.name == "postgresql":
+        sesion.execute(text("LOCK TABLE parametro_ajustado IN SHARE ROW EXCLUSIVE MODE"))
+    vigentes = parametros_vigentes(sesion, base)
+    valor = validar_ajuste(vigentes, clave, valor, base["administracion"]["parametros_editables"])
+    anterior = valor_en(vigentes, clave)
 
     sesion.execute(
         update(ParametroAjustado)
