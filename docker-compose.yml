@@ -1,5 +1,27 @@
-# SART · servicios para desarrollo (RNF-P-1). Credenciales en .env (copiar .env.example).
-# Límite total del sistema: 2 vCPU y 4 GB (RNF-P-2). La API, las tareas y la web se agregan en la actividad 12.
+# SART · todos los servicios (RNF-P-1, TC-13). Credenciales y correo en .env (copiar .env.example).
+#   docker compose up -d db            # solo la base, para desarrollar con uvicorn y npm run dev
+#   docker compose up -d --build       # todo: base, API, planificador y web → http://localhost:8080
+# Límite total: 2 vCPU y 4 GB (RNF-P-2). La suma de los «limits» de abajo (sin el perfil «pruebas») es
+# 2,0 vCPU y 3,9 GB; tests/test_tc13_despliegue.py lo comprueba.
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  image: sart-backend
+  restart: unless-stopped
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    # Dentro de la red de Compose la base es «db», no 127.0.0.1 (esto tiene prioridad sobre el .env)
+    DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+  volumes:
+    - ./datos:/app/datos            # copias crudas de las descargas (RF-1); no van a git
+    - ./respaldos:/app/respaldos    # respaldos diarios (RNF-D-2); copiarlos fuera del servidor (#38)
+  depends_on:
+    db:
+      condition: service_healthy
 
 services:
   db:
@@ -21,13 +43,60 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1"
+          cpus: "0.75"
           memory: 1g
+
+  api:
+    <<: *backend
+    # migra la base y levanta FastAPI (RNF-S-2: única puerta de entrada a la base)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/salud')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 768m
+
+  planificador:
+    <<: *backend
+    # respaldo 04:30, ingesta 05:00, pronóstico lunes 06:00, alerta ambiental 07:00, boletín lunes 07:30 y
+    # seguimiento de RB-2 cada hora (horarios en config/parametros.yaml). Espera a que la API haya migrado.
+    command: ["python", "-m", "sart.planificador"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      TZ: America/Santiago
+    depends_on:
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.6"           # la corrida semanal (GLM) es lo más pesado
+          memory: 2g
+
+  web:
+    build:
+      context: web
+    image: sart-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.15"
+          memory: 128m
 
   correo-prueba:
     image: axllent/mailpit:latest
-    profiles: ["pruebas"]
-    restart: unless-stopped
+    profiles: ["pruebas"]   # solo para probar: docker compose --profile pruebas up -d correo-prueba
+    restart: unless-stopped # dentro de Compose: SMTP_HOST=correo-prueba, SMTP_PORT=1025, SMTP_STARTTLS=false
     ports:
       - "127.0.0.1:1025:1025"  # SMTP local, sin TLS; nunca usar en producción
       - "127.0.0.1:8025:8025"  # bandeja web para inspeccionar correos de prueba

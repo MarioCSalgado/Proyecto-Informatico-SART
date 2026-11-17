@@ -9,6 +9,9 @@ horarios:                    # RF-1, RF-2, RF-4, RNF-D-3
   pronostico: "06:00"        # lunes
   alerta_ambiental: "07:00"  # diaria
   boletin_limite: "08:00"    # el boletín del lunes debe salir antes de esta hora
+  dia_semanal: lunes         # RB-4: el pronóstico y el boletín salen los lunes
+  boletin: "07:30"           # lunes, después del pronóstico y antes de boletin_limite (supuesto, T11)
+  seguimiento_cada_minutos: 60  # RB-2: cada cuánto se revisa el reenvío (24 h) y el escalamiento (48 h) (T11)
 
 escenario:                   # §2.3
   comunas: [Concepción, Coronel, Chiguayante, Hualpén, Hualqui, Lota, Penco, San Pedro de la Paz, Talcahuano, Tomé]

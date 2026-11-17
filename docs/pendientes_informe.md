@@ -179,3 +179,9 @@ equipo:
 | # | Sección (dueño) | Qué hace el código | Qué falta en el informe |
 |---|---|---|---|
 | 56 | §3.2 RF-11, §5.2 | **Formato del CSV:** UTF-8 con BOM (Excel abre bien las tildes), separador «;» y coma decimal (Excel en español de Chile); una fila por centro con las cifras guardadas de RF-7 (pronóstico, intervalo de 90 %, nivel, umbrales y k usados, dotación, MP2,5 de la zona) y una columna `fuente` que cita DEIS (CC BY-NC), SINCA y Open-Meteo. **Quién exporta:** la jefatura sus centros (un centro ajeno da 403 y queda en la auditoría), el Subdirector y el administrador toda la red. Cada exportación queda en la auditoría (`exportar_csv`, sin nombre ni correo). No incluye el historial de alertas (eso es RF-10). | Escribir en RF-11 el formato, las columnas y que el Subdirector también exporta la red. |
+
+## T11 · Planificador y Docker Compose (17/11)
+
+| # | Sección (dueño) | Qué hace el código | Qué falta en el informe |
+|---|---|---|---|
+| 57 | §2.6, §4 RNF-P-1, RNF-P-2, §9.3 | **Supuestos nuevos en `horarios`:** `dia_semanal: lunes`, `boletin: "07:30"` (después del pronóstico de las 06:00 y antes de `boletin_limite`) y `seguimiento_cada_minutos: 60` (RB-2). El planificador es un proceso propio (`python -m sart.planificador`) que cada minuto corre lo que toca, cada tarea con `python -m …`; si estuvo detenido no pone al día lo perdido. **Reparto de recursos** (suma 2,0 vCPU y 3,9 GB): base 0,75 vCPU y 1 GB, API 0,5 y 768 MB, planificador 0,6 y 2 GB (la corrida semanal es lo más pesado), web 0,15 y 128 MB. La web es estática con nginx, que reenvía `/api` a la API (mismo origen para la cookie). El respaldo corre desde el planificador con el `pg_dump` 17 de la imagen (respalda la base 16). | Agregar al despliegue (§9) el planificador como contenedor, los horarios nuevos y el reparto de recursos; confirmar la hora del boletín. |

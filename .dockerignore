@@ -1,0 +1,17 @@
+# No entran a las imágenes: secretos, datos, dependencias locales y código de referencia
+.git
+.env
+.env.*
+!.env.example
+datos
+respaldos
+referencia
+notebooks
+**/.venv
+**/node_modules
+**/dist
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/.coverage
+**/*.egg-info

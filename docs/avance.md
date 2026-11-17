@@ -10,7 +10,8 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
 
 | Área | Qué hace | IDs | Dónde |
 |---|---|---|---|
-| Entorno | PostgreSQL 16 en Docker; la API lee el `.env` sola; puerto configurable (5433 si 5432 está ocupado) | RNF-P-1, RNF-P-2 | `docker-compose.yml`, `backend/sart/configuracion.py` |
+| Entorno | `docker compose up -d --build` levanta base, API, planificador y web (http://localhost:8080) dentro de 2 vCPU y 3,9 GB; `docker compose up -d db` sigue sirviendo para desarrollar; la API lee el `.env` sola | RNF-P-1, RNF-P-2, TC-13 | `docker-compose.yml`, `backend/Dockerfile`, `web/Dockerfile`, `backend/sart/configuracion.py` |
+| Planificador | Respaldo 04:30, ingesta 05:00, pronóstico lunes 06:00, alerta ambiental 07:00, boletín lunes 07:30 y seguimiento de RB-2 cada hora; cada tarea en su proceso; los horarios se leen del YAML en cada vuelta | RNF-P-1, RNF-M-4, TC-13 | `python -m sart.planificador [--mostrar]`, `sart/dominio/planificador.py` (T11, pendientes #57) |
 | Parámetros | Todos los supuestos y umbrales en el YAML; el administrador ajusta solo las claves de `administracion.parametros_editables` y las corridas leen `parametros_vigentes(sesion)` | RNF-M-4, RF-9 | `config/parametros.yaml`, `sart/db/supuestos.py` (pendientes #31) |
 | Cuentas | Alta solo con la aceptación de la finalidad, Argon2id, 3 roles, centros asignados, restablecer clave; todo queda en la auditoría | RF-16, RF-9, RNF-S-1, TC-16 | `python -m sart.cuentas …` |
 | Sesión | JWT en cookie httpOnly, cierre de sesión, MFA con códigos TOTP para administradores (bloqueo tras 5 fallos) | RNF-S-1, RNF-S-2 | `sart/api/auth.py` |
@@ -70,7 +71,6 @@ La corrida semanal guarda pronósticos, niveles, alertas y dotación (parte 8), 
 | Historial de alertas | RF-10, TC-19 |
 | Mapa de centros | RF-12, TC-20 |
 | Boletín redactado con el LLM | RF-8, TC-18 |
-| Planificador de horarios (05:00, 06:00, 07:00, 08:00, respaldo 04:30) y Docker Compose con API y web | RNF-P-1, TC-13 |
 | Pruebas de carga y de uso: TC-08 tiene una medición preliminar del endpoint; faltan el boletín y Lighthouse. TC-10 aún requiere 3–5 participantes. | TC-08, TC-10 |
 
 Cada fila está detallada como tarea (T1 a T14) en `docs/tareas_equipo.md`.
