@@ -1,5 +1,6 @@
 # Avance del código
 
+Estado al **14 de noviembre de 2026**: primer avance de código funcional, la base del sistema, con la corrida
 semanal conectada a la base (parte 8). Este documento
 resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para el asistente de código está en
 `PASOS.md`; las desviaciones de la especificación, en `docs/pendientes_informe.md`; los casos de prueba, en
