@@ -24,6 +24,9 @@ def parametros():
     p = copy.deepcopy(cargar_parametros())
     p["ingesta"]["reintentos_fuente"] = 1
     p["descarga"]["espera_reintento_segundos"] = 0
+    # La prueba usa solo Kingston College, aunque el YAML liste más estaciones SINCA
+    sinca = p["descarga"]["sinca"]["estaciones"]
+    p["descarga"]["sinca"]["estaciones"] = {"Kingston College": sinca["Kingston College"]}
     return p
 
 
