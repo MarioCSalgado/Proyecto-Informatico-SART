@@ -22,10 +22,10 @@ datos (fuentes y modelo), docs.
 | T7 | Umbrales y parámetros desde la web | RF-9, RB-3, TC-17 | T6 | M | back, front | Jocabed López | Pendiente |
 | T8 | Historial de alertas | RF-10, TC-19 | — | M | back, front | Jocabed López | En curso: historial probado con datos controlados; falta el backtest real |
 | T9 | Exportación CSV | RF-11, TC-15 | — | S | back, front | Joaquín Sandoval | Pendiente |
-| T10 | Mapa de centros | RF-12, TC-20 | — | M | front | Benjamín Díaz | Pendiente |
+| T10 | Mapa de centros | RF-12, TC-20 | — | M | front | Benjamín Díaz | Hecha |
 | T11 | Planificador de horarios y Docker Compose completo | RNF-P-1, RNF-P-2, TC-13 | T2, T3, T4 | M | back | Daniel Aburto | Pendiente |
 | T12 | Boletín redactado con el LLM | RF-8, TC-18 | T4 | M | back | Juan Carvajal | Pendiente |
-| T13 | Pruebas de carga y de uso | TC-08, TC-10, RNF-R-1, RNF-R-2 | T6 | M | docs, front | Benjamín Díaz | Pendiente |
+| T13 | Pruebas de carga y de uso | TC-08, TC-10, RNF-R-1, RNF-R-2 | Cuentas de prueba por CLI | M | docs, front | Benjamín Díaz | En curso |
 | T14 | Cerrar las decisiones abiertas con el equipo | #18, #22, #24, #34, #38, #40, #42 | — | S | docs | Jocabed López | Pendiente |
 
 ## Detalle
@@ -107,7 +107,7 @@ datos (fuentes y modelo), docs.
 
 ### T10 · Mapa de centros (RF-12, TC-20)
 - **Qué hacer:** mapa del Gran Concepción con cada centro coloreado **y rotulado** por nivel (RNF-U-1), a partir de
-  la latitud y longitud de `centro_salud` (agregarlas a la respuesta de RF-7). Elegir la librería con el equipo.
+  la latitud y longitud de `centro_salud` agregadas a la respuesta de RF-7.
 - **Terminado cuando:** pasa TC-20 y se ve bien a 390 px.
 
 ### T11 · Planificador y Docker Compose completo (RNF-P-1, RNF-P-2, TC-13)
@@ -124,7 +124,14 @@ datos (fuentes y modelo), docs.
 ### T13 · Pruebas de carga y de uso (TC-08, TC-10)
 - **Qué hacer:** TC-08 (70 usuarios en 5 minutos, p95 ≤ 2 s; Lighthouse móvil con 4G) y TC-10 (3 a 5 personas,
   ≥ 80 % llega en 4 clics). Hoy la jefatura llega a su pronóstico en 0 clics (Mi centro es su inicio).
-- **Depende de:** T6 (cuentas para los participantes). **Terminado cuando:** los dos TC con su informe en `docs/`.
+- **Depende de:** cuentas sintéticas preparadas por CLI; no requiere que esté terminada la interfaz de T6.
+- **Avance (16/11/2026):** una carga de 5 minutos sobre `GET /centros/estado` simuló 70 usuarios virtuales con
+  una sesión local compartida: 3.209 solicitudes exitosas, 0 fallidas, 10,70 solicitudes/s y p95 de 1.159 ms.
+  Cumple los umbrales de carga en ese endpoint, pero no cierra TC-08: falta repetir sobre el boletín y ejecutar
+  Lighthouse móvil con 4G. El arnés está en `herramientas/pruebas_carga_tc08.mjs` y
+  `herramientas/ejecutar_prueba_carga_tc08.ps1`.
+- **Pendiente:** ejecutar la prueba de uso TC-10 con 3–5 personas y registrar si al menos el 80 % llega en
+  4 clics. **Terminado cuando:** TC-08 y TC-10 estén completos y sus resultados documentados.
 
 ### T14 · Decisiones abiertas (docs)
 - **Qué hacer:** cerrar con el equipo y pasar al informe: #34 (acuse con sesión), #18 y #24 (desactivar cuentas),

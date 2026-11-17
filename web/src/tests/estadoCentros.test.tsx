@@ -3,6 +3,7 @@ import { userEvent } from '@testing-library/user-event'
 import { AxiosError, AxiosHeaders } from 'axios'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { ReactNode } from 'react'
 import App from '../App.tsx'
 import type { Rol } from '../acceso/permisos.ts'
 import { ProveedorSesion } from '../contexto/sesion.tsx'
@@ -10,6 +11,34 @@ import clienteApi from '../servicios/clienteApi.ts'
 import type { EstadoCentro, NivelAlerta } from '../tipos/index.ts'
 
 // RF-7 con datos: lo que entrega GET /centros/estado se muestra en Mi centro, en la red y en el detalle.
+
+vi.mock('react-leaflet', async () => {
+  const React = await import('react')
+  return {
+    MapContainer: ({ children }: { children: ReactNode }) =>
+      React.createElement('div', { 'data-testid': 'mapa-centros' }, children),
+    TileLayer: () => null,
+    CircleMarker: ({ children, center, pathOptions }: {
+      children: ReactNode
+      center: [number, number]
+      pathOptions: { fillColor: string }
+    }) => {
+      const [abierto, setAbierto] = React.useState(false)
+      const [rotulo, popup] = React.Children.toArray(children)
+      return React.createElement(
+        'div',
+        { 'data-testid': 'marcador-centro', 'data-posicion': center.join(','), 'data-color': pathOptions.fillColor },
+        rotulo,
+        React.createElement('button', { type: 'button', onClick: () => setAbierto(true) }, 'Abrir detalles'),
+        abierto ? popup : null,
+      )
+    },
+    Tooltip: ({ children, className }: { children: ReactNode; className?: string }) =>
+      React.createElement('span', { className }, children),
+    Popup: ({ children }: { children: ReactNode }) => React.createElement('div', null, children),
+    useMap: () => ({ fitBounds: vi.fn(), setView: vi.fn() }),
+  }
+})
 
 const REFERENCIAS = {
   mp25_niveles: [
@@ -33,7 +62,15 @@ function semanas(nivel: NivelAlerta) {
 function centro(codigo: number, nombre: string, comuna: string, nivel: NivelAlerta, valor: number,
   extra: Partial<EstadoCentro['pronostico']> = {}): EstadoCentro {
   return {
-    centro: { codigo_deis: codigo, nombre, tipo: 'SAR', comuna },
+    centro: {
+      codigo_deis: codigo,
+      nombre,
+      tipo: 'SAR',
+      comuna,
+      latitud: -36.8 - (codigo % 100) / 1000,
+      longitud: -73.0 - (codigo % 100) / 1000,
+      estacion_asignada: 'Kingston College',
+    },
     pronostico: {
       anio: 2026, semana: 40, inicio_semana: '2026-10-04', fecha_corte: '2026-09-27',
       valor, limite_inferior: valor - 60, limite_superior: valor + 60, nivel,
@@ -168,6 +205,8 @@ describe('Red de centros con datos (RF-7)', () => {
 
     await usuario.selectOptions(screen.getByLabelText('Comuna'), 'Concepción')
     expect(within(tabla).getAllByRole('link').map((l) => l.textContent)).toEqual(['SAPU Lorenzo Arenas'])
+    expect(within(screen.getByRole('region', { name: 'Mapa de centros' })).getAllByTestId('marcador-centro'))
+      .toHaveLength(1)
 
     await usuario.selectOptions(screen.getByLabelText('Comuna'), '')
     await usuario.type(screen.getByLabelText('Buscar centro'), 'chiguay')
@@ -176,6 +215,38 @@ describe('Red de centros con datos (RF-7)', () => {
     await usuario.clear(screen.getByLabelText('Buscar centro'))
     await usuario.type(screen.getByLabelText('Buscar centro'), 'zzz')
     expect(screen.getByText('Ningún centro coincide con los filtros')).toBeInTheDocument()
+    expect(screen.getByText('No hay centros para mostrar en el mapa con esos filtros.')).toBeInTheDocument()
+  })
+
+  it('TC-20: representa cada centro de la respuesta con nivel y estación asignada', async () => {
+    const estados = Array.from({ length: 33 }, (_, i) => {
+      const nivel: NivelAlerta = i % 3 === 0 ? 'alerta' : i % 3 === 1 ? 'atencion' : 'normal'
+      return centro(200000 + i, `Centro ${i + 1}`, 'Concepción', nivel, 500 + i)
+    })
+    abrir('/red', 'Subdirector', estados)
+
+    const mapa = await screen.findByRole('region', { name: 'Mapa de centros' })
+    const marcadores = within(mapa).getAllByTestId('marcador-centro')
+    expect(marcadores).toHaveLength(33)
+    expect(marcadores[0]).toHaveAttribute('data-posicion', '-36.8,-73')
+    expect(marcadores[0]).toHaveAttribute('data-color', '#ad430c')
+    expect(within(mapa).getAllByText('Alerta', { selector: '.mapa-centros__rotulo' })).toHaveLength(11)
+    expect(within(mapa).getAllByText('Atención', { selector: '.mapa-centros__rotulo' })).toHaveLength(11)
+    expect(within(mapa).getAllByText('Normal', { selector: '.mapa-centros__rotulo' })).toHaveLength(11)
+    await userEvent.click(within(marcadores[0]!).getByRole('button', { name: 'Abrir detalles' }))
+    expect(within(marcadores[0]!).getByText('Estación asignada: Kingston College')).toBeInTheDocument()
+  })
+
+  it('avisa si los centros recibidos no tienen coordenadas válidas', async () => {
+    const sinCoordenadas = {
+      ...CHIGUAYANTE,
+      centro: { ...CHIGUAYANTE.centro, latitud: null, longitud: null },
+    }
+    abrir('/red', 'Subdirector', [sinCoordenadas])
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'No hay centros con coordenadas válidas para mostrar.',
+    )
   })
 
   it('el detalle de un centro se abre desde la red (RF-7 paso 3)', async () => {
