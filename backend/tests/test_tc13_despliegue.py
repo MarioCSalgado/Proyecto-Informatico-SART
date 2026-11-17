@@ -53,6 +53,15 @@ def test_tc13_las_imagenes_no_llevan_secretos_ni_datos():
         assert patron in ignorados
 
 
+def test_tc13_nginx_deja_cargar_los_mapas_de_openstreetmap():
+    """RF-12: OpenStreetMap bloquea los mapas («Access blocked») si el navegador no envía de qué sitio vienen;
+    con Referrer-Policy same-origin no lo envía. strict-origin-when-cross-origin envía solo el origen."""
+    nginx = (RAIZ_REPOSITORIO / "web" / "nginx.conf").read_text(encoding="utf-8")
+    assert "Referrer-Policy strict-origin-when-cross-origin" in nginx
+    assert "Referrer-Policy same-origin" not in nginx
+    assert "no-referrer" not in nginx
+
+
 # ---------------------------------------------------------------------------
 # Planificador (horarios de config/parametros.yaml)
 # ---------------------------------------------------------------------------
