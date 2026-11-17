@@ -11,16 +11,16 @@ datos (fuentes y modelo), docs.
 
 ## Resumen
 
-| # | Tarea | IDs | Depende de | Tamaño | Perfil | Responsable | Estado |
-|---|---|---|---|---|---|---|---|
+| # | Tarea | IDs | Depende de | Tamaño | Perfil | Responsable | Estado    |
+|---|---|---|---|---|---|---|-----------|
 | T1 | Cargar el archivo real del DEIS | RF-1, TC-02 · #45 | — | M | datos, back | Daniel Aburto | Pendiente |
 | T2 | Descarga automática de DEIS, SINCA y Open-Meteo | RF-1, TC-02, RNF-M-3 | T1 | L | datos, back | Daniel Aburto | Pendiente |
-| T3 | Alerta ambiental diaria (07:00) | RF-4, TC-12 | — | M | back | Joaquín Sandoval | Pendiente |
+| T3 | Alerta ambiental diaria (07:00) | RF-4, TC-12 | — | M | back | Joaquín Sandoval | Listo     |
 | T4 | Correo de alerta | RF-5, TC-06 | — | M | back | Joaquín Sandoval | Pendiente |
 | T5 | «Confirmar lectura», reenvío y escalamiento | RF-15, RB-2, TC-06 · #34 | T4 | L | back, front | Juan Carvajal | Pendiente |
 | T6 | Administración de cuentas y centros desde la web | RF-9, RF-16, TC-09, TC-16 | — | L | back, front | Juan Carvajal | Pendiente |
 | T7 | Umbrales y parámetros desde la web | RF-9, RB-3, TC-17 | T6 | M | back, front | Jocabed López | Pendiente |
-| T8 | Historial de alertas | RF-10, TC-19 | — | M | back, front | Jocabed López | Pendiente |
+| T8 | Historial de alertas | RF-10, TC-19 | — | M | back, front | Jocabed López | En curso: historial probado con datos controlados; falta el backtest real |
 | T9 | Exportación CSV | RF-11, TC-15 | — | S | back, front | Joaquín Sandoval | Pendiente |
 | T10 | Mapa de centros | RF-12, TC-20 | — | M | front | Benjamín Díaz | Pendiente |
 | T11 | Planificador de horarios y Docker Compose completo | RNF-P-1, RNF-P-2, TC-13 | T2, T3, T4 | M | back | Daniel Aburto | Pendiente |
@@ -89,7 +89,15 @@ datos (fuentes y modelo), docs.
 
 ### T8 · Historial de alertas (RF-10, TC-19)
 - **Qué hacer:** API y pantalla con las alertas pasadas de los centros del usuario, con nivel, semana, pronóstico,
-  dotación y estado del acuse (lo guardado, no recalculado: #39). Filtros por centro y fecha.
+  dotación original (#39) y estado del acuse registrado. Filtros por centro, fechas de semana objetivo y nivel.
+- **Implementado y probado:** API y pantalla de historial con filtros, comparación con lo observado y alertas ligadas
+  a pronósticos reemplazados. La jefatura ve sus propios estados de notificación y acuse. Subdirección y administración
+  ven un resumen por alerta. El historial audita los intentos de jefatura rechazados con 403. Hay pruebas con datos
+  controlados en SQLite y PostgreSQL, y pruebas de la pantalla.
+- **Pendiente de aceptación (TC-19):** obtener el panel real (`datos/procesados/panel_semanal.parquet`),
+  reproducir las emisiones del invierno de 2025 y verificar cada alerta frente a las consultas observadas.
+- **Pendiente de integración:** probar el flujo completo de envío y acuse cuando se incorporen T4 y T5.
+  El historial ya lee los estados que quedan guardados en `notificacion`.
 - **Terminado cuando:** pasa TC-19.
 
 ### T9 · Exportación CSV (RF-11, TC-15)

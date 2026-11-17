@@ -9,7 +9,7 @@ las 05:00 (RF-1) usará ``cargar_consultas`` después de descargar el archivo; l
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +18,14 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.orm import Session
 
-from sart.db.modelos import CentroSalud, ConsultaSemanal, Estacion, Medicion, Zona
+from sart.db.modelos import (
+    CentroSalud,
+    ConsultaSemanal,
+    Estacion,
+    Medicion,
+    PronosticoAmbiental,
+    Zona,
+)
 from sart.dominio.catalogo import estacion_de_comuna, normalizar, tipo_centro
 from sart.dominio.ingesta_deis import CLAVE, codigo_deis, normalizar_consultas
 from sart.dominio.mediciones import valor_sinca
@@ -337,6 +344,7 @@ def cargar_sinca(
     return resumen
 
 
+
 def _cargar_open_meteo(
     sesion: Session,
     ruta: Path,
@@ -344,6 +352,7 @@ def _cargar_open_meteo(
     columnas: dict[TipoMedicion, str],
     origen: OrigenMedicion,
     parametros: dict[str, Any] | None,
+    emitido_en: datetime | None = None,
 ) -> ResumenMediciones:
     parametros = parametros or cargar_parametros()
     estacion = _estacion_open_meteo(sesion)
@@ -351,29 +360,77 @@ def _cargar_open_meteo(
     _exigir_columnas(datos, {"fecha": columna_fecha}, Path(ruta))
     momentos = _a_utc(datos[columna_fecha], parametros["zona_horaria"])
     resumen = ResumenMediciones(estaciones=1)
+
     filas = []
+    filas_historico = []
+
+    # Una única fecha de emisión para todos los registros de esta carga.
+    if origen == OrigenMedicion.PRONOSTICO:
+        momento_emision = emitido_en or datetime.now(UTC)
+        if momento_emision.tzinfo is None:
+            raise ValueError("La fecha de emisión del pronóstico debe incluir zona horaria.")
+    else:
+        momento_emision = None
+
     for tipo, columna in columnas.items():
-        if columna not in datos.columns:  # p. ej., Open-Meteo a veces no entrega humedad
+        if columna not in datos.columns:
             continue
+
         for valor, momento in zip(datos[columna], momentos, strict=True):
             if pd.isna(valor) or pd.isna(momento):
                 resumen.sin_dato += 1
                 continue
+
+            fecha_hora = momento.to_pydatetime()
+            valor_float = float(valor)
+            unidad = UNIDAD_POR_TIPO[tipo]
+
             filas.append(
                 {
                     "estacion_id": estacion.id,
-                    "fecha_hora": momento.to_pydatetime(),
+                    "fecha_hora": fecha_hora,
                     "tipo": tipo,
-                    "valor": float(valor),
-                    "unidad": UNIDAD_POR_TIPO[tipo],
+                    "valor": valor_float,
+                    "unidad": unidad,
                     "origen": origen,
                     "calidad": None,
                 }
             )
+
+            if momento_emision is not None:
+                filas_historico.append(
+                    {
+                        "estacion_id": estacion.id,
+                        "fecha_hora": fecha_hora,
+                        "emitido_en": momento_emision,
+                        "tipo": tipo,
+                        "valor": valor_float,
+                        "unidad": unidad,
+                    }
+                )
+
+    # Mantiene el comportamiento anterior: estado actual de las mediciones.
     _guardar_mediciones(sesion, filas)
+
+    # Conserva cada emisión del pronóstico por separado.
+    if filas_historico:
+        _insertar_o_actualizar(
+            sesion,
+            PronosticoAmbiental,
+            filas_historico,
+            claves=[
+                "estacion_id",
+                "tipo",
+                "fecha_hora",
+                "emitido_en",
+            ],
+            actualizar=["valor", "unidad"],
+        )
+
     sesion.commit()
     resumen.filas = len(filas)
     return resumen
+
 
 
 def cargar_clima(sesion: Session, ruta: Path, parametros: dict[str, Any] | None = None) -> ResumenMediciones:
@@ -381,10 +438,20 @@ def cargar_clima(sesion: Session, ruta: Path, parametros: dict[str, Any] | None 
     return _cargar_open_meteo(sesion, ruta, "fecha", COLUMNAS_CLIMA, OrigenMedicion.OBSERVADO, parametros)
 
 
+
 def cargar_pronostico_mp25(
-    sesion: Session, ruta: Path, parametros: dict[str, Any] | None = None
+    sesion: Session,
+    ruta: Path,
+    parametros: dict[str, Any] | None = None,
+    emitido_en: datetime | None = None,
 ) -> ResumenMediciones:
-    """Pronóstico horario de MP2,5 y MP10 de Open-Meteo para los próximos días (RF-4)."""
+    """Carga pronósticos horarios y conserva el histórico de sus emisiones."""
     return _cargar_open_meteo(
-        sesion, ruta, "fecha_hora", COLUMNAS_PRONOSTICO_MP, OrigenMedicion.PRONOSTICO, parametros
+        sesion,
+        ruta,
+        "fecha_hora",
+        COLUMNAS_PRONOSTICO_MP,
+        OrigenMedicion.PRONOSTICO,
+        parametros,
+        emitido_en,
     )

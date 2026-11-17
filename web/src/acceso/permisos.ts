@@ -12,6 +12,9 @@ export const PERMISOS = {
   ver_mi_centro:          ['Jefatura'],
   ver_todos_los_centros:  ['Subdirector', 'Administrador'],
 
+  // RF-10: el historial aplica el mismo alcance por centro que RF-7.
+  ver_historial_alertas:  ['Jefatura', 'Subdirector', 'Administrador'],
+
   // RF-15: acuse con el botón «Confirmar lectura»
   confirmar_lectura:      ['Jefatura'],
 
