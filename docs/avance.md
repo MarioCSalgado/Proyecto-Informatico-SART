@@ -40,7 +40,9 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
 - Backend: **329 pruebas pasan** con PostgreSQL y `datos/` (sin la base, se saltan las de integración, TC-14 y la
   regresión); unos 4–5 minutos, porque las de la corrida semanal y de RF-7 cargan `datos/prueba` una vez por
   sesión (~35 s). Cobertura de `sart/dominio` + `sart/tareas`: **97 %** (RNF-M-1 pide ≥ 70 %). Ruff: 0 errores.
-- Web: **47 pruebas** con Vitest, lint y build sin errores.
+- 16/11 (T5, T6, T12), sin PostgreSQL: **374 pasan y 12 se saltan** (las de integración); cobertura de
+  `sart/dominio` + `sart/tareas` **95 %**. Falta correrlas con PostgreSQL.
+- Web: **51 pruebas** con Vitest, lint y build sin errores (16/11).
 - Regresión del backtest 2024–2026 con los datos reales: WAPE 14,9 %; k = 0 → precisión 0,85 y sensibilidad
   0,48; k = 0,4 → 0,73 y 0,66; línea base «semana anterior» → 0,69 y 0,68; cobertura del intervalo 91,1 %.
 

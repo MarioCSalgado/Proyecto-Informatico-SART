@@ -1,8 +1,8 @@
 """Administración de cuentas y centros asignados (RF-9, RF-16, TC-09, TC-16).
 
 Todas las rutas son solo del administrador, que siempre entra con MFA (RNF-S-1, RNF-S-2). La lógica vive en
-``sart.db.cuentas`` (la misma que usa ``python -m sart.cuentas``); aquí solo el acceso y el formato. Cada cambio
-queda en la auditoría sin nombre ni correo (RNF-S-4).
+``sart.db.cuentas`` (la misma que usa ``python -m sart.cuentas``); aquí solo el acceso y el formato. Cada
+cambio queda en la auditoría sin nombre ni correo (RNF-S-4).
 
 - ``GET /administracion/usuarios``: las cuentas con su rol y sus centros.
 - ``POST /administracion/usuarios``: alta con la aceptación de la versión vigente de §5.3; sin ella, 422 y no
@@ -111,7 +111,9 @@ def crear(datos: AltaCuenta, sesion: SesionDB, autor: Administrador) -> Cuenta:
 
 
 @router.put("/usuarios/{usuario_id}/centros")
-def cambiar_centros(usuario_id: int, datos: CentrosDeCuenta, sesion: SesionDB, autor: Administrador) -> Cuenta:
+def cambiar_centros(
+    usuario_id: int, datos: CentrosDeCuenta, sesion: SesionDB, autor: Administrador
+) -> Cuenta:
     usuario = _buscar(sesion, usuario_id)
     try:
         return _cuenta(asignar_centros(sesion, usuario, datos.centros, autor=autor))

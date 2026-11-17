@@ -31,7 +31,8 @@ def _usuario_y_auditoria(url) -> tuple[Usuario, list[Auditoria]]:
     try:
         with Session(motor) as sesion:
             usuario = sesion.scalars(select(Usuario)).one()
-            auditoria = sesion.scalars(select(Auditoria)).all()
+            # el alta también queda en la auditoría (RF-16); aquí interesa solo lo que vino después
+            auditoria = sesion.scalars(select(Auditoria).where(Auditoria.accion != "crear_cuenta")).all()
             sesion.expunge_all()
             return usuario, auditoria
     finally:

@@ -25,8 +25,8 @@ def paso_rb2(
 ) -> Literal["reenviar", "escalar"] | None:
     """RB-2 · RF-15: qué toca con una notificación sin acuse. Plazos de ``notificaciones`` (RNF-M-4).
 
-    Desde la emisión original: a las ``reenvio_horas`` se reenvía una vez; a las ``escalamiento_horas`` se avisa
-    al Subdirector, una vez. Confirmada, fallida (RF-15 E2) o ya escalada: nada.
+    Desde la emisión original: a las ``reenvio_horas`` se reenvía una vez; a las ``escalamiento_horas`` se
+    avisa al Subdirector, una vez. Confirmada, fallida (RF-15 E2) o ya escalada: nada.
     """
     horas = (ahora - fecha_envio) / timedelta(hours=1)
     if estado in (EstadoNotificacion.ENVIADA, EstadoNotificacion.REENVIADA) and horas >= escalamiento_horas:

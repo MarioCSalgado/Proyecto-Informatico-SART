@@ -1,8 +1,8 @@
 """TC-09 (parte RF-9) y TC-16 en la API · Administración de cuentas y centros (RF-9, RF-16, RNF-S-2, RNF-S-4).
 
 Solo el administrador (que siempre entra con MFA) lista, crea, da de baja y asigna centros. La jefatura y el
-subdirector reciben 403 y sin sesión 401: 0 accesos indebidos. La sesión del administrador se arma con el token
-directamente (el MFA ya está probado en ``test_auth_mfa.py``).
+subdirector reciben 403 y sin sesión 401: 0 accesos indebidos. La sesión del administrador se arma con el
+token directamente (el MFA ya está probado en ``test_auth_mfa.py``).
 """
 
 from datetime import timedelta
@@ -36,7 +36,9 @@ def catalogo(motor_memoria):
 
 
 def _como(cliente, usuario_id: int, rol: Rol):
-    token = emitir_token(usuario_id=usuario_id, rol=rol, secreto=SECRETO_DE_PRUEBA, duracion=timedelta(hours=1))
+    token = emitir_token(
+        usuario_id=usuario_id, rol=rol, secreto=SECRETO_DE_PRUEBA, duracion=timedelta(hours=1)
+    )
     cliente.cookies.set(NOMBRE_COOKIE, token)
     return cliente
 
@@ -101,7 +103,9 @@ def test_rf16_alta_con_centros_y_auditoria_sin_datos_personales(admin, motor_mem
     assert "contrasena" not in cuenta and "hash_contrasena" not in cuenta
     with Session(motor_memoria) as sesion:
         registro = sesion.scalar(
-            select(Auditoria).where(Auditoria.accion == "crear_cuenta", Auditoria.entidad_id == str(cuenta["id"]))
+            select(Auditoria).where(
+                Auditoria.accion == "crear_cuenta", Auditoria.entidad_id == str(cuenta["id"])
+            )
         )
         assert registro.autor_rol == "administrador"
         assert "ana" not in str(registro.valor_nuevo).lower()
@@ -141,7 +145,9 @@ def test_rf9_reemplaza_los_centros_y_queda_en_la_auditoria(admin, motor_memoria)
 def test_rf9_centro_inexistente_422_sin_cambios(admin):
     id_ana = admin.post("/administracion/usuarios", json=_alta(centros=[100001])).json()["id"]
 
-    assert admin.put(f"/administracion/usuarios/{id_ana}/centros", json={"centros": [999999]}).status_code == 422
+    assert (
+        admin.put(f"/administracion/usuarios/{id_ana}/centros", json={"centros": [999999]}).status_code == 422
+    )
     assert admin.get("/administracion/usuarios").json()[1]["centros"][0]["codigo_deis"] == 100001
 
 

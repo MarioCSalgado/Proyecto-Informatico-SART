@@ -38,7 +38,8 @@ def dar_de_alta(
     """Crea la cuenta, su constancia de aceptación y sus centros (RF-9) en una sola transacción (RF-16).
 
     El alta queda en la auditoría solo con el rol, los centros y la versión aceptada: sin nombre ni correo
-    (RNF-S-4). Si falta la aceptación o algún dato es inválido, lanza ``ErrorAltaCuenta`` antes de escribir nada (TC-16).
+    (RNF-S-4). Si falta la aceptación o algún dato es inválido, lanza ``ErrorAltaCuenta`` antes de escribir
+    nada (TC-16).
     """
     cuentas = (parametros or cargar_parametros())["cuentas"]
     alta = validar_alta(
@@ -132,7 +133,7 @@ def buscar_centros(sesion: Session, codigos: Iterable[int]) -> list[CentroSalud]
 def asignar_centros(
     sesion: Session, usuario: Usuario, codigos: Iterable[int], *, autor: Usuario | None = None
 ) -> Usuario:
-    """Reemplaza los centros asignados de la cuenta (RF-9). Queda en la auditoría con los códigos antes y después."""
+    """Reemplaza los centros asignados (RF-9); la auditoría guarda los códigos de antes y de ahora."""
     centros = buscar_centros(sesion, codigos)
     anterior = _codigos(usuario)
     usuario.centros = centros

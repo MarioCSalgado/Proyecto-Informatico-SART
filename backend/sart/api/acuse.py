@@ -1,9 +1,9 @@
 """Página de acuse de una notificación (RF-15, TC-06).
 
-- ``GET /acuse/{token_acuse}``: la alerta y el estado del acuse. **No** registra nada: algunos filtros de correo abren
-  los enlaces solos (RF-15 paso 2).
-- ``POST /acuse/{token_acuse}/confirmar``: el botón «Confirmar lectura». Registra la fecha una sola vez (RF-15 E1) y
-  queda en la auditoría (RNF-S-4).
+- ``GET /acuse/{token_acuse}``: la alerta y el estado del acuse. **No** registra nada: algunos filtros de
+  correo abren los enlaces solos (RF-15 paso 2).
+- ``POST /acuse/{token_acuse}/confirmar``: el botón «Confirmar lectura». Registra la fecha una sola vez
+  (RF-15 E1) y queda en la auditoría (RNF-S-4).
 
 Exigen iniciar sesión y solo el destinatario ve su notificación (pendientes #34, opción recomendada). Un token
 ajeno o inventado da 404, para no revelar cuáles existen.
@@ -50,7 +50,9 @@ def _propia(sesion: SesionDB, token: str, usuario: UsuarioActual) -> Notificacio
 
 def _acuse(sesion: SesionDB, notificacion: Notificacion) -> Acuse:
     alerta = sesion.get(Alerta, notificacion.alerta_id)
-    lugar = sesion.get(CentroSalud, alerta.centro_id) if alerta.centro_id else sesion.get(Zona, alerta.zona_id)
+    lugar = (
+        sesion.get(CentroSalud, alerta.centro_id) if alerta.centro_id else sesion.get(Zona, alerta.zona_id)
+    )
     return Acuse(
         estado=notificacion.estado,
         fecha_envio=notificacion.fecha_envio,
@@ -80,7 +82,11 @@ def confirmar(token_acuse: str, sesion: SesionDB, usuario: UsuarioActual) -> Acu
         notificacion.estado = EstadoNotificacion.CONFIRMADA
         notificacion.fecha_confirmacion = datetime.now(UTC)
         registrar_auditoria(
-            sesion, autor=usuario, accion="confirmar_lectura", entidad="notificacion", entidad_id=notificacion.id
+            sesion,
+            autor=usuario,
+            accion="confirmar_lectura",
+            entidad="notificacion",
+            entidad_id=notificacion.id,
         )
         sesion.commit()
     return _acuse(sesion, notificacion)
