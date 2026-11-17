@@ -1,7 +1,7 @@
 
 """Integración de la evaluación TC-12 con las mediciones y pronósticos guardados."""
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
@@ -15,18 +15,18 @@ from sart.dominio.precision_pronostico import (
     evaluar_sensibilidad_tc12,
 )
 from sart.dominio.valores import (
+    UNIDAD_POR_TIPO,
     FuenteEstacion,
     OrigenMedicion,
     TipoMedicion,
-    UNIDAD_POR_TIPO,
 )
 
 
 def _como_utc(fecha: datetime) -> datetime:
     """Las fechas naive recuperadas desde la BD se interpretan como UTC."""
     if fecha.tzinfo is None or fecha.utcoffset() is None:
-        return fecha.replace(tzinfo=timezone.utc)
-    return fecha.astimezone(timezone.utc)
+        return fecha.replace(tzinfo=UTC)
+    return fecha.astimezone(UTC)
 
 
 def evaluar_tc12_desde_bd(

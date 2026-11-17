@@ -15,8 +15,8 @@ from sart.dominio.valores import (
     TipoAlerta,
     TipoMedicion,
 )
-from sart.tareas.ambiental import TAREA, correr_ambiental
 from sart.tareas.__main__ import main
+from sart.tareas.ambiental import TAREA, correr_ambiental
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 
 from collections import defaultdict
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
@@ -8,10 +8,10 @@ from sqlalchemy.orm import Session
 
 from sart.db.modelos import Estacion, Medicion, PronosticoAmbiental
 from sart.dominio.valores import (
+    UNIDAD_POR_TIPO,
     FuenteEstacion,
     OrigenMedicion,
     TipoMedicion,
-    UNIDAD_POR_TIPO,
 )
 from sart.tareas.precision_pronostico import evaluar_tc12_desde_bd
 
@@ -47,7 +47,7 @@ def test_tc12_conecta_pronosticos_con_observaciones_reales(base_prueba):
         for medicion in mediciones:
             fecha = medicion.fecha_hora
             if fecha.tzinfo is None:
-                fecha = fecha.replace(tzinfo=timezone.utc)
+                fecha = fecha.replace(tzinfo=UTC)
 
             dia = fecha.astimezone(zona).date()
             valores_por_dia[dia].append(medicion.valor)
@@ -78,8 +78,8 @@ def test_tc12_conecta_pronosticos_con_observaciones_reales(base_prueba):
             sesion.add(
                 PronosticoAmbiental(
                     estacion_id=open_meteo.id,
-                    fecha_hora=objetivo_local.astimezone(timezone.utc),
-                    emitido_en=emision_local.astimezone(timezone.utc),
+                    fecha_hora=objetivo_local.astimezone(UTC),
+                    emitido_en=emision_local.astimezone(UTC),
                     tipo=TipoMedicion.MP25,
                     valor=60.0,
                     unidad=unidad,

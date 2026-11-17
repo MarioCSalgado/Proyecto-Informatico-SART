@@ -28,7 +28,6 @@ from sart.dominio.valores import (
 from sart.tareas.corridas import registrar_corrida
 from sart.tareas.precision_pronostico import evaluar_tc12_desde_bd
 
-
 TAREA = "alerta_ambiental_diaria"
 DIAS_VIGENCIA_SINCA = 7
 
@@ -328,13 +327,11 @@ def _correr_sinca(
         asignada = estaciones.get(nombre_asignado) if nombre_asignado else None
 
         medicion = ultimas.get(asignada.id) if asignada else None
-        estacion_utilizada = asignada
 
         # RB-5: si la estación asignada no tiene datos recientes,
         # se consulta Kingston College como respaldo.
         if medicion is None:
             medicion = ultimas.get(respaldo.id)
-            estacion_utilizada = respaldo
 
         if medicion is None:
             resumen.datos_insuficientes.append(comuna)

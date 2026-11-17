@@ -297,7 +297,7 @@ class PronosticoAmbiental(Base):
 
     unidad: Mapped[str] = mapped_column(String(10), nullable=False)
 
-    estacion: Mapped["Estacion"] = relationship()
+    estacion: Mapped[Estacion] = relationship()
 
 
 # ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 """Carga de mediciones ambientales: MP2,5 diario de SINCA, clima diario y pronóstico horario de MP2,5 de
 Open-Meteo (RF-1, RF-4, RB-5). Usa los archivos sintéticos de datos/prueba."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import create_engine, func, select
@@ -126,7 +126,7 @@ def test_pronostico_horario_de_mp25_queda_como_pronostico(sesion):
 
 def test_pronostico_conserva_emisiones_distintas(sesion):
     """Dos ejecuciones en momentos distintos conservan ambos pronósticos."""
-    primera_emision = datetime(2026, 10, 7, 7, 0, tzinfo=timezone.utc)
+    primera_emision = datetime(2026, 10, 7, 7, 0, tzinfo=UTC)
     segunda_emision = primera_emision + timedelta(days=1)
     archivo = PRUEBA / "pronostico_mp25_openmeteo.csv"
 
@@ -146,7 +146,7 @@ def test_pronostico_conserva_emisiones_distintas(sesion):
 
 def test_pronostico_misma_emision_no_duplica(sesion):
     """Repetir una carga con la misma emisión no crea registros duplicados."""
-    emision = datetime(2026, 10, 7, 7, 0, tzinfo=timezone.utc)
+    emision = datetime(2026, 10, 7, 7, 0, tzinfo=UTC)
     archivo = PRUEBA / "pronostico_mp25_openmeteo.csv"
 
     cargar_pronostico_mp25(sesion, archivo, emitido_en=emision)

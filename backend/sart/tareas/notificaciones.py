@@ -4,13 +4,14 @@
 from __future__ import annotations
 
 import smtplib
+from collections.abc import Callable
 from datetime import UTC, datetime
 from email.message import EmailMessage
-from typing import Callable
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from sart.configuracion import obtener_configuracion
 from sart.db.destinatarios import destinatarios_de_alerta
 from sart.db.modelos import (
     Alerta,
@@ -21,10 +22,8 @@ from sart.db.modelos import (
     Usuario,
     Zona,
 )
-from sart.configuracion import obtener_configuracion
 from sart.dominio.valores import EstadoNotificacion, TipoAlerta
 from sart.parametros import cargar_parametros
-
 
 Transportador = Callable[[str, str, str], None]
 

@@ -23,11 +23,11 @@ from sqlalchemy.orm import Session
 from sart.db.alertas import alertas_por_notificar
 from sart.db.sesion import SinBaseDeDatos, crear_motor
 from sart.parametros import ErrorParametros
-from sart.tareas.semanal import ErrorCorridaSemanal, correr_semanal
-from sart.tareas.notificaciones import notificar_alertas
-from sart.tareas.semanas_y_umbrales import marcar_semanas
 from sart.tareas.ambiental import ErrorCorridaAmbiental, correr_ambiental
+from sart.tareas.notificaciones import notificar_alertas
 from sart.tareas.precision_pronostico import evaluar_tc12_desde_bd
+from sart.tareas.semanal import ErrorCorridaSemanal, correr_semanal
+from sart.tareas.semanas_y_umbrales import marcar_semanas
 
 
 def _argumentos(argv: list[str] | None) -> argparse.Namespace:

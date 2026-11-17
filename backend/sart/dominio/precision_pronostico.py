@@ -3,7 +3,7 @@
 
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from math import fsum, isfinite
 from zoneinfo import ZoneInfo
 
@@ -68,10 +68,10 @@ def evaluar_sensibilidad_tc12(
 
     for pronostico in pronosticos:
         objetivo = _a_local(pronostico.fecha_hora, zona)
-        emision = _a_local(pronostico.emitido_en, zona)
+        _a_local(pronostico.emitido_en, zona)  # valida la fecha de emisión
         _validar_valor(pronostico.valor)
 
-        emision_utc = pronostico.emitido_en.astimezone(timezone.utc)
+        emision_utc = pronostico.emitido_en.astimezone(UTC)
         grupos[(objetivo.date(), emision_utc)].append(
             (objetivo, float(pronostico.valor))
         )

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -382,7 +382,7 @@ def _cargar_open_meteo(
 
     # Una única fecha de emisión para todos los registros de esta carga.
     if origen == OrigenMedicion.PRONOSTICO:
-        momento_emision = emitido_en or datetime.now(timezone.utc)
+        momento_emision = emitido_en or datetime.now(UTC)
         if momento_emision.tzinfo is None:
             raise ValueError("La fecha de emisión del pronóstico debe incluir zona horaria.")
     else:
