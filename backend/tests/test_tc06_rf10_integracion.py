@@ -1,21 +1,29 @@
 """T4 → T5 → T8: envío simulado, acuse real e historial (RF-5, RF-15, RF-10).
 
-Recorridos de TC-06 con lectura de TC-19, usando exclusivamente SQLite en memoria.
+Recorridos de TC-06 con lectura de TC-19 en SQLite en memoria y PostgreSQL temporal.
 No sustituye la validación histórica de TC-19 con datos reales del invierno de 2025.
 """
 
 import re
 import smtplib
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
-from conftest import CLAVE_DE_PRUEBA, SECRETO_DE_PRUEBA
-from sqlalchemy import select
+from alembic import command
+from alembic.config import Config
+from conftest import CLAVE_DE_PRUEBA, SECRETO_DE_PRUEBA, url_postgres
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, select, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from sart.api import acuse
+from sart.api.app import app
+from sart.api.dependencias import obtener_sesion_db
 from sart.api.tokens import NOMBRE_COOKIE, emitir_token
 from sart.db.alertas import alertas_por_notificar
+from sart.db.cuentas import dar_de_alta
 from sart.db.modelos import (
     Auditoria,
     CentroSalud,
@@ -31,9 +39,11 @@ from sart.db.modelos import (
 )
 from sart.db.supuestos import parametros_vigentes
 from sart.dominio.alerta_demanda import pronostico_con_margen
+from sart.dominio.cuentas import Aceptacion
 from sart.dominio.roles import Rol
 from sart.dominio.semanas import inicio_semana
 from sart.dominio.valores import EstadoNotificacion, FuenteEstacion, OrigenUmbral, TipoCentro
+from sart.parametros import cargar_parametros
 from sart.tareas.notificaciones import notificar_alertas
 from sart.tareas.seguimiento import seguir_notificaciones
 from sart.tareas.semanal import _emitir_alerta
@@ -69,8 +79,13 @@ def smtp_bloqueado(monkeypatch):
 def demanda(motor_memoria, crear_cuenta, smtp_bloqueado):
     """Alerta persistida con centro, pronóstico y jefatura; todavía sin notificaciones."""
     usuario_id = crear_cuenta(CORREOS[Rol.JEFATURA], "jefatura")
+    return _preparar_demanda(motor_memoria, usuario_id)
+
+
+def _preparar_demanda(motor, usuario_id):
+    """Datos controlados compartidos por los recorridos de SQLite y PostgreSQL."""
     valor_con_margen = pronostico_con_margen(545, 590, k=0.4, nivel_intervalo=0.9)
-    with Session(motor_memoria) as sesion:
+    with Session(motor) as sesion:
         zona = Zona(nombre="Concepción")
         estacion = Estacion(
             nombre="Estación de integración", comuna="Concepción", zona=zona, fuente=FuenteEstacion.SINCA
@@ -134,6 +149,16 @@ def test_tc06_rf10_envio_acuse_e_historial_comparten_la_misma_notificacion(
     motor_memoria, cliente, demanda, smtp_bloqueado
 ):
     """El token enviado confirma una sola vez y T8 lee ese mismo acuse persistido."""
+    _comprobar_recorrido_principal(motor_memoria, cliente, demanda)
+
+
+def _fecha_utc(fecha):
+    # PostgreSQL conserva la zona; SQLite devuelve sin zona las fechas guardadas en UTC.
+    return fecha.astimezone(UTC) if fecha.tzinfo else fecha.replace(tzinfo=UTC)
+
+
+def _comprobar_recorrido_principal(motor, cliente, demanda):
+    """Mismas comprobaciones del envío, las APIs y la persistencia en ambos motores."""
     enviados = []
 
     def transportador_simulado(destinatario, asunto, cuerpo):
@@ -141,7 +166,7 @@ def test_tc06_rf10_envio_acuse_e_historial_comparten_la_misma_notificacion(
 
     usuario_id, alerta_id = demanda["usuario_id"], demanda["alerta_id"]
     correo = CORREOS[Rol.JEFATURA]
-    with Session(motor_memoria) as sesion:
+    with Session(motor) as sesion:
         pendientes = alertas_por_notificar(sesion, 2025, 28)
         assert [pendiente.id for pendiente in pendientes] == [alerta_id]
         resultado = notificar_alertas(
@@ -157,7 +182,7 @@ def test_tc06_rf10_envio_acuse_e_historial_comparten_la_misma_notificacion(
     assert "Pronóstico de consultas: 545.00" in cuerpo
     assert "Dotación sugerida: 3 profesionales" in cuerpo
     [token] = re.findall(r"https://sart\.prueba/acuse/([A-Za-z0-9_-]+)", cuerpo)
-    with Session(motor_memoria) as sesion:
+    with Session(motor) as sesion:
         [notificacion] = sesion.scalars(select(Notificacion)).all()
         assert notificacion.token_acuse == token
         assert notificacion.alerta_id == alerta_id
@@ -165,7 +190,7 @@ def test_tc06_rf10_envio_acuse_e_historial_comparten_la_misma_notificacion(
         assert notificacion.estado is EstadoNotificacion.ENVIADA
         assert notificacion.fecha_confirmacion is None
         notificacion_id = notificacion.id
-        fecha_envio = notificacion.fecha_envio.replace(tzinfo=UTC)
+        fecha_envio = _fecha_utc(notificacion.fecha_envio)
 
     login = cliente.post("/auth/sesion", json={"correo": correo, "contrasena": CLAVE_DE_PRUEBA})
     assert login.status_code == 200
@@ -181,7 +206,7 @@ def test_tc06_rf10_envio_acuse_e_historial_comparten_la_misma_notificacion(
     assert abierto.json()["alerta"]["tipo"] == "demanda"
     assert abierto.json()["alerta"]["nivel"] == "alerta"
     assert abierto.json()["alerta"]["lugar"] == "SAR de integración"
-    with Session(motor_memoria) as sesion:
+    with Session(motor) as sesion:
         notificacion = sesion.get(Notificacion, notificacion_id)
         assert notificacion.estado is EstadoNotificacion.ENVIADA
         assert notificacion.fecha_confirmacion is None
@@ -190,9 +215,9 @@ def test_tc06_rf10_envio_acuse_e_historial_comparten_la_misma_notificacion(
     confirmado = cliente.post(f"/acuse/{token}/confirmar")
     assert confirmado.status_code == 200
     assert confirmado.json()["estado"] == "confirmada"
-    fecha_confirmacion = datetime.fromisoformat(confirmado.json()["fecha_confirmacion"]).replace(tzinfo=UTC)
+    fecha_confirmacion = _fecha_utc(datetime.fromisoformat(confirmado.json()["fecha_confirmacion"]))
     assert fecha_confirmacion >= fecha_envio
-    with Session(motor_memoria) as sesion:
+    with Session(motor) as sesion:
         [auditoria] = sesion.scalars(consulta_auditoria).all()
         auditoria_id = auditoria.id
         assert auditoria.autor_id == usuario_id
@@ -231,12 +256,12 @@ def test_tc06_rf10_envio_acuse_e_historial_comparten_la_misma_notificacion(
     repetido = cliente.post(f"/acuse/{token}/confirmar")
     assert repetido.status_code == 200
     assert repetido.json() == confirmado.json()
-    with Session(motor_memoria) as sesion:
+    with Session(motor) as sesion:
         [notificacion] = sesion.scalars(select(Notificacion)).all()
         assert notificacion.id == notificacion_id
         assert notificacion.estado is EstadoNotificacion.CONFIRMADA
-        assert notificacion.fecha_confirmacion.replace(tzinfo=UTC) == fecha_confirmacion
-        assert notificacion.fecha_envio.replace(tzinfo=UTC) == fecha_envio
+        assert _fecha_utc(notificacion.fecha_confirmacion) == fecha_confirmacion
+        assert _fecha_utc(notificacion.fecha_envio) == fecha_envio
         [auditoria] = sesion.scalars(consulta_auditoria).all()
         assert auditoria.id == auditoria_id
         assert auditoria.autor_id == usuario_id
@@ -244,6 +269,63 @@ def test_tc06_rf10_envio_acuse_e_historial_comparten_la_misma_notificacion(
     final = cliente.get("/alertas/historial")
     assert final.status_code == 200
     assert final.json() == historial.json()
+
+
+@pytest.mark.integracion
+def test_tc06_rf10_recorrido_principal_en_postgresql(crear_base_temporal, monkeypatch, smtp_bloqueado):
+    """T4 → T5 → T8 y auditoría real sobre PostgreSQL 16 migrado, en una base desechable."""
+    habitual = make_url(url_postgres())
+    url = crear_base_temporal()
+    destino = make_url(url)
+    nombre = destino.database or ""
+    assert destino.get_backend_name() == "postgresql"
+    assert re.fullmatch(r"sart_prueba_[0-9a-f]{8}", nombre), "Se requiere una base temporal de pytest"
+    assert nombre != habitual.database, "Nunca migrar ni cargar datos en la base habitual"
+    motor = create_engine(url, connect_args={"connect_timeout": 5})
+    try:
+        # Comprobar el destino efectivo y que está vacío ANTES de migrar o insertar.
+        with motor.connect() as conexion:
+            assert conexion.scalar(text("SELECT current_database()")) == nombre
+            version = int(conexion.scalar(text("SHOW server_version_num")))
+            assert version // 10000 == 16, "Esta validación requiere PostgreSQL 16"
+            assert conexion.scalar(text(
+                "SELECT count(*) FROM information_schema.tables "
+                "WHERE table_schema = 'public' AND table_type = 'BASE TABLE'"
+            )) == 0
+        config = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
+        config.attributes["url"] = url
+        command.upgrade(config, "head")
+
+        def sesion_de_prueba():
+            with Session(motor) as sesion:
+                yield sesion
+
+        monkeypatch.setenv("DATABASE_URL", url)
+        monkeypatch.setenv("JWT_SECRET", SECRETO_DE_PRUEBA)
+        monkeypatch.setenv("COOKIE_SEGURA", "false")
+        monkeypatch.setitem(app.dependency_overrides, obtener_sesion_db, sesion_de_prueba)
+        with Session(motor) as sesion:
+            usuario = dar_de_alta(
+                sesion, nombre="Jefatura de prueba", correo=CORREOS[Rol.JEFATURA], rol="jefatura",
+                contrasena=CLAVE_DE_PRUEBA,
+                aceptacion=Aceptacion(
+                    cargar_parametros()["cuentas"]["version_texto_finalidad"], datetime.now(UTC)
+                ),
+            )
+            usuario_id = usuario.id
+        datos = _preparar_demanda(motor, usuario_id)
+        with TestClient(app) as cliente:
+            _comprobar_recorrido_principal(motor, cliente, datos)
+        with Session(motor) as sesion:
+            [notificacion] = sesion.scalars(select(Notificacion)).all()
+            assert notificacion.fecha_envio.tzinfo is not None
+            assert notificacion.fecha_confirmacion.tzinfo is not None
+            registros = sesion.scalars(select(Auditoria).order_by(Auditoria.id)).all()
+            assert [r.accion for r in registros] == ["crear_cuenta", "emision_alerta", "confirmar_lectura"]
+            assert all(r.fecha.tzinfo is not None for r in registros)
+    finally:
+        # La fábrica elimina exclusivamente la base que creó después de liberar el motor.
+        motor.dispose()
 
 
 @pytest.fixture
