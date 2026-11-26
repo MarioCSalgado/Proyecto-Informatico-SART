@@ -1,5 +1,6 @@
 """RF-9, RB-3 y TC-17: configuración y auditoría a través del router de T7."""
 
+import smtplib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from pathlib import Path
@@ -17,12 +18,14 @@ from sqlalchemy.orm import Session
 from sart.api.tokens import NOMBRE_COOKIE, emitir_token
 from sart.db.auditoria import registrar_auditoria
 from sart.db.modelos import (
+    Alerta,
     Auditoria,
     CentroSalud,
     ConsultaSemanal,
     Estacion,
     ParametroAjustado,
     Pronostico,
+    SemanaCarga,
     UmbralCentro,
     Usuario,
     Zona,
@@ -269,6 +272,117 @@ def test_tc17_cambiar_k_por_api_cambia_la_clasificacion_de_la_corrida(
     assert cambio["accion"] == "cambio_parametro" and cambio["entidad_id"] == CLAVE_K
     assert (cambio["valor_anterior"], cambio["valor_nuevo"]) == (0.4, 0)
     assert cambio["motivo"] == "Prueba TC-17 sin margen"
+
+
+def test_tc17_rf10_cambiar_umbral_por_api_conserva_el_historial_de_dos_corridas(
+    admin, motor_memoria, centro, monkeypatch
+):
+    """T7 → T8: una nueva corrida usa el ajuste sin reescribir la alerta original (RF-9, RF-10)."""
+    def bloquear_smtp(*args, **kwargs):
+        pytest.fail("Conexión SMTP real bloqueada en la integración T7 → T8", pytrace=False)
+
+    monkeypatch.setattr(smtplib, "SMTP", bloquear_smtp)
+    monkeypatch.setattr(smtplib, "SMTP_SSL", bloquear_smtp)
+    # Como en TC-17, solo se simulan el panel y la salida del GLM. La corrida lee los
+    # umbrales reales, clasifica, guarda las alertas y audita con el código de producción.
+    estimados = ResultadoPronostico([PronosticoCentro(centro, 700, 640, 760)])
+    monkeypatch.setattr(semanal, "panel_desde_la_base", lambda *args, **kwargs: None)
+    monkeypatch.setattr(semanal, "pronosticar_semana", lambda *args, **kwargs: estimados)
+    with Session(motor_memoria) as sesion:
+        guardar_umbrales_calculados(sesion, {centro: (650, 713)}, anios_usados="2022–2024")
+        umbral_original_id = umbral_vigente(sesion, centro).id
+        sesion.add(
+            ConsultaSemanal(
+                centro_id=centro, anio=2025, semana=27, causa="ira_alta", grupo_edad="1_4", cantidad=700
+            )
+        )
+        sesion.commit()
+        primera = semanal.correr_semanal(sesion, fecha=date(2025, 7, 7))
+        assert primera.alertas == 1 and primera.por_nivel["alerta"] == 1
+        alerta_original_id = sesion.scalars(select(Alerta)).one().id
+
+    antes = admin.get("/alertas/historial")
+    assert antes.status_code == 200
+    [original] = antes.json()
+    assert original["id"] == alerta_original_id
+    assert original["nivel"] == "alerta"
+    assert original["pronostico"]["umbral_alerta"] == 713
+    assert original["pronostico"]["k_margen"] == 0.4
+    assert round(original["pronostico"]["valor_con_margen"]) == 715
+    assert original["observacion"] == {"consultas": None, "semana_alta": None}
+
+    cambio = admin.put(
+        UMBRAL,
+        json={"umbral_atencion": 675, "umbral_alerta": 800, "motivo": "Revisión de umbrales T7 → T8"},
+    )
+    assert cambio.status_code == 200
+    assert cambio.json()["umbral"] == {
+        "umbral_atencion": 675,
+        "umbral_alerta": 800,
+        "origen": "manual",
+        "anios_usados": None,
+    }
+    vigentes = admin.get("/administracion/umbrales")
+    assert vigentes.status_code == 200
+    assert vigentes.json() == [cambio.json()]
+    despues_del_ajuste = admin.get("/alertas/historial")
+    assert despues_del_ajuste.status_code == 200
+    assert despues_del_ajuste.json() == antes.json()
+
+    with Session(motor_memoria) as sesion:
+        retirado = sesion.get(UmbralCentro, umbral_original_id)
+        actualizado = umbral_vigente(sesion, centro)
+        assert retirado.vigente is False
+        assert (retirado.umbral_atencion, retirado.umbral_alerta) == (650, 713)
+        assert actualizado.id != umbral_original_id
+        assert (actualizado.umbral_atencion, actualizado.umbral_alerta) == (675, 800)
+        segunda = semanal.correr_semanal(sesion, fecha=date(2025, 7, 7))
+        assert segunda.alertas == 1 and segunda.por_nivel["atencion"] == 1
+        anterior, nuevo = sesion.scalars(select(Pronostico).order_by(Pronostico.id)).all()
+        assert (anterior.umbral_id, anterior.nivel, anterior.vigente) == (umbral_original_id, "alerta", False)
+        assert (nuevo.umbral_id, nuevo.nivel, nuevo.vigente) == (actualizado.id, "atencion", True)
+        assert anterior.valor == nuevo.valor == 700
+        assert anterior.k_margen == nuevo.k_margen == 0.4
+        assert anterior.valor_con_margen == nuevo.valor_con_margen
+        alerta_nueva = sesion.scalars(select(Alerta).where(Alerta.pronostico_id == nuevo.id)).one()
+        alerta_nueva_id = alerta_nueva.id
+        assert alerta_nueva_id != alerta_original_id
+        # Tras ambas corridas llega el observado: 750 supera 713, pero no 800.
+        sesion.add_all([
+            SemanaCarga(anio=2025, semana=28, centros_reportados=1, completa=True),
+            ConsultaSemanal(
+                centro_id=centro, anio=2025, semana=28, causa="ira_alta", grupo_edad="1_4", cantidad=750
+            ),
+        ])
+        sesion.commit()
+        emisiones = sesion.scalars(
+            select(Auditoria).where(Auditoria.accion == "emision_alerta").order_by(Auditoria.id)
+        ).all()
+        assert [registro.entidad_id for registro in emisiones] == [
+            str(alerta_original_id), str(alerta_nueva_id)
+        ]
+        assert [
+            (r.valor_nuevo["umbral_atencion"], r.valor_nuevo["umbral_alerta"], r.valor_nuevo["nivel"])
+            for r in emisiones
+        ] == [(650, 713, "alerta"), (675, 800, "atencion")]
+
+    historial = admin.get("/alertas/historial")
+    assert historial.status_code == 200
+    filas = {fila["id"]: fila for fila in historial.json()}
+    assert len(historial.json()) == 2
+    assert set(filas) == {alerta_original_id, alerta_nueva_id}
+    assert filas[alerta_original_id] == {
+        **original,
+        "pronostico": {**original["pronostico"], "vigente": False},
+        "observacion": {"consultas": 750, "semana_alta": True},
+    }
+    nueva = filas[alerta_nueva_id]
+    assert nueva["centro"] == original["centro"]
+    assert nueva["nivel"] == "atencion"
+    assert nueva["pronostico"] == {**original["pronostico"], "umbral_alerta": 800}
+    assert nueva["dotacion"] == original["dotacion"]
+    assert nueva["observacion"] == {"consultas": 750, "semana_alta": False}
+    assert nueva["notificaciones"] == {"tipo": "no_aplica"}
 
 
 def test_rf9_tc17_rechaza_k_que_desborda_sin_guardar(admin, motor_memoria):
