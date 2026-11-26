@@ -300,15 +300,16 @@ def _entrar_como(cliente, envio, rol):
     cliente.cookies.set(NOMBRE_COOKIE, token)
 
 
-def _comprobar_historial(cliente, envio, estado, fecha_confirmacion=None):
+def _comprobar_historial(cliente, envio, estado, fecha_confirmacion=None, *, codigo_deis=None):
     """Lee la API real como jefatura y como ambos roles de red, sin exponer tokens ni correos."""
     for rol in Rol.JEFATURA, Rol.SUBDIRECTOR, Rol.ADMINISTRADOR:
         _entrar_como(cliente, envio, rol)
-        respuesta = cliente.get("/alertas/historial")
+        filtros = {"codigo_deis": codigo_deis} if codigo_deis is not None else {}
+        respuesta = cliente.get("/alertas/historial", params=filtros)
         assert respuesta.status_code == 200
         [fila] = respuesta.json()
         assert fila["id"] == envio["alerta_id"]
-        assert fila["centro"]["codigo_deis"] == 100001
+        assert fila["centro"]["codigo_deis"] == (codigo_deis if codigo_deis is not None else 100001)
         if rol is Rol.JEFATURA:
             assert fila["notificaciones"] == {
                 "tipo": "propia", "estado": estado,
@@ -325,6 +326,7 @@ def _comprobar_historial(cliente, envio, estado, fecha_confirmacion=None):
             assert len(resumen["estados"]) == len(esperado)
         for correo in CORREOS.values():
             assert correo not in respuesta.text
+        assert envio.get("correo_jefatura", CORREOS[Rol.JEFATURA]) not in respuesta.text
         for notificacion in envio["notificaciones"].values():
             assert notificacion.token_acuse not in respuesta.text
 
@@ -462,3 +464,190 @@ def test_tc06_rf10_confirmacion_por_api_detiene_el_seguimiento_y_conserva_el_his
         else:
             assert notificacion.fecha_reenvio is None
     _comprobar_historial(cliente, envio, "confirmada", momento)
+
+
+@pytest.fixture
+def envios_de_dos_centros_con_fallo(motor_memoria, envio_para_seguimiento, crear_cuenta):
+    """Dos centros: envío correcto al primero y fallo solo para la jefatura del segundo."""
+    propio = envio_para_seguimiento
+    correo = "otra.jefatura@sart.prueba"
+    jefatura_id = crear_cuenta(correo, "jefatura")
+    intentos, correos = [], []
+
+    def transportador(destinatario, asunto, cuerpo):
+        intentos.append((destinatario, asunto, cuerpo))
+        if destinatario == correo:
+            raise OSError("Fallo de envío simulado para la segunda jefatura")
+        correos.append((destinatario, asunto, cuerpo))
+
+    with Session(motor_memoria) as sesion:
+        original = sesion.scalars(select(CentroSalud)).one()
+        centro = CentroSalud(
+            codigo_deis=100002, nombre="SAR del segundo centro", tipo=TipoCentro.SAR,
+            comuna="Concepción", zona_id=original.zona_id, estacion_id=original.estacion_id,
+        )
+        jefatura = sesion.get(Usuario, jefatura_id)
+        jefatura.centros.append(centro)
+        sesion.flush()
+        umbral = UmbralCentro(
+            centro_id=centro.id, umbral_atencion=400, umbral_alerta=500, origen=OrigenUmbral.CALCULADO
+        )
+        sesion.add(umbral)
+        sesion.flush()
+        pronostico = Pronostico(
+            centro_id=centro.id, anio=2025, semana=28, valor=545,
+            limite_inferior=500, limite_superior=590, version_modelo="integracion-fallo-envio",
+            fecha_corte=inicio_semana(2025, 27), vigente=True, nivel="alerta",
+            umbral_id=umbral.id, k_margen=0.4, valor_con_margen=propio["valor_con_margen"],
+        )
+        sesion.add(pronostico)
+        sesion.flush()
+        alerta = _emitir_alerta(sesion, pronostico, umbral, EMISION)
+        alerta_id = alerta.id
+        pendientes = alertas_por_notificar(sesion, 2025, 28)
+        assert [alerta.id for alerta in pendientes] == [alerta_id]
+        resultado = notificar_alertas(sesion, pendientes, url_base=URL, transportador=transportador)
+        sesion.commit()
+        assert resultado == {"correos_enviados": 1, "correos_fallidos": 1, "notificaciones": 2}
+        usuarios = {**propio["usuarios"], Rol.JEFATURA: jefatura_id}
+        notificaciones = {
+            rol: sesion.scalars(select(Notificacion).where(
+                Notificacion.alerta_id == alerta_id, Notificacion.usuario_id == usuario_id
+            )).one()
+            for rol, usuario_id in usuarios.items() if rol is not Rol.ADMINISTRADOR
+        }
+        fallida = notificaciones[Rol.JEFATURA]
+        assert fallida.estado is EstadoNotificacion.FALLIDA
+        assert fallida.intentos == parametros_vigentes(sesion)["notificaciones"]["reintentos_envio"]
+        assert notificaciones[Rol.SUBDIRECTOR].estado is EstadoNotificacion.ENVIADA
+        assert len(sesion.scalars(select(Notificacion)).all()) == 4
+        fecha_envio = fallida.fecha_envio.replace(tzinfo=UTC)
+    fallidos = [cuerpo for destino, _, cuerpo in intentos if destino == correo]
+    assert len(fallidos) == fallida.intentos
+    for cuerpo in fallidos:
+        assert f"{URL}/acuse/{fallida.token_acuse}" in cuerpo
+    [(destino, _, _)] = correos
+    assert destino == CORREOS[Rol.SUBDIRECTOR]
+    return {
+        "propio": propio,
+        "fallido": {
+            **propio, "usuario_id": jefatura_id, "alerta_id": alerta_id, "usuarios": usuarios,
+            "notificaciones": notificaciones, "fecha_envio": fecha_envio,
+            "correos": correos, "transportador": transportador, "correo_jefatura": correo,
+        },
+    }
+
+
+def test_tc06_rf10_envio_fallido_no_admite_acuse_y_conserva_el_fallo_en_el_historial(
+    motor_memoria, cliente, envios_de_dos_centros_con_fallo
+):
+    """T4 → T5 → T8: el fallo real da 409 al confirmar y solo avisa al administrador (RF-15 E2)."""
+    fallido = envios_de_dos_centros_con_fallo["fallido"]
+    _comprobar_historial(cliente, fallido, "fallida", codigo_deis=100002)
+    _entrar_como(cliente, fallido, Rol.JEFATURA)
+    notificacion = fallido["notificaciones"][Rol.JEFATURA]
+    abierto = cliente.get(f"/acuse/{notificacion.token_acuse}")
+    assert abierto.status_code == 200
+    assert abierto.json()["estado"] == "fallida"
+    assert abierto.json()["fecha_confirmacion"] is None
+    assert abierto.json()["alerta"]["lugar"] == "SAR del segundo centro"
+    rechazado = cliente.post(f"/acuse/{notificacion.token_acuse}/confirmar")
+    assert rechazado.status_code == 409
+    assert rechazado.json() == {"detail": "Esta notificación no se pudo enviar."}
+    assert _auditorias_del_acuse(motor_memoria, fallido) == []
+    with Session(motor_memoria) as sesion:
+        persistida = sesion.get(Notificacion, notificacion.id)
+        assert persistida.estado is EstadoNotificacion.FALLIDA
+        assert persistida.fecha_confirmacion is None
+        assert persistida.intentos == notificacion.intentos
+        assert persistida.fecha_envio.replace(tzinfo=UTC) == fallido["fecha_envio"]
+    # Las fallidas agotadas se avisan al administrador en el primer seguimiento,
+    # sin esperar los plazos de las notificaciones enviadas.
+    assert _seguir(motor_memoria, fallido, 0) == {**SIN_ACCIONES, "fallidas_avisadas": 1}
+    assert len(fallido["correos"]) == 2  # envío al subdirector y aviso al administrador
+    destino, asunto, _ = fallido["correos"][-1]
+    assert destino == CORREOS[Rol.ADMINISTRADOR]
+    assert "sin enviar" in asunto
+    [auditoria] = _auditorias_del_acuse(motor_memoria, fallido)
+    assert auditoria.accion == "avisar_fallida_administrador"
+    assert auditoria.autor_id is None and auditoria.autor_rol == "sistema"
+    assert auditoria.valor_anterior is None and auditoria.valor_nuevo is None
+    assert _seguir(motor_memoria, fallido, 0) == SIN_ACCIONES
+    assert len(fallido["correos"]) == 2
+    assert [r.id for r in _auditorias_del_acuse(motor_memoria, fallido)] == [auditoria.id]
+    with Session(motor_memoria) as sesion:
+        persistida = sesion.get(Notificacion, notificacion.id)
+        assert persistida.estado is EstadoNotificacion.FALLIDA
+        assert persistida.fecha_confirmacion is None
+        assert persistida.fecha_reenvio is None and persistida.fecha_escalamiento is None
+        assert len(sesion.scalars(select(Notificacion)).all()) == 4
+    _comprobar_historial(cliente, fallido, "fallida", codigo_deis=100002)
+
+
+def test_tc06_rf10_estados_generados_por_t4_respetan_centros_acuses_y_auditoria_403(
+    motor_memoria, cliente, envios_de_dos_centros_con_fallo
+):
+    """RNF-S-2/S-4: cada jefatura ve lo propio; la red ve conteos reales sin correos ni tokens."""
+    propio = envios_de_dos_centros_con_fallo["propio"]
+    fallido = envios_de_dos_centros_con_fallo["fallido"]
+    privados = [*CORREOS.values(), fallido["correo_jefatura"]]
+    privados += [n.token_acuse for envio in (propio, fallido) for n in envio["notificaciones"].values()]
+    for envio, ajeno, codigo, estado in (
+        (propio, fallido, 100001, "enviada"), (fallido, propio, 100002, "fallida")
+    ):
+        _entrar_como(cliente, envio, Rol.JEFATURA)
+        respuesta = cliente.get("/alertas/historial")
+        assert respuesta.status_code == 200
+        [fila] = respuesta.json()
+        assert fila["id"] == envio["alerta_id"]
+        assert fila["centro"]["codigo_deis"] == codigo
+        assert fila["notificaciones"] == {"tipo": "propia", "estado": estado, "fecha_confirmacion": None}
+        filtrado = cliente.get("/alertas/historial", params={"codigo_deis": codigo})
+        assert filtrado.status_code == 200
+        assert filtrado.json() == respuesta.json()
+        denegado = cliente.get(
+            "/alertas/historial", params={"codigo_deis": 100002 if codigo == 100001 else 100001}
+        )
+        assert denegado.status_code == 403
+        assert denegado.json() == {"detail": "Este centro no está asignado a su cuenta."}
+        token_ajeno = ajeno["notificaciones"][Rol.JEFATURA].token_acuse
+        for consulta in (
+            cliente.get(f"/acuse/{token_ajeno}"), cliente.post(f"/acuse/{token_ajeno}/confirmar")
+        ):
+            assert consulta.status_code == 404
+            assert consulta.json() == {"detail": "No existe esa notificación para su cuenta."}
+        for dato in privados:
+            assert dato not in respuesta.text and dato not in denegado.text
+
+    with Session(motor_memoria) as sesion:
+        registros = sesion.scalars(select(Auditoria).where(
+            Auditoria.accion == "acceso_denegado"
+        ).order_by(Auditoria.id)).all()
+        assert [(r.autor_id, r.entidad_id) for r in registros] == [
+            (propio["usuarios"][Rol.JEFATURA], "100002"), (fallido["usuarios"][Rol.JEFATURA], "100001")
+        ]
+        for registro in registros:
+            assert registro.autor_rol == "jefatura"
+            assert registro.entidad == "centro_salud"
+            assert registro.motivo == "RF-10: centro no asignado"
+            assert registro.valor_anterior is None and registro.valor_nuevo is None
+        assert sesion.scalars(select(Auditoria).where(Auditoria.accion == "confirmar_lectura")).all() == []
+        assert len(sesion.scalars(select(Notificacion)).all()) == 4
+        for envio, estado in ((propio, EstadoNotificacion.ENVIADA), (fallido, EstadoNotificacion.FALLIDA)):
+            persistida = sesion.get(Notificacion, envio["notificaciones"][Rol.JEFATURA].id)
+            assert persistida.estado is estado
+            assert persistida.fecha_confirmacion is None
+
+    for rol in (Rol.SUBDIRECTOR, Rol.ADMINISTRADOR):
+        _entrar_como(cliente, propio, rol)
+        respuesta = cliente.get("/alertas/historial")
+        assert respuesta.status_code == 200
+        filas = {fila["id"]: fila for fila in respuesta.json()}
+        assert len(respuesta.json()) == 2 and set(filas) == {propio["alerta_id"], fallido["alerta_id"]}
+        for envio, esperado in ((propio, {"enviada": 2}), (fallido, {"enviada": 1, "fallida": 1})):
+            resumen = filas[envio["alerta_id"]]["notificaciones"]
+            assert resumen["tipo"] == "resumen"
+            assert {fila["estado"]: fila["total"] for fila in resumen["estados"]} == esperado
+            assert len(resumen["estados"]) == len(esperado)
+        for dato in privados:
+            assert dato not in respuesta.text
