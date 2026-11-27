@@ -96,11 +96,55 @@ def ajustar(datos: pd.DataFrame, terminos: list[str]):
     return smf.glm(formula, data=d, family=sm.families.Poisson()).fit(scale="X2")
 
 
+def ajustar_binomial_negativa(datos: pd.DataFrame, terminos: list[str], alfa: float):
+    """Alternativa de CI-1: GLM Binomial Negativa (NB2), varianza μ + α·μ², α fijo (ver ``elegir_alfa``)."""
+    d = datos.dropna(subset=[*variables(terminos), "y"])
+    formula = "y ~ " + " + ".join(terminos)
+    return smf.glm(formula, data=d, family=sm.families.NegativeBinomial(alpha=alfa)).fit()
+
+
+def _desviacion(resultado, mu: pd.Series) -> pd.Series:
+    """Desviación del pronóstico: √(escala·μ) en quasi-Poisson; √(μ + α·μ²) en Binomial Negativa."""
+    familia = resultado.model.family
+    if isinstance(familia, sm.families.NegativeBinomial):
+        return np.sqrt(mu + familia.alpha * mu**2)
+    return np.sqrt(resultado.scale * mu)
+
+
+def elegir_alfa(
+    entrenamiento: pd.DataFrame, validacion: pd.DataFrame, terminos: list[str], alfas: list[float]
+) -> tuple[float, pd.DataFrame]:
+    """α de la Binomial Negativa con mejor log-verosimilitud en la validación (nunca el período de prueba)."""
+    filas = []
+    for alfa in alfas:
+        resultado = ajustar_binomial_negativa(entrenamiento, terminos, alfa)
+        d = validacion.dropna(subset=[*variables(terminos), "y"])
+        mu = resultado.predict(d)
+        log_verosimilitud = sm.families.NegativeBinomial(alpha=alfa).loglike(d["y"].to_numpy(), mu.to_numpy())
+        filas.append({"alfa": alfa, "log_verosimilitud": float(log_verosimilitud)})
+    tabla = pd.DataFrame(filas)
+    return float(tabla.loc[tabla["log_verosimilitud"].idxmax(), "alfa"]), tabla
+
+
+def elegir_k(
+    d: pd.DataFrame, ks: list[float], *, precision_minima: float, nivel_intervalo: float
+) -> tuple[float, pd.DataFrame]:
+    """Margen k de RB-3 con la mayor sensibilidad entre los que dan precisión ≥ ``precision_minima``
+    (RNF-Q-2); si ninguno llega, el de mayor precisión. Se usa con la validación, nunca con la prueba."""
+    tabla = pd.DataFrame(
+        [{"k": k, **evaluar_alertas(d.assign(_m=con_margen(d, k, nivel_intervalo)), "_m")} for k in ks]
+    )
+    cumplen = tabla[tabla["precision"] >= precision_minima]
+    fila = cumplen.loc[cumplen["sensibilidad"].idxmax()] if not cumplen.empty else tabla.loc[
+        tabla["precision"].fillna(-1).idxmax()]
+    return float(fila["k"]), tabla
+
+
 def predecir(resultado, datos: pd.DataFrame, terminos: list[str], nivel_intervalo: float) -> pd.DataFrame:
     """Pronóstico y su intervalo (``pred``, ``pred_inf``, ``pred_sup``) para las filas con datos completos."""
     d = datos.dropna(subset=variables(terminos)).copy()
     d["pred"] = resultado.predict(d)
-    desviacion = np.sqrt(resultado.scale * d["pred"])
+    desviacion = _desviacion(resultado, d["pred"])
     z = z_del_intervalo(nivel_intervalo)
     d["pred_inf"] = (d["pred"] - z * desviacion).clip(lower=0)
     d["pred_sup"] = d["pred"] + z * desviacion
