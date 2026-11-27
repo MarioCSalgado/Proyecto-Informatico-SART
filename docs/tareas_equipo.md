@@ -15,12 +15,12 @@ datos (fuentes y modelo), docs.
 |---|---|---|---|---|---|---|---|
 | T1 | Cargar el archivo real del DEIS | RF-1, TC-02 · #45 | — | M | datos, back | Daniel Aburto | Hecha (PR #18, 17/11); con datos reales la señal viral cambia (pendientes #58) |
 | T2 | Descarga automática de DEIS, SINCA y Open-Meteo | RF-1, TC-02, RNF-M-3 | T1 | L | datos, back | Daniel Aburto | Hecha (PR #20, 17/11) |
-| T3 | Alerta ambiental diaria (07:00) | RF-4, TC-12 | — | M | back | Joaquín Sandoval | Hecha (PR #19, 17/11); TC-12 se mide cuando haya pronósticos guardados |
+| T3 | Alerta ambiental diaria (07:00) | RF-4, TC-12 | — | M | back | Joaquín Sandoval | Hecha (PR #19, 17/11); 27/11: un punto de Open-Meteo por comuna (#59) y TC-12 no evaluable todavía, se mide en el invierno 2027 (#61) |
 | T4 | Correo de alerta | RF-5, TC-06 | — | M | back | Joaquín Sandoval | Hecha (PR #19, 17/11) |
 | T5 | «Confirmar lectura», reenvío y escalamiento | RF-15, RB-2, TC-06 · #34 | T4 | L | back, front | Juan Carvajal | Hecha (17/11): acuse, reenvío y escalamiento con el correo de T4 |
 | T6 | Administración de cuentas y centros desde la web | RF-9, RF-16, TC-09, TC-16 | — | L | back, front | Juan Carvajal | Hecha (16/11) |
 | T7 | Umbrales y parámetros desde la web | RF-9, RB-3, TC-17 | T6 | M | back, front | Jocabed López | Hecha (PR #21, 17/11) |
-| T8 | Historial de alertas | RF-10, TC-19 | — | M | back, front | Jocabed López | Hecha (PR #22, 17/11) salvo el backtest real del invierno 2025 (TC-19) |
+| T8 | Historial de alertas | RF-10, TC-19 | — | M | back, front | Jocabed López | Hecha (PR #22, 17/11); TC-19 con el invierno 2025 real el 27/11 (#62) |
 | T9 | Exportación CSV | RF-11, TC-15 | — | S | back, front | Joaquín Sandoval | Hecha (17/11, la hizo Mario) |
 | T10 | Mapa de centros | RF-12, TC-20 | — | M | front | Benjamín Díaz | Hecha (PR #17, 17/11) |
 | T11 | Planificador de horarios y Docker Compose completo | RNF-P-1, RNF-P-2, TC-13 | T2, T3, T4 | M | back | Daniel Aburto | Hecha (17/11, la hizo Mario) |

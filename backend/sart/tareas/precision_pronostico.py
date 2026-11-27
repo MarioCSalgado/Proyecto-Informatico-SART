@@ -38,7 +38,9 @@ def evaluar_tc12_desde_bd(
     estacion_open_meteo: str | None = None,
 ) -> ResultadoTC12:
     """Evalúa TC-12 comparando pronósticos Open-Meteo con Kingston College. Usa el punto principal
-    (``descarga.open_meteo.estacion_principal``, el de Concepción), no el de otras comunas (RF-4)."""
+    (``descarga.open_meteo.estacion_principal``, el de Concepción), no el de otras comunas (RF-4).
+
+    Sin ``desde``, el período parte en la primera emisión guardada; sin emisiones no hay días que evaluar."""
     estacion_open_meteo = (
         estacion_open_meteo or cargar_parametros()["descarga"]["open_meteo"]["estacion_principal"]
     )
@@ -79,6 +81,12 @@ def evaluar_tc12_desde_bd(
             PronosticoAmbiental.tipo == TipoMedicion.MP25,
         )
     ).all()
+
+    if desde is None:
+        # Solo cuentan los días desde la primera emisión guardada: antes no había pronóstico que evaluar y,
+        # si entraran, los años de SINCA sin pronóstico harían imposible cumplir TC-12 (pendientes #61).
+        emisiones = [_como_utc(p.emitido_en) for p in pronosticos_bd]
+        desde = min(emisiones).astimezone(ZoneInfo(zona_horaria)).date() if emisiones else date.max
 
     observaciones = []
     for medicion in mediciones:

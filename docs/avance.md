@@ -1,6 +1,6 @@
 # Avance del código
 
-Estado al **17 de noviembre de 2026**: integradas las tareas T1 a T12 del equipo (ver `docs/tareas_equipo.md`)
+Estado al **27 de noviembre de 2026**: integradas las tareas T1 a T12 del equipo; el 27/11, RF-4 en todas las comunas, la comparación con un modelo alternativo y TC-12 y TC-19 con datos reales (ver `docs/tareas_equipo.md`)
 sobre la base del 14/11. Este documento
 resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para el asistente de código está en
 `PASOS.md`; las desviaciones de la especificación, en `docs/pendientes_informe.md`; los casos de prueba, en
@@ -54,6 +54,11 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
   precisión 0,717 y sensibilidad 0,653; cobertura 91,0 %. Sigue cumpliendo RNF-Q-1 a Q-3, con poco margen en la
   precisión (pendientes #58).
 - Docker: `docker compose build` desde cero en 89 s; `docker compose up` con `/api/salud` en «ok» (TC-13).
+- 27/11, con los datos públicos reales descargados ese día (33 centros, `docs/resultados/`): el GLM
+  quasi-Poisson da WAPE 14,90 %, precisión 0,709 y sensibilidad 0,652 en 2024 al 15/11/2026; la Binomial
+  Negativa, 14,74 %, 0,743 y 0,641; la semana anterior, 14,87 %, 0,683 y 0,681 (se mantiene el quasi-Poisson,
+  #60). Invierno 2025 sin información futura: precisión 0,31 y sensibilidad 0,50 (#62). RF-4 recibe un
+  pronóstico por comuna (4 series distintas en la grilla de Open-Meteo, #59); TC-12 no es evaluable todavía (#61).
 - TC-08 (avance, no cerrado): 70 usuarios virtuales durante 5 minutos sobre `GET /centros/estado`: 3.209
   solicitudes, 0 fallidas, 10,70 solicitudes/s y p95 de 1.159 ms (`herramientas/pruebas_carga_tc08.mjs`).
 
@@ -65,9 +70,9 @@ Las tareas T1 a T12 están integradas. Queda:
 |---|---|
 | Confirmar con el equipo la propuesta de T14 (#18, #22, #24, #34, #38, #40, #42) y pasarla al informe | T14 |
 | Elegir el proveedor del LLM para el boletín (#12); mientras, sale la plantilla con las mismas cifras | RF-8, TC-18 |
-| Backtest del historial con el invierno 2025: la corrida semanal todavía no sabe pronosticar semanas pasadas | RF-10, TC-19 |
 | TC-08 sobre el boletín y Lighthouse móvil con 4G; TC-10 con 3 a 5 personas | TC-08, TC-10 |
-| Medir TC-12 cuando haya días de pronóstico de MP2,5 guardados; decidir qué hacer con las comunas sin pronóstico (Open-Meteo es un solo punto) | RF-4, TC-12 |
+| Medir TC-12 en el invierno 2027 con las emisiones que guarde el planificador; acordar el mínimo de días sobre 50 (#61) | RF-4, TC-12 |
+| Decidir con el equipo si TC-03 se reformula (el modelo empata en WAPE con la semana anterior y gana en la alerta, #60) y si conviene revisar k o los umbrales al inicio del invierno (#62) | TC-03, RF-3 |
 | Cronometrar el rollback de Docker (≤ 10 min) | TC-13 |
 | Decidir si se acepta la señal viral del panel real (pendientes #58) | RF-1, RF-2 |
 
