@@ -69,6 +69,18 @@ catalogo:                    # CI-3, RB-5 · asignación manual por comuna del n
     "Cerro Merquín": {comuna: Coronel, fuente: SINCA}         # código SINCA por verificar
     "Coronel Norte": {comuna: Coronel, fuente: SINCA}         # código SINCA por verificar
     "Open-Meteo Concepción": {comuna: Concepción, fuente: Open-Meteo, latitud: -36.83, longitud: -73.05}
+    # RF-4: un punto de pronóstico de MP2,5 por comuna (promedio de las coordenadas de sus centros de urgencia en
+    # el DEIS). La grilla de Open-Meteo (CAMS) agrupa las 10 comunas en 4 series distintas (pendientes #59):
+    # Concepción, Talcahuano, Hualpén, Chiguayante y San Pedro de la Paz; Coronel y Lota; Penco y Hualqui; Tomé.
+    "Open-Meteo Talcahuano": {comuna: Talcahuano, fuente: Open-Meteo, latitud: -36.735, longitud: -73.111}
+    "Open-Meteo Hualpén": {comuna: Hualpén, fuente: Open-Meteo, latitud: -36.791, longitud: -73.105}
+    "Open-Meteo Chiguayante": {comuna: Chiguayante, fuente: Open-Meteo, latitud: -36.936, longitud: -73.024}
+    "Open-Meteo San Pedro de la Paz": {comuna: San Pedro de la Paz, fuente: Open-Meteo, latitud: -36.849, longitud: -73.129}
+    "Open-Meteo Coronel": {comuna: Coronel, fuente: Open-Meteo, latitud: -37.009, longitud: -73.152}
+    "Open-Meteo Lota": {comuna: Lota, fuente: Open-Meteo, latitud: -37.085, longitud: -73.156}
+    "Open-Meteo Penco": {comuna: Penco, fuente: Open-Meteo, latitud: -36.731, longitud: -72.983}
+    "Open-Meteo Tomé": {comuna: Tomé, fuente: Open-Meteo, latitud: -36.599, longitud: -72.952}
+    "Open-Meteo Hualqui": {comuna: Hualqui, fuente: Open-Meteo, latitud: -36.974, longitud: -72.937}
   estacion_por_comuna:       # comunas sin estación propia usan la más cercana (REVISAR, CI-3)
     Concepción: Kingston College
     Chiguayante: Punteras
@@ -180,7 +192,8 @@ descarga:
       "JUNJI": "https://sinca.mma.gob.cl/cgi-bin/APUB-MMA/apub.tsindico2.cgi?outtype=xcl&macro=./RVIII/804/Cal/PM25//PM25.diario.diario.ic&from=111229&to=260629&path=/usr/airviro/data/CONAMA/&lang=esp&rsrc=&macropath="
       "Punteras": "https://sinca.mma.gob.cl/cgi-bin/APUB-MMA/apub.tsindico2.cgi?outtype=xcl&macro=./RVIII/854/Cal/PM25//PM25.diario.diario.ic&from=091006&to=260927&path=/usr/airviro/data/CONAMA/&lang=esp&rsrc=&macropath="
   open_meteo:
-    latitud: -36.83
+    estacion_principal: "Open-Meteo Concepción"  # clima del panel y par de Kingston College en TC-12
+    latitud: -36.83          # punto del clima (el de la estación principal)
     longitud: -73.05
     retraso_clima_dias: 7
     dias_pronostico: 5

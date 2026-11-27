@@ -20,6 +20,7 @@ from sart.dominio.valores import (
     OrigenMedicion,
     TipoMedicion,
 )
+from sart.parametros import cargar_parametros
 
 
 def _como_utc(fecha: datetime) -> datetime:
@@ -34,8 +35,13 @@ def evaluar_tc12_desde_bd(
     zona_horaria: str = "America/Santiago",
     desde: date | None = None,
     hasta: date | None = None,
+    estacion_open_meteo: str | None = None,
 ) -> ResultadoTC12:
-    """Evalúa TC-12 comparando pronósticos Open-Meteo con Kingston College."""
+    """Evalúa TC-12 comparando pronósticos Open-Meteo con Kingston College. Usa el punto principal
+    (``descarga.open_meteo.estacion_principal``, el de Concepción), no el de otras comunas (RF-4)."""
+    estacion_open_meteo = (
+        estacion_open_meteo or cargar_parametros()["descarga"]["open_meteo"]["estacion_principal"]
+    )
 
     kingston = sesion.scalars(
         select(Estacion).where(
@@ -50,11 +56,12 @@ def evaluar_tc12_desde_bd(
     open_meteo = sesion.scalars(
         select(Estacion).where(
             Estacion.fuente == FuenteEstacion.OPEN_METEO,
+            Estacion.nombre == estacion_open_meteo,
         )
     ).one_or_none()
 
     if open_meteo is None:
-        raise ValueError("No existe una estación Open-Meteo única.")
+        raise ValueError(f"No existe la estación Open-Meteo «{estacion_open_meteo}».")
 
     unidad_esperada = UNIDAD_POR_TIPO[TipoMedicion.MP25]
 

@@ -30,6 +30,7 @@ def test_tc12_conecta_pronosticos_con_observaciones_reales(base_prueba):
         open_meteo = sesion.scalars(
             select(Estacion).where(
                 Estacion.fuente == FuenteEstacion.OPEN_METEO,
+                Estacion.nombre == "Open-Meteo Concepción",  # el punto principal (RF-4 agrega uno por comuna)
             )
         ).one()
 

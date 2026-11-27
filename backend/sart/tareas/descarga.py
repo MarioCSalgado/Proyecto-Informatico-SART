@@ -163,6 +163,28 @@ def convertir_pronostico(crudo: Path, destino: Path) -> None:
     tabla.to_csv(destino, index=False)
 
 
+def puntos_pronostico(parametros: dict) -> list[tuple[str, float, float]]:
+    """Estaciones Open-Meteo del catálogo (una por comuna, RF-4) como (nombre, latitud, longitud).
+
+    La principal va primero para que sus archivos conserven el nombre de siempre."""
+    principal = parametros["descarga"]["open_meteo"]["estacion_principal"]
+    puntos = [
+        (nombre, float(datos["latitud"]), float(datos["longitud"]))
+        for nombre, datos in parametros["catalogo"]["estaciones"].items()
+        if datos["fuente"] == FuenteEstacion.OPEN_METEO.value
+    ]
+    return sorted(puntos, key=lambda punto: punto[0] != principal)
+
+
+def separar_puntos(crudo: Path, esperados: int) -> list[dict]:
+    """Open-Meteo responde una lista con un objeto por punto, en el orden de la consulta (o un objeto)."""
+    contenido = json.loads(crudo.read_text(encoding="utf-8"))
+    partes = contenido if isinstance(contenido, list) else [contenido]
+    if len(partes) != esperados:
+        raise ValueError(f"Open-Meteo devolvió {len(partes)} puntos y se pidieron {esperados} puntos.")
+    return partes
+
+
 def _validar_sinca(ruta: Path) -> None:
     datos = _leer_csv(ruta)
     faltantes = set(COLUMNAS_SINCA.values()) - set(datos.columns)
@@ -330,23 +352,32 @@ def correr_descarga(
         ]
 
     procesar("Open-Meteo/clima", url_clima, clima)
+    # RF-4: un punto por comuna, todos en una sola consulta (latitudes y longitudes separadas por comas).
+    puntos = puntos_pronostico(parametros)
     url_mp = _url_api(
         coord["pronostico_url"],
         {
-            **comunes,
+            "latitude": ",".join(str(lat) for _, lat, _ in puntos),
+            "longitude": ",".join(str(lon) for _, _, lon in puntos),
+            "timezone": parametros["zona_horaria"],
             "hourly": "pm2_5,pm10",
             "forecast_days": coord["dias_pronostico"],
         },
     )
 
     def pronostico(crudo):
-        csv = crudo.with_suffix(".csv")
-        convertir_pronostico(crudo, csv)
-        r = cargar_pronostico_mp25(sesion, csv, parametros)
-        return r.filas, [
-            (crudo, carpeta / "pronostico_mp25_openmeteo.json"),
-            (csv, carpeta / "pronostico_mp25_openmeteo.csv"),
-        ]
+        emitido_en = datetime.now(ZoneInfo("UTC"))  # una sola emisión para todos los puntos
+        filas, publicar = 0, [(crudo, carpeta / "pronostico_mp25_openmeteo.json")]
+        partes = separar_puntos(crudo, len(puntos))
+        for i, ((nombre, _, _), parte) in enumerate(zip(puntos, partes, strict=True)):
+            sufijo = "" if i == 0 else f"_{i:02d}"  # el principal conserva el nombre de siempre
+            json_punto = crudo.with_name(f"punto{sufijo}.json")
+            json_punto.write_text(json.dumps(parte), encoding="utf-8")
+            csv = json_punto.with_suffix(".csv")
+            convertir_pronostico(json_punto, csv)
+            filas += cargar_pronostico_mp25(sesion, csv, parametros, emitido_en, estacion=nombre).filas
+            publicar.append((csv, carpeta / f"pronostico_mp25_openmeteo{sufijo}.csv"))
+        return filas, publicar
 
     procesar("Open-Meteo/pronostico", url_mp, pronostico)
     return resumen

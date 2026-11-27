@@ -284,13 +284,16 @@ def _guardar_mediciones(sesion: Session, filas: list[dict]) -> None:
     )
 
 
-def _estacion_open_meteo(sesion: Session) -> Estacion:
-    estaciones = sesion.scalars(select(Estacion).where(Estacion.fuente == FuenteEstacion.OPEN_METEO)).all()
-    if not estaciones:
-        raise ValueError("No hay estación de Open-Meteo: primero cargue el catálogo (catalogo.estaciones).")
-    if len(estaciones) > 1:
-        raise ValueError("Hay más de una estación de Open-Meteo en el catálogo; no se sabe a cuál cargar.")
-    return estaciones[0]
+def _estacion_open_meteo(sesion: Session, nombre: str) -> Estacion:
+    """Estación Open-Meteo por nombre: hay una por comuna (RF-4); el clima usa la principal."""
+    estacion = sesion.scalar(
+        select(Estacion).where(Estacion.fuente == FuenteEstacion.OPEN_METEO, Estacion.nombre == nombre)
+    )
+    if estacion is None:
+        raise ValueError(
+            f"No hay estación de Open-Meteo «{nombre}»: primero cargue el catálogo (catalogo.estaciones)."
+        )
+    return estacion
 
 
 def cargar_sinca(
@@ -353,9 +356,11 @@ def _cargar_open_meteo(
     origen: OrigenMedicion,
     parametros: dict[str, Any] | None,
     emitido_en: datetime | None = None,
+    estacion: str | None = None,
 ) -> ResumenMediciones:
     parametros = parametros or cargar_parametros()
-    estacion = _estacion_open_meteo(sesion)
+    principal = parametros["descarga"]["open_meteo"]["estacion_principal"]
+    estacion = _estacion_open_meteo(sesion, estacion or principal)
     datos = pd.read_csv(ruta)
     _exigir_columnas(datos, {"fecha": columna_fecha}, Path(ruta))
     momentos = _a_utc(datos[columna_fecha], parametros["zona_horaria"])
@@ -444,8 +449,11 @@ def cargar_pronostico_mp25(
     ruta: Path,
     parametros: dict[str, Any] | None = None,
     emitido_en: datetime | None = None,
+    estacion: str | None = None,
 ) -> ResumenMediciones:
-    """Carga pronósticos horarios y conserva el histórico de sus emisiones."""
+    """Carga pronósticos horarios y conserva el histórico de sus emisiones.
+
+    ``estacion`` es la estación Open-Meteo de la comuna (RF-4); sin ella, la principal."""
     return _cargar_open_meteo(
         sesion,
         ruta,
@@ -454,4 +462,5 @@ def cargar_pronostico_mp25(
         OrigenMedicion.PRONOSTICO,
         parametros,
         emitido_en,
+        estacion,
     )

@@ -72,7 +72,7 @@ def test_una_zona_por_comuna_y_estaciones_del_catalogo(sesion):
 
     assert sesion.scalar(select(func.count()).select_from(Zona)) == 10
     estaciones = {e.nombre: e for e in sesion.scalars(select(Estacion))}
-    assert len(estaciones) == 7
+    assert len(estaciones) == 16  # 6 de SINCA y 10 de Open-Meteo, una por comuna (RF-4, pendientes #59)
     assert estaciones["Kingston College"].es_respaldo is True  # RB-5
     assert sum(e.es_respaldo for e in estaciones.values()) == 1
     assert estaciones["Open-Meteo Concepción"].fuente is FuenteEstacion.OPEN_METEO

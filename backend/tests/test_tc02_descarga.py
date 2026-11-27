@@ -27,6 +27,12 @@ def parametros():
     # La prueba usa solo Kingston College, aunque el YAML liste más estaciones SINCA
     sinca = p["descarga"]["sinca"]["estaciones"]
     p["descarga"]["sinca"]["estaciones"] = {"Kingston College": sinca["Kingston College"]}
+    # y un solo punto de Open-Meteo (el principal); los 10 de RF-4 están en test_rf4_cobertura_comunas.py
+    principal = p["descarga"]["open_meteo"]["estacion_principal"]
+    p["catalogo"]["estaciones"] = {
+        nombre: datos for nombre, datos in p["catalogo"]["estaciones"].items()
+        if datos["fuente"] != "Open-Meteo" or nombre == principal
+    }
     return p
 
 
