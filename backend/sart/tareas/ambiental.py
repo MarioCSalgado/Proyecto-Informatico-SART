@@ -45,6 +45,9 @@ class ResumenAmbiental:
     datos_insuficientes: list[str] = field(default_factory=list)
     fuente: str = "pronostico"
     sensibilidad_tc12: float | None = None
+    # Incluye las ya guardadas que esta corrida volvió a evaluar (RF-5).
+    # No representa una búsqueda de pendientes en todo el histórico.
+    alertas_evaluadas: list[int] = field(default_factory=list)
 
     def texto(self) -> str:
         lineas = [
@@ -120,8 +123,8 @@ def _guardar_alerta(
     nivel,
     fuente: str,
     emision: datetime,
-) -> bool:
-    """Guarda una alerta ambiental sin duplicar la misma fuente y fecha."""
+) -> tuple[Alerta, bool]:
+    """Devuelve la alerta de la zona, fuente y fecha, y si se acaba de crear (RF-4/RF-5)."""
     if fuente == "pronostico":
         existente = sesion.scalar(
             select(Alerta).where(
@@ -142,7 +145,7 @@ def _guardar_alerta(
         )
 
     if existente is not None:
-        return False
+        return existente, False
 
     if fuente == "pronostico":
         mensaje = (
@@ -196,7 +199,7 @@ def _guardar_alerta(
         motivo="RF-4: corrida ambiental diaria",
     )
 
-    return True
+    return alerta, True
 
 
 def _estaciones_sinca(sesion: Session) -> dict[str, Estacion]:
@@ -345,7 +348,7 @@ def _correr_sinca(
         if nivel.clave == "normal":
             continue
 
-        if _guardar_alerta(
+        alerta, creada = _guardar_alerta(
             sesion,
             zona=zona,
             dia=dia_observado,
@@ -353,7 +356,9 @@ def _correr_sinca(
             nivel=nivel,
             fuente="sinca",
             emision=emision,
-        ):
+        )
+        resumen.alertas_evaluadas.append(alerta.id)
+        if creada:
             resumen.alertas += 1
 
     sesion.commit()
@@ -442,7 +447,7 @@ def _correr_pronostico(
                 f"No existe la zona {resultado.zona!r} en la base de datos."
             )
 
-        if _guardar_alerta(
+        alerta, creada = _guardar_alerta(
             sesion,
             zona=zona,
             dia=resultado.dia,
@@ -450,7 +455,9 @@ def _correr_pronostico(
             nivel=resultado.nivel,
             fuente="pronostico",
             emision=emision,
-        ):
+        )
+        resumen.alertas_evaluadas.append(alerta.id)
+        if creada:
             resumen.alertas += 1
 
     sesion.commit()

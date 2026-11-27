@@ -231,6 +231,13 @@ def test_cli_ambiental_ejecuta_corrida_con_fecha(
         "DATABASE_URL",
         base_prueba.url.render_as_string(hide_password=False),
     )
+    monkeypatch.setenv("SART_URL_PUBLICA", "http://sart.example.test")
+
+    def bloquear_smtp(*args, **kwargs):
+        pytest.fail("RF-4/RF-5: esta prueba no debe abrir SMTP real")
+
+    monkeypatch.setattr("smtplib.SMTP", bloquear_smtp)
+    monkeypatch.setattr("smtplib.SMTP_SSL", bloquear_smtp)
 
     monkeypatch.setattr(
         "sart.tareas.ambiental._sensibilidad_tc12",
@@ -244,6 +251,7 @@ def test_cli_ambiental_ejecuta_corrida_con_fecha(
     salida = capsys.readouterr().out
     assert f"Corrida ambiental desde {fecha}" in salida
     assert "1 alertas ambientales emitidas" in salida
+    assert "RF-5: 0 correo(s) enviado(s), 0 fallido(s), 0 notificación(es) registrada(s)." in salida
 
     corrida = sesion.scalars(
         select(Corrida).where(Corrida.tarea == TAREA)

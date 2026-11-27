@@ -8,7 +8,9 @@ from sart.db.destinatarios import destinatarios_de_alerta
 from sart.db.modelos import (
     Alerta,
     CentroSalud,
+    DotacionSugerida,
     Estacion,
+    Notificacion,
     Pronostico,
     Usuario,
     Zona,
@@ -232,6 +234,54 @@ def test_envio_exitoso_registra_notificacion(motor_memoria):
         assert notificacion.token_acuse in correos[0][2] or any(
             notificacion.token_acuse in correo[2] for correo in correos
         )
+
+
+def test_rf5_contenido_demanda_conserva_cifras_formato_y_acuse(motor_memoria, monkeypatch):
+    from sart.tareas.notificaciones import notificar_alertas
+
+    def bloquear_smtp(*args, **kwargs):
+        pytest.fail("RF-5: esta prueba no debe abrir SMTP real")
+
+    monkeypatch.setattr("smtplib.SMTP", bloquear_smtp)
+    monkeypatch.setattr("smtplib.SMTP_SSL", bloquear_smtp)
+    correos = []
+    emision = datetime(2026, 10, 9, 10, tzinfo=UTC)
+    with Session(motor_memoria) as sesion:
+        _, _, centro, _, _, _, _ = _crear_estructura(sesion)
+        pronostico = _crear_pronostico(sesion, centro)
+        pronostico.valor = 545.0
+        pronostico.limite_inferior = 500.0
+        pronostico.limite_superior = 590.0
+        pronostico.dotacion = DotacionSugerida(
+            profesionales=3, llegadas_hora_punta=20.0, espera_media_min=4.2,
+            espera_con_uno_menos_min=55.0, supuestos={},
+        )
+        alerta = Alerta(
+            tipo=TipoAlerta.DEMANDA, nivel="alerta", centro_id=centro.id,
+            pronostico_id=pronostico.id, fecha_emision=emision,
+            mensaje="TEXTO-LIBRE-DE-DEMANDA-NO-ENVIAR",
+        )
+        sesion.add(alerta)
+        sesion.flush()
+        resultado = notificar_alertas(
+            sesion, [alerta], url_base="http://sart.example.test",
+            transportador=lambda destino, asunto, cuerpo: correos.append((destino, asunto, cuerpo)),
+        )
+        assert resultado == {"correos_enviados": 2, "correos_fallidos": 0, "notificaciones": 2}
+        assert len(correos) == 2
+        for destino, asunto, cuerpo in correos:
+            usuario = sesion.scalar(select(Usuario).where(Usuario.correo == destino))
+            notificacion = sesion.scalar(select(Notificacion).where(Notificacion.usuario_id == usuario.id))
+            assert asunto == "SART: 1 alerta(s) requieren atención"
+            assert cuerpo == "\n".join([
+                f"Hola {usuario.nombre}:", "", "Se han generado las siguientes alertas en SART:", "",
+                "Tipo: demanda", "Nivel: alerta", "Emitida: 2026-10-09T10:00:00+00:00",
+                "Centro: Centro A", "Pronóstico de consultas: 545.00",
+                "Intervalo del pronóstico: 500.00 – 590.00",
+                "Dotación sugerida: 3 profesionales", "Espera media estimada: 4.2 minutos",
+                f"Acuse de recibo: http://sart.example.test/acuse/{notificacion.token_acuse}",
+                "", "-" * 45, "",
+            ])
 
 
 def test_envio_fallido_realiza_tres_intentos(motor_memoria):
