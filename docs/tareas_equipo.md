@@ -104,8 +104,10 @@ datos (fuentes y modelo), docs.
   controlados en SQLite y PostgreSQL, y pruebas de la pantalla.
 - **Pendiente de aceptación (TC-19):** obtener el panel real (`datos/procesados/panel_semanal.parquet`),
   reproducir las emisiones del invierno de 2025 y verificar cada alerta frente a las consultas observadas.
-- **Pendiente de integración:** probar el flujo completo de envío y acuse cuando se incorporen T4 y T5.
-  El historial ya lee los estados que quedan guardados en `notificacion`.
+- **Integración validada con datos controlados y sintéticos:** recorrido T4 → T5 → T8 probado de forma
+  automatizada en SQLite y PostgreSQL, y recorrido principal confirmado manualmente en la interfaz con
+  SMTP local y Mailpit. Evidencia y alcance en [pruebas de integración](pruebas_integracion.md).
+  Sigue pendiente la aceptación de TC-19 con datos reales del invierno de 2025.
 - **Terminado cuando:** pasa TC-19.
 
 ### T9 · Exportación CSV (RF-11, TC-15)
