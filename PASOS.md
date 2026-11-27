@@ -21,6 +21,10 @@ aislada. Recupera las alertas que la misma corrida vuelve a evaluar sin duplicar
 No cambia la regla de aumento de nivel ni define antigüedad de pendientes. Alcance y pendientes en
 `docs/avance.md`; pruebas en `backend/tests/test_rf4_rf5_integracion.py`.
 
+Segunda etapa: el correo distingue pronóstico de Open-Meteo y observación SINCA de respaldo, e incluye
+la aclaración no oficial con texto controlado. Pruebas de contenido ambiental y regresión del cuerpo de
+demanda con transportadores simulados; no supone validación completa de RF-4/RF-5 ni de TC-12.
+
 ### Seguimiento T13 · 16/11/2026
 
 TC-08 tiene una medición de carga preliminar satisfactoria en `GET /centros/estado` (70 usuarios virtuales,

@@ -148,7 +148,11 @@ def _comprobar_envio(motor, correos, fuente):
             assert "Zona: Zona afectada" in cuerpo
             assert "Zona ajena" not in cuerpo
             assert "95.0 µg/m³" in cuerpo
-            assert f"Fuente: {fuente}" in cuerpo
+            assert (
+                "Fuente: Open-Meteo (pronóstico ambiental)"
+                if fuente == "pronostico"
+                else "Fuente: SINCA (observación utilizada como respaldo, no es un pronóstico)"
+            ) in cuerpo
             assert DIA.isoformat() in cuerpo
             assert f"http://sart.example.test/acuse/{notificacion.token_acuse}" in cuerpo
 
@@ -160,6 +164,43 @@ def test_rf4_rf5_comando_genera_envia_y_persiste(escenario, monkeypatch, fuente)
         monkeypatch.setattr("sart.tareas.ambiental._sensibilidad_tc12", lambda *args: (False, 0.0))
     assert _ejecutar() == 0
     _comprobar_envio(motor, correos, fuente)
+
+
+@pytest.mark.parametrize("fuente", ["pronostico", "sinca"])
+def test_rf4_rf5_contenido_ambiental_controlado_y_con_acuse(escenario, monkeypatch, fuente):
+    motor, correos = escenario
+    if fuente == "sinca":
+        monkeypatch.setattr("sart.tareas.ambiental._sensibilidad_tc12", lambda *args: (False, 0.0))
+    with Session(motor) as sesion:
+        correr_ambiental(sesion, fecha=DIA)
+        alerta = sesion.scalars(select(Alerta)).one()
+        # El correo debe usar campos estructurados y texto controlado, no el mensaje libre.
+        alerta.mensaje = "TEXTO-LIBRE-QUE-NO-DEBE-SALIR-EN-EL-CORREO"
+        sesion.commit()
+    assert _ejecutar() == 0
+    _comprobar_envio(motor, correos, fuente)
+    for _, asunto, cuerpo in correos:
+        assert asunto == "SART: 1 alerta(s) requieren atención"
+        assert "Se han generado las siguientes alertas en SART:" in cuerpo
+        assert "Tipo: ambiental" in cuerpo
+        assert "Nivel: alerta" in cuerpo
+        assert "Emitida: " in cuerpo
+        assert cuerpo.count(
+            "Este aviso de SART no constituye una declaración oficial de episodio crítico."
+        ) == 1
+        assert "TEXTO-LIBRE-QUE-NO-DEBE-SALIR-EN-EL-CORREO" not in cuerpo
+        assert "Pronóstico de consultas:" not in cuerpo
+        assert "Dotación sugerida:" not in cuerpo
+        if fuente == "pronostico":
+            assert "Fuente: Open-Meteo (pronóstico ambiental)" in cuerpo
+            assert f"Día pronosticado: {DIA}" in cuerpo
+            assert "Día observado:" not in cuerpo
+            assert "Fuente: SINCA" not in cuerpo
+        else:
+            assert "Fuente: SINCA (observación utilizada como respaldo, no es un pronóstico)" in cuerpo
+            assert f"Día observado: {DIA}" in cuerpo
+            assert "Día pronosticado:" not in cuerpo
+            assert "Fuente: Open-Meteo" not in cuerpo
 
 
 @pytest.mark.parametrize("fuente", ["pronostico", "sinca"])

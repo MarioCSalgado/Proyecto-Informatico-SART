@@ -51,10 +51,21 @@ evalúa, incluidas las ya guardadas. Conserva los destinatarios, estados y lími
 persistencia, repetición sin duplicados y recuperación de avisos pendientes, en SQLite en memoria y con
 transportador simulado; SMTP real está bloqueado. La recuperación se limita a las alertas evaluadas:
 no se definió una política de antigüedad ni se modificó la regla de aumento de nivel. Quedan pendientes
-la aclaración en el cuerpo del correo, la prueba de este recorrido en PostgreSQL y la validación SMTP local.
+la prueba de este recorrido en PostgreSQL y la validación SMTP local.
 Esta etapa no acredita la sensibilidad real de TC-12 ni cierra TC-19.
 Verificación de esta etapa: 105 pruebas relacionadas aprobadas (11 nuevas), Ruff y `git diff --check`
 sin errores. Se excluyó expresamente la prueba SMTP opcional de Mailpit para no enviar correos.
+
+### Contenido del correo ambiental RF-4/RF-5 · segunda etapa (27/11/2026)
+
+El correo distingue Open-Meteo (pronóstico ambiental) de SINCA (observación utilizada como respaldo,
+no un pronóstico). Conserva zona, emisión, nivel, MP2,5, día objetivo u observado y enlace de acuse.
+Añade texto controlado indicando que el aviso de SART no constituye una declaración oficial de episodio
+crítico, sin copiar el mensaje libre de la alerta. También se aplica al recordatorio que reutiliza ese detalle.
+Las pruebas comprueban ambos contenidos ambientales y que el cuerpo del correo de demanda conserve
+sus cifras y formato: 67 pruebas relacionadas aprobadas (3 nuevas), con SQLite aislada y transportadores
+simulados; Ruff y `git diff --check` sin errores. Se excluyó la prueba SMTP opcional de Mailpit.
+Este avance no valida por completo RF-4/RF-5 ni la sensibilidad real de TC-12, ni cierra TC-19.
 
 ### Cifras verificadas
 

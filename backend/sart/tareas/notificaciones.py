@@ -93,12 +93,18 @@ def _detalle_alerta(sesion: Session, alerta: Alerta) -> list[str]:
             lineas.append(f"Zona: {zona.nombre}")
 
         lineas.append(f"MP2,5: {alerta.valor_mp25} µg/m³")
-        lineas.append(f"Fuente: {alerta.fuente_ambiental}")
+        fuentes = {
+            "pronostico": "Open-Meteo (pronóstico ambiental)",
+            "sinca": "SINCA (observación utilizada como respaldo, no es un pronóstico)",
+        }
+        lineas.append(f"Fuente: {fuentes.get(alerta.fuente_ambiental, alerta.fuente_ambiental)}")
 
         if alerta.dia_pronosticado:
             lineas.append(f"Día pronosticado: {alerta.dia_pronosticado}")
         if alerta.dia_observado:
             lineas.append(f"Día observado: {alerta.dia_observado}")
+        # RF-4 E2: texto controlado; no copiar alerta.mensaje al correo (RNF-S-5).
+        lineas.append("Este aviso de SART no constituye una declaración oficial de episodio crítico.")
 
     return lineas
 
