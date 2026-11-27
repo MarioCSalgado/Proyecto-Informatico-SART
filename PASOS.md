@@ -25,6 +25,11 @@ Segunda etapa: el correo distingue pronóstico de Open-Meteo y observación SINC
 la aclaración no oficial con texto controlado. Pruebas de contenido ambiental y regresión del cuerpo de
 demanda con transportadores simulados; no supone validación completa de RF-4/RF-5 ni de TC-12.
 
+Tercera etapa: seis casos PostgreSQL aprobados reutilizando `crear_base_temporal`, con destino verificado
+antes de migrar o insertar y SMTP bloqueado. Cubren generación/envío, repetición y recuperación dentro de
+la reevaluación actual, con pronóstico y SINCA. No hubo cambios de producción; SMTP local ambiental y la
+validación real de TC-12 siguen pendientes.
+
 ### Seguimiento T13 · 16/11/2026
 
 TC-08 tiene una medición de carga preliminar satisfactoria en `GET /centros/estado` (70 usuarios virtuales,

@@ -50,8 +50,8 @@ evalúa, incluidas las ya guardadas. Conserva los destinatarios, estados y lími
 `backend/tests/test_rf4_rf5_integracion.py` comprueba el recorrido con pronósticos y respaldo SINCA,
 persistencia, repetición sin duplicados y recuperación de avisos pendientes, en SQLite en memoria y con
 transportador simulado; SMTP real está bloqueado. La recuperación se limita a las alertas evaluadas:
-no se definió una política de antigüedad ni se modificó la regla de aumento de nivel. Quedan pendientes
-la prueba de este recorrido en PostgreSQL y la validación SMTP local.
+no se definió una política de antigüedad ni se modificó la regla de aumento de nivel. La prueba de este
+recorrido en PostgreSQL se completó en la tercera etapa; sigue pendiente la validación SMTP local.
 Esta etapa no acredita la sensibilidad real de TC-12 ni cierra TC-19.
 Verificación de esta etapa: 105 pruebas relacionadas aprobadas (11 nuevas), Ruff y `git diff --check`
 sin errores. Se excluyó expresamente la prueba SMTP opcional de Mailpit para no enviar correos.
@@ -66,6 +66,19 @@ Las pruebas comprueban ambos contenidos ambientales y que el cuerpo del correo d
 sus cifras y formato: 67 pruebas relacionadas aprobadas (3 nuevas), con SQLite aislada y transportadores
 simulados; Ruff y `git diff --check` sin errores. Se excluyó la prueba SMTP opcional de Mailpit.
 Este avance no valida por completo RF-4/RF-5 ni la sensibilidad real de TC-12, ni cierra TC-19.
+
+### Integración ambiental en PostgreSQL · tercera etapa (27/11/2026)
+
+Se reutilizan los escenarios de generación/envío, repetición sin duplicados y recuperación de una alerta
+guardada que la corrida vuelve a evaluar, tanto con pronóstico como con respaldo SINCA: seis casos sobre
+PostgreSQL 16.16. Cada caso usa `crear_base_temporal`, verifica el nombre `sart_prueba_<identificador>` y
+`current_database()` antes de migrar o insertar, y aplica Alembic a esa URL temporal. Se comprueban nivel,
+zona, fechas, fuente, destinatarios, estado e intentos mediante conexiones nuevas después del comando.
+SMTP está bloqueado y el envío utiliza el transportador simulado de T4. Las seis bases temporales se
+eliminaron al terminar; no se escribió en `sart` ni en la base de demostración anterior.
+Resultado: 6 casos PostgreSQL y 67 pruebas relacionadas de SQLite aprobados; Ruff y `git diff --check`
+sin errores. No hubo cambios de producción. Sigue pendiente la demostración SMTP local ambiental; no se
+amplían el aumento de nivel ni la recuperación de pendientes, ni se cierra la validación real de TC-12/TC-19.
 
 ### Cifras verificadas
 

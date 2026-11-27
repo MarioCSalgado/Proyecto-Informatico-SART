@@ -1,12 +1,17 @@
 """RF-4/RF-5: la corrida ambiental entrega sus alertas al envío real de T4."""
 
+import re
 import smtplib
 from datetime import UTC, date, datetime, time, timedelta
 from functools import partial
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
-from sqlalchemy import delete, select, update
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine, delete, select, text, update
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from sart.db.modelos import Alerta, CentroSalud, Estacion, Medicion, Notificacion, Usuario, Zona
@@ -25,6 +30,7 @@ from sart.tareas.ambiental import correr_ambiental
 from sart.tareas.notificaciones import notificar_alertas
 
 DIA = date(2026, 10, 10)
+MOTORES = ["sqlite", pytest.param("postgresql", marks=pytest.mark.integracion)]
 
 
 @pytest.fixture(autouse=True)
@@ -43,7 +49,36 @@ def sin_smtp_real(monkeypatch):
 
 
 @pytest.fixture
-def escenario(motor_memoria, monkeypatch):
+def motor_ambiental(request):
+    """RF-4/RF-5: reutiliza SQLite o migra PostgreSQL solo tras verificar la base temporal."""
+    if getattr(request, "param", "sqlite") == "sqlite":
+        yield request.getfixturevalue("motor_memoria")
+        return
+
+    assert request.param == "postgresql"
+    crear_base_temporal = request.getfixturevalue("crear_base_temporal")
+    url = crear_base_temporal()
+    destino = make_url(url)
+    nombre = destino.database or ""
+    assert destino.get_backend_name() == "postgresql"
+    assert re.fullmatch(r"sart_prueba_[0-9a-f]{8}", nombre), "Se requiere una base temporal de pytest"
+    motor = create_engine(url, connect_args={"connect_timeout": 5})
+    try:
+        # No migrar ni insertar antes de verificar la conexión efectiva.
+        with motor.connect() as conexion:
+            assert conexion.scalar(text("SELECT current_database()")) == nombre
+            version = conexion.scalar(text("SHOW server_version"))
+        print(f"RF-4/RF-5: destino temporal verificado {destino.host}:{destino.port}/{nombre}; PG {version}")
+        config = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
+        config.attributes["url"] = url
+        command.upgrade(config, "head")
+        yield motor
+    finally:
+        motor.dispose()
+
+
+@pytest.fixture
+def escenario(motor_ambiental, monkeypatch):
     """Dos zonas controladas; la jefatura afectada tiene dos centros en la misma zona."""
     parametros = cargar_parametros()
     parametros["escenario"]["comunas"] = ["Zona afectada", "Zona ajena"]
@@ -52,7 +87,7 @@ def escenario(motor_memoria, monkeypatch):
         "Zona afectada": "SINCA afectada", "Zona ajena": "SINCA ajena",
     }
     inicio = datetime.combine(DIA, time.min, tzinfo=ZoneInfo(parametros["zona_horaria"]))
-    with Session(motor_memoria) as sesion:
+    with Session(motor_ambiental) as sesion:
         zonas = [Zona(nombre=nombre) for nombre in parametros["escenario"]["comunas"]]
         sesion.add_all(zonas)
         sesion.flush()
@@ -104,11 +139,12 @@ def escenario(motor_memoria, monkeypatch):
 
     monkeypatch.setattr("sart.tareas.ambiental.parametros_vigentes", lambda sesion: parametros)
     monkeypatch.setattr("sart.tareas.ambiental._sensibilidad_tc12", lambda *args: (True, 1.0))
-    monkeypatch.setenv("DATABASE_URL", "sqlite://")
-    monkeypatch.setattr(comando, "crear_motor", lambda: motor_memoria)
-    # La conexión en memoria debe sobrevivir al cierre del comando para verificar la persistencia.
-    # El fixture motor_memoria la libera cuando termina la prueba.
-    monkeypatch.setattr(motor_memoria, "dispose", lambda: None)
+    monkeypatch.setenv("DATABASE_URL", motor_ambiental.url.render_as_string(hide_password=False))
+    monkeypatch.setattr(comando, "crear_motor", lambda: motor_ambiental)
+    if motor_ambiental.dialect.name == "sqlite":
+        # SQLite en memoria debe sobrevivir al comando para verificar la persistencia.
+        # PostgreSQL conserva dispose real: la lectura posterior abre otra conexión.
+        monkeypatch.setattr(motor_ambiental, "dispose", lambda: None)
     correos = []
 
     def transportar(destinatario, asunto, cuerpo):
@@ -116,7 +152,7 @@ def escenario(motor_memoria, monkeypatch):
 
     monkeypatch.setenv("SART_URL_PUBLICA", "http://sart.example.test")
     monkeypatch.setattr(comando, "notificar_alertas", partial(notificar_alertas, transportador=transportar))
-    return motor_memoria, correos
+    return motor_ambiental, correos
 
 
 def _ejecutar():
@@ -130,7 +166,11 @@ def _comprobar_envio(motor, correos, fuente):
         assert alerta.fuente_ambiental == fuente
         assert alerta.nivel == "alerta"
         assert alerta.valor_mp25 == pytest.approx(95.0)
+        assert alerta.zona_id == sesion.scalar(select(Zona.id).where(Zona.nombre == "Zona afectada"))
+        assert alerta.fecha_emision is not None
         assert (alerta.dia_pronosticado if fuente == "pronostico" else alerta.dia_observado) == DIA
+        if motor.dialect.name == "postgresql":
+            assert alerta.fecha_emision.tzinfo is not None
         filas = sesion.execute(
             select(Notificacion, Usuario.correo)
             .join(Usuario, Usuario.id == Notificacion.usuario_id)
@@ -143,6 +183,8 @@ def _comprobar_envio(motor, correos, fuente):
             assert notificacion.alerta_id == alerta.id
             assert notificacion.estado == EstadoNotificacion.ENVIADA
             assert notificacion.fecha_envio is not None
+            if motor.dialect.name == "postgresql":
+                assert notificacion.fecha_envio.tzinfo is not None
             assert notificacion.intentos == 1
             cuerpo = por_destinatario[correo]
             assert "Zona: Zona afectada" in cuerpo
@@ -158,6 +200,7 @@ def _comprobar_envio(motor, correos, fuente):
 
 
 @pytest.mark.parametrize("fuente", ["pronostico", "sinca"])
+@pytest.mark.parametrize("motor_ambiental", MOTORES, indirect=True)
 def test_rf4_rf5_comando_genera_envia_y_persiste(escenario, monkeypatch, fuente):
     motor, correos = escenario
     if fuente == "sinca":
@@ -204,6 +247,7 @@ def test_rf4_rf5_contenido_ambiental_controlado_y_con_acuse(escenario, monkeypat
 
 
 @pytest.mark.parametrize("fuente", ["pronostico", "sinca"])
+@pytest.mark.parametrize("motor_ambiental", MOTORES, indirect=True)
 def test_rf4_rf5_repetir_comando_no_duplica_notificaciones(escenario, monkeypatch, fuente):
     motor, correos = escenario
     if fuente == "sinca":
@@ -225,6 +269,7 @@ def test_rf4_rf5_repetir_comando_no_duplica_notificaciones(escenario, monkeypatc
 
 
 @pytest.mark.parametrize("fuente", ["pronostico", "sinca"])
+@pytest.mark.parametrize("motor_ambiental", MOTORES, indirect=True)
 def test_rf4_rf5_recupera_alerta_de_la_corrida_guardada_sin_notificar(escenario, monkeypatch, fuente):
     motor, correos = escenario
     if fuente == "sinca":

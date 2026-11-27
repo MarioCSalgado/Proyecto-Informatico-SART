@@ -2,11 +2,14 @@
 
 Avance RF-4/RF-5 (27/11/2026): `backend/tests/test_rf4_rf5_integracion.py` verifica el comando ambiental
 con envío simulado, persistencia y repetición/recuperación sin duplicados, tanto con pronósticos como con
-SINCA, en SQLite aislada. No acredita la sensibilidad real de TC-12 ni el backtest de TC-19; este recorrido
-ambiental todavía no se ha validado con PostgreSQL ni SMTP local.
+SINCA, en SQLite aislada y PostgreSQL temporal. No acredita la sensibilidad real de TC-12 ni el backtest
+de TC-19; sigue pendiente la validación SMTP local del recorrido ambiental.
 Segunda etapa: se prueba también la distinción entre pronóstico y observación SINCA en el correo,
 la aclaración no oficial controlada y la conservación del contenido de demanda (`test_rf5_envio.py`).
 No se amplía el alcance de validación real de los TC.
+Tercera etapa: seis casos PostgreSQL aprobados (generación/envío, repetición y recuperación dentro de la
+reevaluación actual, cada uno con pronóstico y SINCA). Se verificó el destino antes de migrar y se limpiaron
+las bases creadas por `crear_base_temporal`; envío simulado con SMTP real bloqueado.
 
 | Caso | RF | Implementado | Pasa | Archivo |
 |---|---|---|---|---|
