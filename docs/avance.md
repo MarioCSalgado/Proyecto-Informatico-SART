@@ -43,6 +43,19 @@ resume qué hay, qué falta y en qué orden seguir. El detalle de cada paso para
 | Exportación CSV | «Descargar CSV» (Mi centro) y «Exportar red CSV» (Red de centros), con los centros que cada rol ve | RF-11, TC-15 | `GET /exportar/centros.csv` (T9, pendientes #56) |
 | Sistema de diseño | Colores, tipografía (Figtree + Noto Sans), formas y componentes de SART; tokens en `App.scss` y tema de MUI con los mismos valores; contrastes AA verificados; niveles con texto e ícono SVG | RNF-U-1 | `DESIGN.md`, `web/src/tema.ts` |
 
+### Integración ambiental RF-4/RF-5 · primera etapa (27/11/2026)
+
+El comando `python -m sart.tareas ambiental` entrega al envío de T4 las alertas que la propia corrida
+evalúa, incluidas las ya guardadas. Conserva los destinatarios, estados y límites de intentos existentes.
+`backend/tests/test_rf4_rf5_integracion.py` comprueba el recorrido con pronósticos y respaldo SINCA,
+persistencia, repetición sin duplicados y recuperación de avisos pendientes, en SQLite en memoria y con
+transportador simulado; SMTP real está bloqueado. La recuperación se limita a las alertas evaluadas:
+no se definió una política de antigüedad ni se modificó la regla de aumento de nivel. Quedan pendientes
+la aclaración en el cuerpo del correo, la prueba de este recorrido en PostgreSQL y la validación SMTP local.
+Esta etapa no acredita la sensibilidad real de TC-12 ni cierra TC-19.
+Verificación de esta etapa: 105 pruebas relacionadas aprobadas (11 nuevas), Ruff y `git diff --check`
+sin errores. Se excluyó expresamente la prueba SMTP opcional de Mailpit para no enviar correos.
+
 ### Cifras verificadas
 
 - 17/11, todo integrado, con PostgreSQL y `datos/`: backend **507 pruebas pasan y 4 se saltan** (Mailpit y las

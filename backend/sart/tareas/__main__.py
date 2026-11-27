@@ -18,9 +18,11 @@ import argparse
 import sys
 from datetime import date, timedelta
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from sart.db.alertas import alertas_por_notificar
+from sart.db.modelos import Alerta
 from sart.db.sesion import SinBaseDeDatos, crear_motor
 from sart.parametros import ErrorParametros
 from sart.tareas.ambiental import ErrorCorridaAmbiental, correr_ambiental
@@ -111,6 +113,17 @@ def _ambiental(fecha: date | None) -> int:
         with Session(motor) as session:
             try:
                 resumen = correr_ambiental(session, fecha = fecha)
+                # RF-4/RF-5: solo las alertas evaluadas en esta corrida. T4 omite
+                # las ya notificadas y conserva su límite de intentos de envío.
+                alertas = list(session.scalars(
+                    select(Alerta).where(Alerta.id.in_(resumen.alertas_evaluadas)).order_by(Alerta.id)
+                ))
+                envio = (
+                    notificar_alertas(session, alertas)
+                    if alertas
+                    else {"correos_enviados": 0, "correos_fallidos": 0, "notificaciones": 0}
+                )
+                session.commit()
             except (
                 ErrorCorridaAmbiental,
                 ValueError,
@@ -123,6 +136,11 @@ def _ambiental(fecha: date | None) -> int:
         motor.dispose()
 
     print(resumen.texto())
+    print(
+        f"RF-5: {envio['correos_enviados']} correo(s) enviado(s), "
+        f"{envio['correos_fallidos']} fallido(s), "
+        f"{envio['notificaciones']} notificación(es) registrada(s)."
+    )
     return 0
 
 def _tc12() -> int:

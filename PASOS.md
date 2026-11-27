@@ -14,6 +14,13 @@ anótalo en `docs/pendientes_informe.md` y pregúntame.
 Partes 1 a 10 **hechas**: el resumen de lo que quedó funcionando está en `docs/avance.md`. La base está
 terminada; el trabajo sigue repartido en el equipo con `docs/tareas_equipo.md`.
 
+### Integración RF-4/RF-5 · 27/11/2026
+
+Primera conexión del comando ambiental con el envío de T4, probada con transportador simulado y SQLite
+aislada. Recupera las alertas que la misma corrida vuelve a evaluar sin duplicar los envíos ya registrados.
+No cambia la regla de aumento de nivel ni define antigüedad de pendientes. Alcance y pendientes en
+`docs/avance.md`; pruebas en `backend/tests/test_rf4_rf5_integracion.py`.
+
 ### Seguimiento T13 · 16/11/2026
 
 TC-08 tiene una medición de carga preliminar satisfactoria en `GET /centros/estado` (70 usuarios virtuales,

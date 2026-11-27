@@ -1,5 +1,10 @@
 # Estado de los casos de prueba
 
+Avance RF-4/RF-5 (27/11/2026): `backend/tests/test_rf4_rf5_integracion.py` verifica el comando ambiental
+con envío simulado, persistencia y repetición/recuperación sin duplicados, tanto con pronósticos como con
+SINCA, en SQLite aislada. No acredita la sensibilidad real de TC-12 ni el backtest de TC-19; este recorrido
+ambiental todavía no se ha validado con PostgreSQL ni SMTP local.
+
 | Caso | RF | Implementado | Pasa | Archivo |
 |---|---|---|---|---|
 | TC-01 | RF-1 | ☑ | ☑ | `backend/tests/test_tc01_semanas.py` (calendario y semanas que cruzan el año) y `test_tc01_semana_incompleta.py` (marca de RB-4) |
