@@ -51,7 +51,8 @@ evalúa, incluidas las ya guardadas. Conserva los destinatarios, estados y lími
 persistencia, repetición sin duplicados y recuperación de avisos pendientes, en SQLite en memoria y con
 transportador simulado; SMTP real está bloqueado. La recuperación se limita a las alertas evaluadas:
 no se definió una política de antigüedad ni se modificó la regla de aumento de nivel. La prueba de este
-recorrido en PostgreSQL se completó en la tercera etapa; sigue pendiente la validación SMTP local.
+recorrido en PostgreSQL se completó en la tercera etapa y el envío SMTP local se comprobó con Mailpit
+(ver abajo); sigue pendiente la revisión visual personal de la usuaria.
 Esta etapa no acredita la sensibilidad real de TC-12 ni cierra TC-19.
 Verificación de esta etapa: 105 pruebas relacionadas aprobadas (11 nuevas), Ruff y `git diff --check`
 sin errores. Se excluyó expresamente la prueba SMTP opcional de Mailpit para no enviar correos.
@@ -77,8 +78,53 @@ zona, fechas, fuente, destinatarios, estado e intentos mediante conexiones nueva
 SMTP está bloqueado y el envío utiliza el transportador simulado de T4. Las seis bases temporales se
 eliminaron al terminar; no se escribió en `sart` ni en la base de demostración anterior.
 Resultado: 6 casos PostgreSQL y 67 pruebas relacionadas de SQLite aprobados; Ruff y `git diff --check`
-sin errores. No hubo cambios de producción. Sigue pendiente la demostración SMTP local ambiental; no se
-amplían el aumento de nivel ni la recuperación de pendientes, ni se cierra la validación real de TC-12/TC-19.
+sin errores. No hubo cambios de producción. La preparación SMTP local quedó comprobada con Mailpit;
+su revisión visual personal sigue pendiente. No se amplían el aumento de nivel ni la recuperación de
+pendientes, ni se cierra la validación real de TC-12/TC-19.
+
+### SMTP local con Mailpit y revisión técnica (27/11/2026)
+
+Se preparó una base PostgreSQL nueva y aislada, distinta de `sart` y de la demo anterior, con datos
+exclusivamente sintéticos de Concepción. El comando ambiental real envió cuatro correos por SMTP local
+a Mailpit (1025; bandeja 8025): uno a jefatura y otro a subdirección para cada ejemplo.
+
+| Ejemplo | Fecha del dato | MP2,5 | Nivel |
+|---|---|---|---|
+| SINCA, observación de respaldo | 26/11/2026 | 85 µg/m³ | Alerta |
+| Open-Meteo, pronóstico | 28/11/2026 | 95 µg/m³ | Alerta |
+
+Se verificaron por API de Mailpit el contenido, la fuente, la aclaración no oficial y el enlace de acuse.
+Repetir cada comando inmediatamente después no creó correos ni notificaciones adicionales. Las cuatro
+notificaciones quedaron enviadas con un intento y sin confirmar. El backend de esta demo (8002) y el
+frontend (5175, proxy exclusivo a 8002) funcionan separados de los servicios anteriores; no se modificaron
+`.env`, Compose ni `vite.config.ts`. Los lanzadores y parámetros temporales permanecen fuera del repositorio.
+
+**La revisión visual y la confirmación personal de la usuaria siguen pendientes.** No se confirmó ningún
+acuse durante la preparación. La historia que habilitó el ejemplo de pronóstico es sintética: no valida
+la sensibilidad real de TC-12 ni el invierno 2025 de TC-19.
+
+Límites de la integración revisada: solo recupera alertas reevaluadas por la corrida; no versiona aumentos
+de nivel para la misma zona, fuente y día. Los intentos se consumen por notificación y no se reinician al
+repetir el comando. Según el comportamiento actual de T4, un fallo SMTP se guarda como `fallida` y se informa
+en el resumen, pero el comando devuelve 0: ese código por sí solo no acredita el envío. La idempotencia
+se prueba en ejecuciones secuenciales; no se afirma entrega única ante caídas entre SMTP y el commit o
+corridas simultáneas (riesgos de lectura, sin reproducción en esta revisión).
+
+La revisión añadió 23 casos: fallo SMTP persistido y límite total de intentos (1 y 3), fallo transitorio,
+recuperación tras corregir la URL del acuse, conservación de una fallida con intentos disponibles,
+agrupamiento por destinatario de varias zonas y envío de todos los niveles ambientales no normales.
+El archivo de integración reúne 42 casos, incluidos 10 sobre PostgreSQL temporal. No cambió producción.
+Suite backend completa: **545 aprobadas, 0 fallos y 9 omitidas**, con **22 pruebas de integración PostgreSQL
+aprobadas**. Ocho omisiones requieren datos reales ausentes y una es el SMTP opcional, no repetido porque
+Mailpit ya se comprobó. Cobertura de dominio y tareas: **93,3 %** (mínimo 70 %); Ruff y `git diff --check`
+sin errores. La ejecución bloqueó SMTP real y usó una base de control desechable además de las bases de
+los fixtures; no quedaron bases `sart_prueba_*`. No se repitió la suite web: no hay cambios en `web`.
+
+Tras `git fetch origin --prune`, `origin/main` sigue en `26ff32f` (ningún commit por integrar). Aparecieron
+las ramas remotas `rf-4/cobertura-comunas` y `rf-4/tc12-evaluacion`, todavía fuera de main y sin PR abierto
+asociado al revisar. La primera amplía los puntos Open-Meteo y ajusta la selección usada por TC-12; la
+segunda revisa el período evaluable y documenta una propuesta de muestra mínima. No se incorporaron.
+Coordinar su integración y repetir la regresión conjunta antes de declarar RF-4 validado en producción.
 
 ### Cifras verificadas
 

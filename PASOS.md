@@ -27,8 +27,19 @@ demanda con transportadores simulados; no supone validación completa de RF-4/RF
 
 Tercera etapa: seis casos PostgreSQL aprobados reutilizando `crear_base_temporal`, con destino verificado
 antes de migrar o insertar y SMTP bloqueado. Cubren generación/envío, repetición y recuperación dentro de
-la reevaluación actual, con pronóstico y SINCA. No hubo cambios de producción; SMTP local ambiental y la
-validación real de TC-12 siguen pendientes.
+la reevaluación actual, con pronóstico y SINCA. No hubo cambios de producción; la validación real de TC-12
+sigue pendiente.
+
+SMTP local preparado con Mailpit y una base nueva aislada: cuatro correos (dos destinatarios por ejemplo),
+SINCA de respaldo con 85 µg/m³ el 26/11 y pronóstico con 95 µg/m³ el 28/11. Se verificaron contenido y
+repetición sin duplicados por API, con backend 8002 y frontend 5175 separados de los servicios previos.
+**La revisión visual personal está pendiente y no se confirmó ningún acuse.** Esta evidencia sintética no
+cierra TC-12. Límites y coordinación con las nuevas ramas remotas de RF-4 en `docs/avance.md`.
+
+Revisión final: 23 casos adicionales sin cambios de producción; suite backend completa con 545 aprobadas,
+9 omitidas y 22 de integración PostgreSQL aprobadas. Cobertura de dominio/tareas 93,3 %, Ruff y diff sin
+errores. El archivo ambiental suma 42 casos (10 PostgreSQL). No hay credenciales, tokens ni datos de la
+demo incorporados. La revisión visual personal y la validación real de TC-12 siguen pendientes.
 
 ### Seguimiento T13 · 16/11/2026
 

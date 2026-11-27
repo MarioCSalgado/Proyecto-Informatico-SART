@@ -2,6 +2,7 @@
 
 import re
 import smtplib
+from collections import Counter
 from datetime import UTC, date, datetime, time, timedelta
 from functools import partial
 from pathlib import Path
@@ -358,3 +359,188 @@ def test_rf4_rf5_recupera_solo_el_destinatario_sin_notificar(escenario):
         enviada = sesion.get(Notificacion, original[0])
         assert (enviada.id, enviada.fecha_envio, enviada.token_acuse, enviada.intentos) == original
         assert len(sesion.scalars(select(Notificacion)).all()) == 2
+
+
+@pytest.mark.parametrize("fuente", ["pronostico", "sinca"])
+@pytest.mark.parametrize("limite", [1, 3])
+@pytest.mark.parametrize("motor_ambiental", MOTORES, indirect=True)
+def test_rf4_rf5_fallo_smtp_agota_limite_sin_reiniciarlo(escenario, monkeypatch, capsys, fuente, limite):
+    motor, correos = escenario
+    if fuente == "sinca":
+        monkeypatch.setattr("sart.tareas.ambiental._sensibilidad_tc12", lambda *args: (False, 0.0))
+    parametros = cargar_parametros()
+    parametros["notificaciones"]["reintentos_envio"] = limite
+    monkeypatch.setattr("sart.tareas.notificaciones.cargar_parametros", lambda: parametros)
+    intentos = Counter()
+
+    def fallar(destino, asunto, cuerpo):
+        intentos[destino] += 1
+        raise smtplib.SMTPException("Fallo simulado de envío")
+
+    monkeypatch.setattr(comando, "notificar_alertas", partial(notificar_alertas, transportador=fallar))
+    assert _ejecutar() == 0  # Contrato actual: el comando informa las fallidas en su resumen.
+    salida = capsys.readouterr().out
+    assert "RF-5: 0 correo(s) enviado(s), 2 fallido(s), 2 notificación(es) registrada(s)." in salida
+    assert intentos == {"afectada@example.test": limite, "subdireccion@example.test": limite}
+    assert correos == []
+    with Session(motor) as sesion:
+        assert len(sesion.scalars(select(Alerta)).all()) == 1
+        filas = sesion.scalars(select(Notificacion).order_by(Notificacion.id)).all()
+        assert len(filas) == 2
+        assert all(n.estado == EstadoNotificacion.FALLIDA and n.intentos == limite for n in filas)
+        assert all(n.fecha_confirmacion is None for n in filas)
+        originales = [(n.id, n.token_acuse, n.fecha_envio, n.intentos) for n in filas]
+    assert _ejecutar() == 0
+    salida = capsys.readouterr().out
+    assert "RF-5: 0 correo(s) enviado(s), 0 fallido(s), 0 notificación(es) registrada(s)." in salida
+    assert intentos == {"afectada@example.test": limite, "subdireccion@example.test": limite}
+    with Session(motor) as sesion:
+        filas = sesion.scalars(select(Notificacion).order_by(Notificacion.id)).all()
+        assert [(n.id, n.token_acuse, n.fecha_envio, n.intentos) for n in filas] == originales
+        assert all(n.estado == EstadoNotificacion.FALLIDA for n in filas)
+
+
+@pytest.mark.parametrize("fuente", ["pronostico", "sinca"])
+def test_rf4_rf5_fallo_transitorio_se_recupera_sin_afectar_al_otro_destinatario(
+    escenario, monkeypatch, fuente,
+):
+    motor, correos = escenario
+    if fuente == "sinca":
+        monkeypatch.setattr("sart.tareas.ambiental._sensibilidad_tc12", lambda *args: (False, 0.0))
+    intentos = Counter()
+
+    def transportar(destino, asunto, cuerpo):
+        intentos[destino] += 1
+        if destino == "afectada@example.test" and intentos[destino] == 1:
+            raise smtplib.SMTPException("Fallo transitorio simulado")
+        correos.append((destino, asunto, cuerpo))
+
+    monkeypatch.setattr(comando, "notificar_alertas", partial(notificar_alertas, transportador=transportar))
+    assert _ejecutar() == 0
+    assert intentos == {"afectada@example.test": 2, "subdireccion@example.test": 1}
+    assert len(correos) == 2
+    with Session(motor) as sesion:
+        filas = sesion.execute(
+            select(Notificacion, Usuario.correo).join(Usuario, Usuario.id == Notificacion.usuario_id)
+        ).all()
+        assert len(filas) == 2
+        assert all(n.estado == EstadoNotificacion.ENVIADA for n, _ in filas)
+        assert {correo: n.intentos for n, correo in filas} == dict(intentos)
+    assert _ejecutar() == 0
+    assert len(correos) == 2
+    assert intentos == {"afectada@example.test": 2, "subdireccion@example.test": 1}
+
+
+@pytest.mark.parametrize("fuente", ["pronostico", "sinca"])
+def test_rf4_rf5_recupera_tras_corregir_url_del_acuse(escenario, monkeypatch, fuente):
+    motor, correos = escenario
+    if fuente == "sinca":
+        monkeypatch.setattr("sart.tareas.ambiental._sensibilidad_tc12", lambda *args: (False, 0.0))
+    monkeypatch.delenv("SART_URL_PUBLICA")
+    assert _ejecutar() == 1
+    with Session(motor) as sesion:
+        alerta = sesion.scalars(select(Alerta)).one()
+        original = (alerta.id, alerta.fecha_emision)
+        assert sesion.scalars(select(Notificacion)).all() == []
+    assert correos == []
+    monkeypatch.setenv("SART_URL_PUBLICA", "http://sart.example.test")
+    assert _ejecutar() == 0
+    _comprobar_envio(motor, correos, fuente)
+    with Session(motor) as sesion:
+        alerta = sesion.scalars(select(Alerta)).one()
+        assert (alerta.id, alerta.fecha_emision) == original
+
+
+def test_rf4_rf5_varias_zonas_agrupan_solo_las_alertas_de_cada_destinatario(escenario, monkeypatch):
+    motor, correos = escenario
+    monkeypatch.setattr("sart.tareas.ambiental._sensibilidad_tc12", lambda *args: (False, 0.0))
+    with Session(motor) as sesion:
+        estacion = sesion.scalar(select(Estacion).where(Estacion.nombre == "SINCA ajena"))
+        sesion.execute(update(Medicion).where(Medicion.estacion_id == estacion.id).values(valor=125.0))
+        jefatura = sesion.scalar(select(Usuario).where(Usuario.correo == "afectada@example.test"))
+        otro_centro = sesion.scalar(select(CentroSalud).where(CentroSalud.codigo_deis == 1003))
+        jefatura.centros.append(otro_centro)
+        sesion.commit()
+    assert _ejecutar() == 0
+    assert len(correos) == 3
+    por_destinatario = {destino: (asunto, cuerpo) for destino, asunto, cuerpo in correos}
+    assert set(por_destinatario) == {
+        "afectada@example.test", "ajena@example.test", "subdireccion@example.test"
+    }
+    for correo in ("afectada@example.test", "subdireccion@example.test"):
+        asunto, cuerpo = por_destinatario[correo]
+        assert asunto == "SART: 2 alerta(s) requieren atención"
+        assert cuerpo.count("Zona: Zona afectada") == cuerpo.count("Zona: Zona ajena") == 1
+        assert cuerpo.count("Acuse de recibo:") == 2
+        assert cuerpo.count("no constituye una declaración oficial de episodio crítico") == 2
+    asunto, cuerpo = por_destinatario["ajena@example.test"]
+    assert asunto == "SART: 1 alerta(s) requieren atención"
+    assert "Zona: Zona afectada" not in cuerpo and cuerpo.count("Zona: Zona ajena") == 1
+    with Session(motor) as sesion:
+        assert len(sesion.scalars(select(Alerta)).all()) == 2
+        filas = sesion.scalars(select(Notificacion).order_by(Notificacion.id)).all()
+        assert len(filas) == 5
+        assert all(n.estado == EstadoNotificacion.ENVIADA and n.intentos == 1 for n in filas)
+        originales = [(n.id, n.token_acuse, n.fecha_envio) for n in filas]
+    assert _ejecutar() == 0
+    assert len(correos) == 3
+    with Session(motor) as sesion:
+        assert [
+            (n.id, n.token_acuse, n.fecha_envio)
+            for n in sesion.scalars(select(Notificacion).order_by(Notificacion.id))
+        ] == originales
+
+
+@pytest.mark.parametrize("fuente", ["pronostico", "sinca"])
+@pytest.mark.parametrize(
+    "valor,nivel",
+    [(51.0, "sobre_la_norma"), (80.0, "alerta"), (110.0, "preemergencia"), (170.0, "emergencia")],
+)
+def test_rf4_rf5_envia_todos_los_niveles_ambientales_no_normales(
+    escenario, monkeypatch, fuente, valor, nivel,
+):
+    motor, correos = escenario
+    if fuente == "sinca":
+        monkeypatch.setattr("sart.tareas.ambiental._sensibilidad_tc12", lambda *args: (False, 0.0))
+    with Session(motor) as sesion:
+        zona_id = sesion.scalar(select(Zona.id).where(Zona.nombre == "Zona afectada"))
+        sesion.execute(update(Medicion).where(
+            Medicion.estacion_id.in_(select(Estacion.id).where(Estacion.zona_id == zona_id))
+        ).values(valor=valor))
+        sesion.commit()
+    assert _ejecutar() == 0
+    assert len(correos) == 2
+    assert all(f"Nivel: {nivel}" in cuerpo for _, _, cuerpo in correos)
+    with Session(motor) as sesion:
+        assert sesion.scalars(select(Alerta)).one().nivel == nivel
+        filas = sesion.scalars(select(Notificacion)).all()
+        assert len(filas) == 2 and all(n.estado == EstadoNotificacion.ENVIADA for n in filas)
+
+
+@pytest.mark.parametrize("fuente", ["pronostico", "sinca"])
+def test_rf4_rf5_fallida_con_intentos_disponibles_conserva_identidad_y_consumo(
+    escenario, monkeypatch, fuente,
+):
+    motor, correos = escenario
+    if fuente == "sinca":
+        monkeypatch.setattr("sart.tareas.ambiental._sensibilidad_tc12", lambda *args: (False, 0.0))
+    with Session(motor) as sesion:
+        correr_ambiental(sesion, fecha=DIA)
+        alerta = sesion.scalars(select(Alerta)).one()
+        jefatura = sesion.scalar(select(Usuario).where(Usuario.correo == "afectada@example.test"))
+        fallida = Notificacion(
+            alerta_id=alerta.id, usuario_id=jefatura.id, estado=EstadoNotificacion.FALLIDA,
+            fecha_envio=datetime(2026, 10, 9, 12, tzinfo=UTC), intentos=2,
+        )
+        sesion.add(fallida)
+        sesion.commit()
+        original = (fallida.id, fallida.token_acuse)
+    assert _ejecutar() == 0
+    assert len(correos) == 2
+    with Session(motor) as sesion:
+        notificacion = sesion.get(Notificacion, original[0])
+        assert (notificacion.id, notificacion.token_acuse) == original
+        assert notificacion.estado == EstadoNotificacion.ENVIADA and notificacion.intentos == 3
+        assert len(sesion.scalars(select(Notificacion)).all()) == 2
+    assert _ejecutar() == 0
+    assert len(correos) == 2
