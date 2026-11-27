@@ -20,6 +20,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 from sqlalchemy import select, update
@@ -142,18 +143,33 @@ def _hoy(parametros: dict[str, Any]) -> date:
 
 
 def correr_semanal(
-    sesion: Session, *, fecha: date | None = None, parametros: dict[str, Any] | None = None
+    sesion: Session,
+    *,
+    fecha: date | None = None,
+    parametros: dict[str, Any] | None = None,
+    fecha_corte: date | None = None,
+    emision: datetime | None = None,
 ) -> ResumenSemanal:
     """Hace la corrida semanal y la registra en ``corrida``. ``fecha`` es el día de la corrida (por defecto,
-    hoy en ``zona_horaria``); solo cambia si el pronóstico está desactualizado (RF-3 E2)."""
+    hoy en ``zona_horaria``); solo cambia si el pronóstico está desactualizado (RF-3 E2).
+
+    Reproducción histórica (TC-19): con ``fecha_corte`` (un domingo, no posterior a la última semana completa)
+    se pronostica la semana siguiente usando solo las consultas hasta esa fecha, y las alertas quedan con la
+    hora ``emision`` de ese lunes. No envía correos: eso lo hace ``python -m sart.tareas semanal``."""
     with registrar_corrida(sesion, TAREA) as corrida:
-        resumen = _correr(sesion, fecha, parametros)
+        resumen = _correr(sesion, fecha, parametros, fecha_corte, emision)
         corrida.filas = resumen.pronosticos
         corrida.mensaje = resumen.texto()
     return resumen
 
 
-def _correr(sesion: Session, fecha: date | None, parametros: dict[str, Any] | None) -> ResumenSemanal:
+def _correr(
+    sesion: Session,
+    fecha: date | None,
+    parametros: dict[str, Any] | None,
+    corte_historico: date | None = None,
+    emision: datetime | None = None,
+) -> ResumenSemanal:
     parametros = parametros or parametros_vigentes(sesion)
     modelo = parametros["modelo"]
     if modelo["especificacion"] not in ESPECIFICACIONES_DISPONIBLES:
@@ -161,11 +177,20 @@ def _correr(sesion: Session, fecha: date | None, parametros: dict[str, Any] | No
             f"La corrida semanal solo está disponible con modelo.especificacion: solo_rezagos (está "
             f"«{modelo['especificacion']}»): con_pronostico necesita el MP2,5 pronosticado (RF-2 E2)."
         )
-    fecha = fecha or _hoy(parametros)
     fecha_corte = marcar_semanas(sesion, parametros)
     if fecha_corte is None:
         raise ErrorCorridaSemanal("No hay semanas completas (RB-4): primero cargue las consultas del DEIS.")
+    if corte_historico is not None:
+        if corte_historico > fecha_corte or corte_historico.weekday() != 6:
+            raise ErrorCorridaSemanal(
+                f"La fecha de corte {corte_historico} debe ser un domingo no posterior a la última semana "
+                f"completa ({fecha_corte}) (TC-19)."
+            )
+        fecha_corte = corte_historico
     objetivo = semana_objetivo(fecha_corte)
+    if emision is not None:
+        fecha = fecha or emision.astimezone(ZoneInfo(parametros["zona_horaria"])).date()
+    fecha = fecha or (objetivo if corte_historico else _hoy(parametros))
     anio, semana = semana_epidemiologica(objetivo)
     resumen = ResumenSemanal(
         fecha_corte=fecha_corte,
@@ -199,7 +224,7 @@ def _correr(sesion: Session, fecha: date | None, parametros: dict[str, Any] | No
     )
     k = float(parametros["regla_alerta"]["k_margen"])
     version = version_modelo(modelo["especificacion"], str(modelo["version"]))
-    emision = datetime.now(UTC)
+    emision = emision or datetime.now(UTC)
 
     for estimado in resultado.pronosticos:
         centro = centros[estimado.estab]
